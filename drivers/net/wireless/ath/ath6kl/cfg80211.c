@@ -895,8 +895,8 @@ static int ath6kl_cfg80211_scan(struct wiphy *wiphy, struct net_device *ndev,
 	if (request->n_ssids && request->ssids[0].ssid_len) {
 		u8 i;
 
-		if (request->n_ssids > (MAX_PROBED_SSID_INDEX - 1))
-			request->n_ssids = MAX_PROBED_SSID_INDEX - 1;
+		if (request->n_ssids > (MAX_PROBED_SSIDS - 1))
+			request->n_ssids = MAX_PROBED_SSIDS - 1;
 
 		for (i = 0; i < request->n_ssids; i++)
 			ath6kl_wmi_probedssid_cmd(ar->wmi, vif->fw_vif_idx,
@@ -3165,7 +3165,7 @@ int ath6kl_cfg80211_init(struct ath6kl *ar)
 	}
 
 	/* max num of ssids that can be probed during scanning */
-	wiphy->max_scan_ssids = MAX_PROBED_SSID_INDEX;
+	wiphy->max_scan_ssids = MAX_PROBED_SSIDS;
 	wiphy->max_scan_ie_len = 1000; /* FIX: what is correct limit? */
 	wiphy->bands[IEEE80211_BAND_2GHZ] = &ath6kl_band_2ghz;
 	wiphy->bands[IEEE80211_BAND_5GHZ] = &ath6kl_band_5ghz;
@@ -3184,7 +3184,7 @@ int ath6kl_cfg80211_init(struct ath6kl *ar)
 	wiphy->wowlan.pattern_min_len = 1;
 	wiphy->wowlan.pattern_max_len = WOW_PATTERN_SIZE;
 
-	wiphy->max_sched_scan_ssids = 10;
+	wiphy->max_sched_scan_ssids = MAX_PROBED_SSIDS;
 
 	ar->wiphy->flags |= WIPHY_FLAG_SUPPORTS_FW_ROAM |
 			    WIPHY_FLAG_HAVE_AP_SME |
