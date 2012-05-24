@@ -13,6 +13,7 @@ struct file;
 struct path;
 struct inode;
 struct dentry;
+struct user_namespace;
 
 struct seq_file {
 	char *buf;
@@ -26,6 +27,9 @@ struct seq_file {
 	struct mutex lock;
 	const struct seq_operations *op;
 	int poll_event;
+#ifdef CONFIG_USER_NS
+	struct user_namespace *user_ns;
+#endif
 	void *private;
 };
 
