@@ -1437,6 +1437,9 @@ static int __init ath6kl_sdio_init(void)
 {
 	int ret;
 
+#ifdef ATH6KL_ENABLE_ANDROID
+	ath6kl_sdio_init_android();
+#endif
 	ret = sdio_register_driver(&ath6kl_sdio_driver);
 	if (ret)
 		ath6kl_err("sdio driver registration failed: %d\n", ret);
@@ -1447,6 +1450,9 @@ static int __init ath6kl_sdio_init(void)
 static void __exit ath6kl_sdio_exit(void)
 {
 	sdio_unregister_driver(&ath6kl_sdio_driver);
+#ifdef ATH6KL_ENABLE_ANDROID
+	ath6kl_sdio_exit_android();
+#endif
 }
 
 module_init(ath6kl_sdio_init);

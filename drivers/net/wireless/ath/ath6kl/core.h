@@ -881,4 +881,13 @@ void ath6kl_recovery_init(struct ath6kl *ar);
 void ath6kl_recovery_cleanup(struct ath6kl *ar);
 void ath6kl_recovery_suspend(struct ath6kl *ar);
 void ath6kl_recovery_resume(struct ath6kl *ar);
+
+#ifdef CONFIG_MACH_TENDERLOIN
+int board_sdio_wifi_enable(int);
+int board_sdio_wifi_disable(int);
+#define ath6kl_sdio_init_android() board_sdio_wifi_enable(1)
+#define ath6kl_sdio_exit_android() board_sdio_wifi_disable(1)
+#define ATH6KL_ENABLE_ANDROID 1
+#endif
+
 #endif /* CORE_H */
