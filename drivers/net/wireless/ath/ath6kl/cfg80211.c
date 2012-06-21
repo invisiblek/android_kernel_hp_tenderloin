@@ -37,7 +37,7 @@
 	.center_freq    = (_freq),              \
 	.flags          = (_flags),             \
 	.max_antenna_gain   = 0,                \
-	.max_power      = 30,                   \
+	.max_power      = 40,                   \
 }
 
 #define CHAN5G(_channel, _flags) {		    \
@@ -46,7 +46,7 @@
 	.center_freq    = 5000 + (5 * (_channel)),  \
 	.flags          = (_flags),                 \
 	.max_antenna_gain   = 0,                    \
-	.max_power      = 30,                       \
+	.max_power      = 40,                       \
 }
 
 static struct ieee80211_rate ath6kl_rates[] = {
