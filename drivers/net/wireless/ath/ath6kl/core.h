@@ -574,6 +574,7 @@ enum ath6kl_dev_state {
 	SKIP_SCAN,
 	ROAM_TBL_PEND,
 	FIRST_BOOT,
+	RECOVERY_CLEANUP,
 };
 
 enum ath6kl_state {
@@ -735,7 +736,6 @@ struct ath6kl {
 	bool wiphy_registered;
 
 	struct ath6kl_fw_recovery {
-		bool enable;
 		struct work_struct recovery_work;
 		unsigned long err_reason;
 		unsigned long hb_poll;
