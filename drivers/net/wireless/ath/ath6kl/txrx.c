@@ -888,8 +888,11 @@ void ath6kl_rx_refill(struct htc_target *target, enum htc_endpoint_id endpoint)
 			break;
 
 		packet = (struct htc_packet *) skb->head;
-		if (!IS_ALIGNED((unsigned long) skb->data, 4))
+		if (!IS_ALIGNED((unsigned long) skb->data, 4)) {
+			size_t len = skb_headlen(skb);
 			skb->data = PTR_ALIGN(skb->data - 4, 4);
+			skb_set_tail_pointer(skb, len);
+		}
 		set_htc_rxpkt_info(packet, skb, skb->data,
 				   ATH6KL_BUFFER_SIZE, endpoint);
 		list_add_tail(&packet->list, &queue);
@@ -910,8 +913,11 @@ void ath6kl_refill_amsdu_rxbufs(struct ath6kl *ar, int count)
 			return;
 
 		packet = (struct htc_packet *) skb->head;
-		if (!IS_ALIGNED((unsigned long) skb->data, 4))
+		if (!IS_ALIGNED((unsigned long) skb->data, 4)) {
+			size_t len = skb_headlen(skb);
 			skb->data = PTR_ALIGN(skb->data - 4, 4);
+			skb_set_tail_pointer(skb, len);
+		}
 		set_htc_rxpkt_info(packet, skb, skb->data,
 				   ATH6KL_AMSDU_BUFFER_SIZE, 0);
 		spin_lock_bh(&ar->lock);
