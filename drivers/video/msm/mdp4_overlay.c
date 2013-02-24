@@ -2994,7 +2994,11 @@ static int mdp4_calc_pipe_mdp_bw(struct msm_fb_data_type *mfd,
 	}
 
 	fps = mdp_get_panel_framerate(mfd);
+#ifdef CONFIG_ARCH_MSM8X60
+	quota = pipe->src_w * pipe->src_h * fps * pipe->bpp * 2;
+#else
 	quota = pipe->src_w * pipe->src_h * fps * pipe->bpp;
+#endif
 
 	quota >>= shift;
 	/* factor 1.15 for ab */
