@@ -853,6 +853,8 @@ static int ath6kl_sdio_suspend(struct ath6kl *ar, struct cfg80211_wowlan *wow)
 	mmc_pm_flag_t flags;
 	bool try_deepsleep = false;
 	int ret;
+	struct ath6kl_vif *vif;
+	int no_if_up;
 
 	if (ar->state == ATH6KL_STATE_SCHED_SCAN) {
 		ath6kl_dbg(ATH6KL_DBG_SUSPEND, "sched scan is in progress\n");
@@ -877,7 +879,19 @@ static int ath6kl_sdio_suspend(struct ath6kl *ar, struct cfg80211_wowlan *wow)
 		if (ret)
 			goto cut_pwr;
 
-		ret = ath6kl_cfg80211_suspend(ar, ATH6KL_CFG_SUSPEND_WOW, wow);
+		// check to see if any interfaces are up
+		// if not, then we can skip WOW
+		no_if_up = 1;
+		spin_lock_bh(&ar->list_lock);
+		list_for_each_entry(vif, &ar->vif_list, list)
+			if (vif->ndev->flags & IFF_UP) no_if_up = 0;
+		spin_unlock_bh(&ar->list_lock);
+
+		if (no_if_up) {
+			ret = -ENOTCONN;
+		} else {
+			ret = ath6kl_cfg80211_suspend(ar, ATH6KL_CFG_SUSPEND_WOW, wow);
+		}
 		if (ret && ret != -ENOTCONN)
 			ath6kl_err("wow suspend failed: %d\n", ret);
 
