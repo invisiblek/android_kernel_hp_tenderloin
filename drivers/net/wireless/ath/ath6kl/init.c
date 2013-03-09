@@ -1489,6 +1489,14 @@ static const char *ath6kl_init_get_hif_name(enum ath6kl_hif_type type)
 	return NULL;
 }
 
+static int ath6kl_init_hw_reset(struct ath6kl *ar)
+{
+	ath6kl_dbg(ATH6KL_DBG_BOOT, "cold resetting the device");
+
+	return ath6kl_diag_write32(ar, RESET_CONTROL_ADDRESS,
+				   cpu_to_le32(RESET_CONTROL_COLD_RST));
+}
+
 static int __ath6kl_init_hw_start(struct ath6kl *ar)
 {
 	long timeleft;
@@ -1732,9 +1740,7 @@ void ath6kl_stop_txrx(struct ath6kl *ar)
 	 * Try to reset the device if we can. The driver may have been
 	 * configure NOT to reset the target during a debug session.
 	 */
-	ath6kl_dbg(ATH6KL_DBG_TRC,
-		   "attempting to reset target on instance destroy\n");
-	ath6kl_reset_device(ar, ar->target_type, true, true);
+	ath6kl_init_hw_reset(ar);
 
 	up(&ar->sem);
 }
