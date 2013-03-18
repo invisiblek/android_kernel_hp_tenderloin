@@ -37,3 +37,7 @@ ath6kl-y += recovery.o
 ath6kl-$(CONFIG_NL80211_TESTMODE) += testmode.o
 ath6kl-$(CONFIG_ATH6KL_SDIO) += sdio.o
 ath6kl-$(CONFIG_ATH6KL_USB) += usb.o
+ath6kl-$(CONFIG_ATH6KL_TRACING) += trace.o
+
+# for tracing framework to find trace.h
+CFLAGS_trace.o := -I$(src)
