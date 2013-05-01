@@ -92,6 +92,11 @@ struct msm_bus_scale_pdata *msm_bus_cl_get_pdata(struct platform_device *pdev)
 	}
 
 	vec_arr = of_get_property(of_node, "qcom,msm-bus,vectors-KBps", &len);
+	if (vec_arr == NULL) {
+		pr_err("Error: Vector array not found\n");
+		goto err;
+	}
+
 	if (len != num_usecases * num_paths * sizeof(uint32_t) * 4) {
 		pr_err("Error: Length-error on getting vectors\n");
 		goto err;
