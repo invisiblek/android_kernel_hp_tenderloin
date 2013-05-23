@@ -59,11 +59,7 @@ static DEFINE_MUTEX(misc_mtx);
 /*
  * Assigned numbers, used for dynamic minors
  */
-#ifdef CONFIG_MACH_HTC
 #define DYNAMIC_MINORS 128 /* like dynamic majors */
-#else
-#define DYNAMIC_MINORS 64 /* like dynamic majors */
-#endif
 static DECLARE_BITMAP(misc_minors, DYNAMIC_MINORS);
 
 #ifdef CONFIG_PROC_FS
@@ -209,6 +205,8 @@ int misc_register(struct miscdevice * misc)
 		}
 		misc->minor = DYNAMIC_MINORS - i - 1;
 		set_bit(i, misc_minors);
+	} else if (misc->minor < DYNAMIC_MINORS) {
+		set_bit(misc->minor, misc_minors);
 	}
 
 	dev = MKDEV(MISC_MAJOR, misc->minor);
