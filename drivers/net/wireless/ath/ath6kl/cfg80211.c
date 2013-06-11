@@ -2771,9 +2771,20 @@ static int ath6kl_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
 {
 	struct ath6kl *ar = ath6kl_priv(dev);
 	struct ath6kl_vif *vif = netdev_priv(dev);
-	u32 id;
+	u32 id, freq;
 	const struct ieee80211_mgmt *mgmt;
 	bool more_data, queued;
+
+	/* default to the current channel, but use the one specified as argument
+	 * if any
+	 */
+	freq = vif->ch_hint;
+	if (chan)
+		freq = chan->center_freq;
+
+	/* never send freq zero to the firmware */
+	if (WARN_ON(freq == 0))
+		return -EINVAL;
 
 	mgmt = (const struct ieee80211_mgmt *) buf;
 	if (buf + len >= mgmt->u.probe_resp.variable &&
@@ -2784,8 +2795,7 @@ static int ath6kl_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
 		 * command to allow the target to fill in the generic IEs.
 		 */
 		*cookie = 0; /* TX status not supported */
-		return ath6kl_send_go_probe_resp(vif, buf, len,
-						 chan->center_freq);
+		return ath6kl_send_go_probe_resp(vif, buf, len, freq);
 	}
 
 	id = vif->send_action_id++;
@@ -2801,17 +2811,14 @@ static int ath6kl_mgmt_tx(struct wiphy *wiphy, struct net_device *dev,
 
 	/* AP mode Power saving processing */
 	if (vif->nw_type == AP_NETWORK) {
-		queued = ath6kl_mgmt_powersave_ap(vif,
-					id, chan->center_freq,
-					wait, buf,
-					len, &more_data, no_cck);
+		queued = ath6kl_mgmt_powersave_ap(vif, id, freq, wait, buf, len,
+						  &more_data, no_cck);
 		if (queued)
 			return 0;
 	}
 
-	return ath6kl_wmi_send_mgmt_cmd(ar->wmi, vif->fw_vif_idx, id,
-					chan->center_freq, wait,
-					buf, len, no_cck);
+	return ath6kl_wmi_send_mgmt_cmd(ar->wmi, vif->fw_vif_idx, id, freq,
+					wait, buf, len, no_cck);
 }
 
 static void ath6kl_mgmt_frame_register(struct wiphy *wiphy,
