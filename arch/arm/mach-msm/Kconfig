@@ -2681,4 +2681,9 @@ config REMOVE_SMI_2X_CLK
        bool "remove 2x_axi_clk for SMI"
        default n
 
+config HAS_MACH_MEMUTILS
+	default n
+	bool "Motorola MSM memcpy enhancements"
+	help
+	Faster memcpy performance for Krait
 endif
