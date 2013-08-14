@@ -165,6 +165,7 @@ void reset_dflipflop(void);
 void __init htc_add_ramconsole_devices(void);
 
 int __init board_mfg_mode(void);
+int __init parse_tag_smlog(const struct tag *tags);
 int __init parse_tag_smi(const struct tag *tags);
 int __init parse_tag_hwid(const struct tag * tags);
 int __init parse_tag_skuid(const struct tag * tags);
