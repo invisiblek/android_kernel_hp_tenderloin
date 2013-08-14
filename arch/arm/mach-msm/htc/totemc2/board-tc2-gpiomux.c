@@ -18,6 +18,8 @@
 #include "devices.h"
 #include "board-8930.h"
 
+extern unsigned int system_rev;
+
 /* The SPI configurations apply to GSBI 1*/
 /*
 static struct gpiomux_setting spi_active = {

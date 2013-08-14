@@ -91,6 +91,7 @@ static struct resource tc2_wifi_resources[] = {
 	},
 };
 
+#if 0
 #ifdef CONFIG_MSM_BUS_SCALING
 /* Bandwidth requests (zero) if no vote placed */
 static struct msm_bus_vectors wlan_init_vectors[] = {
@@ -129,6 +130,7 @@ static struct msm_bus_scale_pdata wlan_bus_scale_pdata = {
 	.name = "wlan",
 };
 #endif
+#endif
 
 static struct wifi_platform_data tc2_wifi_control = {
 	.set_power      = tc2_wifi_power,
@@ -136,7 +138,7 @@ static struct wifi_platform_data tc2_wifi_control = {
 	.set_carddetect = tc2_wifi_set_carddetect,
 	.mem_prealloc   = tc2_wifi_mem_prealloc,
 	.get_mac_addr	= tc2_wifi_get_mac_addr,
-	.bus_scale_table    = &wlan_bus_scale_pdata,
+        //	.bus_scale_table    = &wlan_bus_scale_pdata,
 };
 
 static struct platform_device tc2_wifi_device = {

@@ -22,25 +22,13 @@
 #include <linux/gpio.h>
 #include <mach/gpio.h>
 #include <linux/delay.h>
+#include <linux/moduleparam.h>
 #include "board-tc2.h"
 
 static char *keycaps = "--qwerty";
 #undef MODULE_PARAM_PREFIX
 #define MODULE_PARAM_PREFIX "board_tc2."
 module_param_named(keycaps, keycaps, charp, 0);
-
-static void config_gpio_table(uint32_t *table, int len)
-{
-	int n, rc;
-	for (n = 0; n < len; n++) {
-		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("[keypad]%s: gpio_tlmm_config(%#x)=%d\n",
-				__func__, table[n], rc);
-			break;
-		}
-	}
-}
 
 static struct gpio_event_direct_entry tc2_keypad_input_map[] = {
 	{
@@ -57,36 +45,6 @@ static struct gpio_event_direct_entry tc2_keypad_input_map[] = {
 	 },
 };
 
-static void tc2_setup_input_gpio(void)
-{
-	uint32_t inputs_gpio_table[] = {
-		GPIO_CFG(MSM_PWR_KEYz, 0, GPIO_CFG_INPUT,
-			GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-		GPIO_CFG(MSM_VOL_UPz, 0, GPIO_CFG_INPUT,
-			GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-		GPIO_CFG(MSM_VOL_DOWNz, 0, GPIO_CFG_INPUT,
-			GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-	};
-
-	config_gpio_table(inputs_gpio_table, ARRAY_SIZE(inputs_gpio_table));
-}
-
-uint32_t hw_clr_gpio_table[] = {
-		GPIO_CFG(MSM_HW_RST_CLR, 0, GPIO_CFG_INPUT,
-			GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-		GPIO_CFG(MSM_HW_RST_CLR, 0, GPIO_CFG_OUTPUT,
-			GPIO_CFG_PULL_UP, GPIO_CFG_2MA),
-	};
-static void tc2_clear_hw_reset(void)
-{
-	printk(KERN_INFO "[KEY] %s ++++++\n", __func__);
-	gpio_tlmm_config(hw_clr_gpio_table[1], GPIO_CFG_ENABLE);
-	gpio_set_value(MSM_HW_RST_CLR, 0);
-	msleep(100);
-	gpio_tlmm_config(hw_clr_gpio_table[0], GPIO_CFG_ENABLE);
-	printk(KERN_INFO "[KEY] %s ------\n", __func__);
-}
-
 static struct gpio_event_input_info tc2_keypad_input_info = {
 	.info.func             = gpio_event_input_func,
 	.flags                 = GPIOEDF_PRINT_KEYS,
@@ -98,8 +56,6 @@ static struct gpio_event_input_info tc2_keypad_input_info = {
 # endif
 	.keymap                = tc2_keypad_input_map,
 	.keymap_size           = ARRAY_SIZE(tc2_keypad_input_map),
-	.setup_input_gpio      = tc2_setup_input_gpio,
-	.clear_hw_reset	= tc2_clear_hw_reset,
 };
 
 static struct gpio_event_info *tc2_keypad_info[] = {

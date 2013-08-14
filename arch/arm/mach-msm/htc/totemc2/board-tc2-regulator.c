@@ -30,9 +30,9 @@ VREG_CONSUMERS(L2) = {
 	REGULATOR_SUPPLY("8038_l2",		NULL),
 	REGULATOR_SUPPLY("iris_vdddig",		"wcnss_wlan.0"),
 	REGULATOR_SUPPLY("dsi_vdda",		"mipi_dsi.1"),
-	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.0"),
-	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.1"),
-	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csid.2"),
+	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csiphy.0"),
+	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csiphy.1"),
+	REGULATOR_SUPPLY("mipi_csi_vdd",	"msm_csiphy.2"),
 };
 VREG_CONSUMERS(L3) = {
 	REGULATOR_SUPPLY("8038_l3",		NULL),
@@ -440,17 +440,17 @@ VREG_CONSUMERS(VDD_DIG_CORNER) = {
 
 /* GPIO regulator constraints */
 struct gpio_regulator_platform_data
-msm8930_gpio_regulator_pdata[] __devinitdata = {
+msm_gpio_regulator_pdata[] __devinitdata = {
 	/*        ID          vreg_name     gpio_label     gpio  supply */
 	GPIO_VREG(EXT_5V,     "ext_5v",     "ext_5v_en",     63, NULL),
 	GPIO_VREG(EXT_OTG_SW, "ext_otg_sw", "ext_otg_sw_en", 97, "ext_5v"),
 };
 
 /* SAW regulator constraints */
-struct regulator_init_data msm8930_saw_regulator_core0_pdata =
+struct regulator_init_data msm_saw_regulator_pdata_s5 =
 	/*	      ID  vreg_name	       min_uV   max_uV */
 	SAW_VREG_INIT(S5, "8038_s5",	       400000, 1400000);
-struct regulator_init_data msm8930_saw_regulator_core1_pdata =
+struct regulator_init_data msm_saw_regulator_pdata_s6 =
 	SAW_VREG_INIT(S6, "8038_s6",	       400000, 1400000);
 
 /* PM8038 regulator constraints */
@@ -514,7 +514,16 @@ msm8930_rpm_regulator_init_data[] __devinitdata = {
 int msm8930_pm8038_regulator_pdata_len __devinitdata =
 	ARRAY_SIZE(msm8930_pm8038_regulator_pdata);
 
-struct rpm_regulator_platform_data msm8930_rpm_regulator_pdata __devinitdata = {
+struct platform_device msm8930_device_ext_otg_sw_vreg __devinitdata = {
+	.name	= GPIO_REGULATOR_DEV_NAME,
+	.id	= 97,
+	.dev	= {
+		.platform_data =
+		 &msm_gpio_regulator_pdata[MSM8930_GPIO_VREG_ID_EXT_OTG_SW],
+	},
+};
+
+struct rpm_regulator_platform_data tc2_rpm_regulator_pdata __devinitdata = {
 	.init_data		= msm8930_rpm_regulator_init_data,
 	.num_regulators		= ARRAY_SIZE(msm8930_rpm_regulator_init_data),
 	.version		= RPM_VREG_VERSION_8930,

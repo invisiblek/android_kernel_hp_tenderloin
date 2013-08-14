@@ -23,20 +23,19 @@
 #include <linux/irq.h>
 #include <asm/gpio.h>
 #include <asm/io.h>
-
+#include <linux/export.h>
 #include <mach/vreg.h>
 #include <mach/htc_pwrsink.h>
 
 #include <asm/mach/mmc.h>
 #include <mach/msm_iomap.h>
 #include <linux/mfd/pm8xxx/pm8038.h>
-#include <mach/htc_sleep_clk.h>
 #include "board-8930.h"
 #include "board-storage-common-a.h"
 
 #include "devices.h"
 #include "board-tc2.h"
-#include "proc_comm.h"
+#include <mach/proc_comm.h>
 #include "board-tc2-mmc.h"
 
 #include <mach/rpm.h>
@@ -179,7 +178,6 @@ static unsigned int tc2_wifi_status(struct device *dev)
 	return tc2_wifi_cd;
 }
 
-static unsigned int tc2_wifislot_type = MMC_TYPE_SDIO_WIFI;
 static unsigned int wifi_sup_clk_rates[] = {
 	400000, 24000000, 48000000,
 };
@@ -191,12 +189,10 @@ static struct mmc_platform_data tc2_wifi_data = {
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
 	.sup_clk_table	= wifi_sup_clk_rates,
 	.sup_clk_cnt	= ARRAY_SIZE(wifi_sup_clk_rates),
-	.slot_type = &tc2_wifislot_type,
 	.uhs_caps	= (MMC_CAP_UHS_SDR12 | MMC_CAP_UHS_SDR25 |
 			MMC_CAP_UHS_SDR50),
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 	.nonremovable   = 0,
-	.pclk_src_dfab	= 1,
 };
 
 
@@ -227,7 +223,7 @@ int tc2_wifi_power(int on)
 				  ARRAY_SIZE(wifi_off_gpio_table));
 	}
 
-	htc_wifi_bt_sleep_clk_ctl(on, ID_WIFI);
+        //	htc_wifi_bt_sleep_clk_ctl(on, ID_WIFI);
 	mdelay(1);/*Delay 1 ms, Recommand by Hardware*/
 	gpio_set_value(MSM_WL_REG_ON, on); /* WIFI_SHUTDOWN */
 

@@ -12,6 +12,7 @@
  */
 
 #include <linux/interrupt.h>
+#include <linux/mfd/pm8xxx/pm8921.h>
 #include <linux/mfd/pm8xxx/pm8038.h>
 #include <linux/mfd/pm8xxx/pm8xxx-adc.h>
 #include <linux/msm_ssbi.h>
@@ -230,6 +231,7 @@ static struct pm8921_charger_platform_data pm8921_chg_pdata __devinitdata = {
 	.led_src_config		= LED_SRC_VPH_PWR,
 };
 
+#if 0 // Disable leds for now
 #define PM8038_WLED_MAX_CURRENT		25
 #define PM8XXX_LED_PWM_PERIOD		1000
 #define PM8XXX_LED_PWM_DUTY_MS		64
@@ -320,9 +322,10 @@ static struct pm8xxx_led_platform_data pm8xxx_leds_pdata = {
 	.configs = pm8038_led_configs,
 	.num_configs = ARRAY_SIZE(pm8038_led_configs),
 };
+#endif
 
 static struct pm8xxx_ccadc_platform_data pm8xxx_ccadc_pdata = {
-	.r_sense		= 10,
+	.r_sense_uohm		= 10000,
 	.calib_delay_ms		= 600000,
 };
 
@@ -355,7 +358,7 @@ static struct pm8038_platform_data pm8038_platform_data __devinitdata = {
 	.charger_pdata		= &pm8921_chg_pdata,
 	.bms_pdata		= &pm8921_bms_pdata,
 	.adc_pdata		= &pm8xxx_adc_pdata,
-	.leds_pdata		= &pm8xxx_leds_pdata,
+        //	.leds_pdata		= &pm8xxx_leds_pdata, // Disable LEds for now
 	.vibrator_pdata         = &pm8xxx_vib_pdata,
 	.ccadc_pdata		= &pm8xxx_ccadc_pdata,
 };

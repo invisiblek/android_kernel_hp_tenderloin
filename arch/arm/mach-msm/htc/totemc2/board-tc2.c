@@ -18,9 +18,10 @@
 #include <linux/i2c/sx150x.h>
 #include <linux/i2c/isl9519.h>
 #include <linux/gpio.h>
-#include <linux/usb/android_composite.h>
+#include <linux/usb/msm_hsusb.h>
+#include <linux/usb/android.h>
 #include <linux/msm_ssbi.h>
-#include <linux/regulator/gpio-regulator.h>
+#include <linux/regulator/msm-gpio-regulator.h>
 #include <linux/mfd/pm8xxx/pm8921.h>
 #include <linux/mfd/pm8xxx/pm8xxx-adc.h>
 #include <linux/regulator/consumer.h>
@@ -31,6 +32,7 @@
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
+#include <linux/dma-contiguous.h>
 #include <linux/dma-mapping.h>
 #include <linux/platform_data/qcom_crypto_device.h>
 #include <linux/platform_data/qcom_wcnss_device.h>
@@ -68,7 +70,6 @@
 #include <linux/usb/msm_hsusb.h>
 #endif
 #include <linux/usb/android.h>
-#include <mach/htc_usb.h>
 #include <mach/usbdiag.h>
 #include <mach/socinfo.h>
 #include <mach/rpm.h>
@@ -80,7 +81,7 @@
 #include <mach/msm_xo.h>
 #include <mach/restart.h>
 
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <mach/ion.h>
 #include <mach/mdm2.h>
 #include <mach/msm_rtb.h>
@@ -107,13 +108,11 @@
 #include <mach/htc_headset_pmic.h>
 #include <mach/htc_headset_gpio.h>
 #include <mach/htc_headset_one_wire.h>
-#include <mach/htc_util.h>
 #include <mach/cable_detect.h>
 #include <linux/mfd/pm8xxx/pm8xxx-vibrator-pwm.h>
 #ifdef CONFIG_BT
 #include <mach/msm_serial_hs.h>
 #include <mach/htc_bdaddress.h>
-#include <mach/htc_sleep_clk.h>
 #endif
 
 #ifdef CONFIG_HTC_BATT_8960
@@ -134,12 +133,6 @@ static struct platform_device msm_fm_platform_init = {
 	.name = "iris_fm",
 	.id   = -1,
 };
-
-#if 0
-#define KS8851_RST_GPIO		89
-#define KS8851_IRQ_GPIO		90
-#define HAP_SHIFT_LVL_OE_GPIO	47
-#endif
 
 #if defined(CONFIG_GPIO_SX150X) || defined(CONFIG_GPIO_SX150X_MODULE)
 
@@ -193,13 +186,14 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 								HOLE_SIZE))
 #define MAX_FIXED_AREA_SIZE	0x10000000
 #define MSM8930_FW_START	MSM8930_FIXED_AREA_START
+#define MSM_ION_ADSP_SIZE	SZ_8M
 
 #else
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x110C000
 #define MSM_ION_HEAP_NUM	1
 #endif
 
-#ifdef CONFIG_KERNEL_PMEM_EBI_REGION
+//#ifdef CONFIG_KERNEL_PMEM_EBI_REGION
 static unsigned pmem_kernel_ebi1_size = MSM_PMEM_KERNEL_EBI1_SIZE;
 static int __init pmem_kernel_ebi1_size_setup(char *p)
 {
@@ -207,7 +201,7 @@ static int __init pmem_kernel_ebi1_size_setup(char *p)
 	return 0;
 }
 early_param("pmem_kernel_ebi1_size", pmem_kernel_ebi1_size_setup);
-#endif
+//#endif
 
 #ifdef CONFIG_ANDROID_PMEM
 static unsigned pmem_size = MSM_PMEM_SIZE;
@@ -384,6 +378,25 @@ static struct ion_co_heap_pdata fw_co_msm8930_ion_pdata = {
 };
 #endif
 
+static u64 msm_dmamask = DMA_BIT_MASK(32);
+
+static struct platform_device ion_mm_heap_device = {
+	.name = "ion-mm-heap-device",
+	.id = -1,
+	.dev = {
+		.dma_mask = &msm_dmamask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	}
+};
+
+static struct platform_device ion_adsp_heap_device = {
+	.name = "ion-adsp-heap-device",
+	.id = -1,
+	.dev = {
+		.dma_mask = &msm_dmamask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	}
+};
 /**
  * These heaps are listed in the order they will be allocated. Due to
  * video hardware restrictions and content protection the FW heap has to
@@ -395,9 +408,7 @@ static struct ion_co_heap_pdata fw_co_msm8930_ion_pdata = {
  * to each other.
  * Don't swap the order unless you know what you are doing!
  */
-static struct ion_platform_data msm8930_ion_pdata = {
-	.nr = MSM_ION_HEAP_NUM,
-	.heaps = {
+struct ion_platform_heap msm8930_heaps[] = {
 		{
 			.id	= ION_SYSTEM_HEAP_ID,
 			.type	= ION_HEAP_TYPE_SYSTEM,
@@ -411,6 +422,7 @@ static struct ion_platform_data msm8930_ion_pdata = {
 			.size	= MSM_ION_MM_SIZE,
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &cp_mm_msm8930_ion_pdata,
+			.priv	= &ion_mm_heap_device.dev
 		},
 		{
 			.id	= ION_MM_FIRMWARE_HEAP_ID,
@@ -459,8 +471,21 @@ static struct ion_platform_data msm8930_ion_pdata = {
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &co_msm8930_ion_pdata,
 		},
+		{
+			.id	= ION_ADSP_HEAP_ID,
+			.type	= ION_HEAP_TYPE_DMA,
+			.name	= ION_ADSP_HEAP_NAME,
+			.size	= MSM_ION_ADSP_SIZE,
+			.memory_type = ION_EBI_TYPE,
+			.extra_data = (void *) &co_msm8930_ion_pdata,
+			.priv	= &ion_adsp_heap_device.dev,
+		},
 #endif
-	}
+};
+
+static struct ion_platform_data msm8930_ion_pdata = {
+	.nr = MSM_ION_HEAP_NUM,
+	.heaps = msm8930_heaps,
 };
 
 static struct platform_device msm8930_ion_dev = {
@@ -516,58 +541,45 @@ static void __init reserve_ion_memory(void)
 {
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
 	unsigned int i;
-	unsigned int reusable_count = 0;
+	int ret;
 	unsigned int fixed_size = 0;
 	unsigned int fixed_low_size, fixed_middle_size, fixed_high_size;
 	unsigned long fixed_low_start, fixed_middle_start, fixed_high_start;
+	unsigned long cma_alignment;
+	unsigned int low_use_cma = 0;
+	unsigned int middle_use_cma = 0;
+	unsigned int high_use_cma = 0;
 
-	msm8930_fmem_pdata.size = 0;
-	msm8930_fmem_pdata.reserved_size_low = 0;
-	msm8930_fmem_pdata.reserved_size_high = 0;
-	msm8930_fmem_pdata.align = PAGE_SIZE;
 	fixed_low_size = 0;
 	fixed_middle_size = 0;
 	fixed_high_size = 0;
 
-	/* We only support 1 reusable heap. Check if more than one heap
-	 * is specified as reusable and set as non-reusable if found.
-	 */
-	for (i = 0; i < msm8930_ion_pdata.nr; ++i) {
-		const struct ion_platform_heap *heap =
-						&(msm8930_ion_pdata.heaps[i]);
-
-		if (heap->type == ION_HEAP_TYPE_CP && heap->extra_data) {
-			struct ion_cp_heap_pdata *data = heap->extra_data;
-
-			reusable_count += (data->reusable) ? 1 : 0;
-
-			if (data->reusable && reusable_count > 1) {
-				pr_err("%s: Too many heaps specified as "
-					"reusable. Heap %s was not configured "
-					"as reusable.\n", __func__, heap->name);
-				data->reusable = 0;
-			}
-		}
-	}
+	cma_alignment = PAGE_SIZE << max(MAX_ORDER, pageblock_order);
 
 	for (i = 0; i < msm8930_ion_pdata.nr; ++i) {
-		const struct ion_platform_heap *heap =
+		struct ion_platform_heap *heap =
 						&(msm8930_ion_pdata.heaps[i]);
+
+		int use_cma = 0;
 
 		if (heap->extra_data) {
 			int fixed_position = NOT_FIXED;
-			int mem_is_fmem = 0;
 
-			switch (heap->type) {
+			switch ((int) heap->type) {
 			case ION_HEAP_TYPE_CP:
-				mem_is_fmem = ((struct ion_cp_heap_pdata *)
-					heap->extra_data)->mem_is_fmem;
+				if (((struct ion_cp_heap_pdata *)
+					heap->extra_data)->is_cma) {
+					heap->size = ALIGN(heap->size,
+						cma_alignment);
+						use_cma = 1;
+				}
 				fixed_position = ((struct ion_cp_heap_pdata *)
 					heap->extra_data)->fixed_position;
 				break;
+			case ION_HEAP_TYPE_DMA:
+				use_cma = 1;
+				/* Purposely fall through here */
 			case ION_HEAP_TYPE_CARVEOUT:
-				mem_is_fmem = ((struct ion_co_heap_pdata *)
-					heap->extra_data)->mem_is_fmem;
 				fixed_position = ((struct ion_co_heap_pdata *)
 					heap->extra_data)->fixed_position;
 				break;
@@ -577,55 +589,95 @@ static void __init reserve_ion_memory(void)
 
 			if (fixed_position != NOT_FIXED)
 				fixed_size += heap->size;
-			else
+			else if (!use_cma)
 				reserve_mem_for_ion(MEMTYPE_EBI1, heap->size);
 
-			if (fixed_position == FIXED_LOW)
+			if (fixed_position == FIXED_LOW) {
 				fixed_low_size += heap->size;
-			else if (fixed_position == FIXED_MIDDLE)
+				low_use_cma = use_cma;
+			} else if (fixed_position == FIXED_MIDDLE) {
 				fixed_middle_size += heap->size;
-			else if (fixed_position == FIXED_HIGH)
+				middle_use_cma = use_cma;
+			} else if (fixed_position == FIXED_HIGH) {
 				fixed_high_size += heap->size;
-
-			if (mem_is_fmem)
-				msm8930_fmem_pdata.size += heap->size;
+				high_use_cma = use_cma;
+			} else if (use_cma) {
+				/*
+				 * Heaps that use CMA but are not part of the
+				 * fixed set. Create wherever.
+				 */
+				dma_declare_contiguous(
+					heap->priv,
+					heap->size,
+					0,
+					0xb0000000);
+			}
 		}
 	}
 
 	if (!fixed_size)
 		return;
-
-	if (msm8930_fmem_pdata.size) {
-		msm8930_fmem_pdata.reserved_size_low = fixed_low_size +
-							HOLE_SIZE;
-		msm8930_fmem_pdata.reserved_size_high = fixed_high_size;
-		msm8930_fmem_pdata.size += HOLE_SIZE;
-	}
-
-	/* Since the fixed area may be carved out of lowmem,
-	 * make sure the length is a multiple of 1M.
+	/*
+	 * Given the setup for the fixed area, we can't round up all sizes.
+	 * Some sizes must be set up exactly and aligned correctly. Incorrect
+	 * alignments are considered a configuration issue
 	 */
-	fixed_size = (fixed_size + HOLE_SIZE + SECTION_SIZE - 1)
-		& SECTION_MASK;
-	msm8930_reserve_fixed_area(fixed_size);
 
 	fixed_low_start = MSM8930_FIXED_AREA_START;
-	fixed_middle_start = fixed_low_start + fixed_low_size  + HOLE_SIZE;
+	if (low_use_cma) {
+		BUG_ON(!IS_ALIGNED(fixed_low_size + HOLE_SIZE, cma_alignment));
+		BUG_ON(!IS_ALIGNED(fixed_low_start, cma_alignment));
+	} else {
+		BUG_ON(!IS_ALIGNED(fixed_low_size + HOLE_SIZE, SECTION_SIZE));
+		ret = memblock_remove(fixed_low_start,
+				      fixed_low_size + HOLE_SIZE);
+		pr_info("mem_map: fixed_low_area reserved at 0x%lx with size \
+				0x%x\n", fixed_low_start,
+				fixed_low_size + HOLE_SIZE);
+		BUG_ON(ret);
+	}
+
+	fixed_middle_start = fixed_low_start + fixed_low_size + HOLE_SIZE;
+	if (middle_use_cma) {
+		BUG_ON(!IS_ALIGNED(fixed_middle_start, cma_alignment));
+		BUG_ON(!IS_ALIGNED(fixed_middle_size, cma_alignment));
+	} else {
+		BUG_ON(!IS_ALIGNED(fixed_middle_size, SECTION_SIZE));
+		ret = memblock_remove(fixed_middle_start, fixed_middle_size);
+		pr_info("mem_map: fixed_middle_area reserved at 0x%lx with \
+				size 0x%x\n", fixed_middle_start,
+				fixed_middle_size);
+		BUG_ON(ret);
+	}
+
 	fixed_high_start = fixed_middle_start + fixed_middle_size;
+	if (high_use_cma) {
+		fixed_high_size = ALIGN(fixed_high_size, cma_alignment);
+		BUG_ON(!IS_ALIGNED(fixed_high_start, cma_alignment));
+	} else {
+		/* This is the end of the fixed area so it's okay to round up */
+		fixed_high_size = ALIGN(fixed_high_size, SECTION_SIZE);
+		ret = memblock_remove(fixed_high_start, fixed_high_size);
+		pr_info("mem_map: fixed_high_area reserved at 0x%lx with size \
+				0x%x\n", fixed_high_start,
+				fixed_high_size);
+		BUG_ON(ret);
+	}
 
 	for (i = 0; i < msm8930_ion_pdata.nr; ++i) {
 		struct ion_platform_heap *heap = &(msm8930_ion_pdata.heaps[i]);
 
 		if (heap->extra_data) {
 			int fixed_position = NOT_FIXED;
-			struct ion_cp_heap_pdata *pdata=NULL;
+			struct ion_cp_heap_pdata *pdata = NULL;
 
-			switch (heap->type) {
+			switch ((int) heap->type) {
 			case ION_HEAP_TYPE_CP:
 				pdata =
 				(struct ion_cp_heap_pdata *)heap->extra_data;
 				fixed_position = pdata->fixed_position;
 				break;
+			case ION_HEAP_TYPE_DMA:
 			case ION_HEAP_TYPE_CARVEOUT:
 				fixed_position = ((struct ion_co_heap_pdata *)
 					heap->extra_data)->fixed_position;
@@ -640,6 +692,12 @@ static void __init reserve_ion_memory(void)
 				break;
 			case FIXED_MIDDLE:
 				heap->base = fixed_middle_start;
+				if (middle_use_cma)
+					dma_declare_contiguous(
+						&ion_mm_heap_device.dev,
+						heap->size,
+						fixed_middle_start,
+						0xa0000000);
 				pdata->secure_base = fixed_middle_start
 							- HOLE_SIZE;
 				pdata->secure_size = HOLE_SIZE + heap->size;
@@ -1065,12 +1123,6 @@ static struct htc_battery_cell htc_battery_cells[] = {
 	},
 };
 #endif /* CONFIG_HTC_BATT_8960 */
-
-static int msm8930_change_memory_power(u64 start, u64 size,
-	int change_type)
-{
-	return soc_change_memory_power(start, size, change_type);
-}
 
 static void __init msm8930_allocate_memory_regions(void)
 {
@@ -1892,21 +1944,7 @@ out:
 }
 
 static struct android_usb_platform_data android_usb_pdata = {
-	.vendor_id	= 0x0BB4,
-	.product_id	= 0x0cfb,
-	.version	= 0x0100,
-	.product_name		= "Android Phone",
-	.manufacturer_name	= "HTC",
-	.num_products = ARRAY_SIZE(usb_products),
-	.products = usb_products,
-	.num_functions = ARRAY_SIZE(usb_functions_all),
-	.functions = usb_functions_all,
 	.update_pid_and_serial_num = usb_diag_update_pid_and_serial_num,
-	.usb_id_pin_gpio	= MSM_USB_ID1,
-	.usb_rmnet_interface = "smd,bam",
-	.usb_diag_interface = "diag",
-	.fserial_init_string = "smd:modem,tty,tty,tty:serial",
-	.nluns = 2,
 };
 
 static struct platform_device android_usb_device = {
@@ -1927,35 +1965,9 @@ void tc2_add_usb_devices(void)
 	if ((system_rev >= PVT_VERSION) && (system_rev < EVM_VERSION))
 		msm_otg_pdata.phy_init_seq = tc2_phy_init_seq_no_uart;
 
-	android_usb_pdata.products[0].product_id =
-			android_usb_pdata.product_id;
-
-	/* diag bit set */
-	if (get_radio_flag() & 0x20000) {
-		android_usb_pdata.diag_init = 1;
-		android_usb_pdata.modem_init = 1;
-		android_usb_pdata.rmnet_init = 1;
-	}
-
-	/* add cdrom support in normal mode */
-	if (board_mfg_mode() == 0) {
-		android_usb_pdata.nluns = 3;
-		android_usb_pdata.cdrom_lun = 0x4;
-	}
-
-	platform_device_register(&msm8960_device_gadget_peripheral);
-	platform_device_register(&android_usb_device);
-
 	printk(KERN_INFO "%s: OTG_PMIC_CONTROL in rev: %d\n",
 			__func__, system_rev);
 }
-
-static int __init board_serialno_setup(char *serialno)
-{
-	android_usb_pdata.serial_number = serialno;
-	return 1;
-}
-__setup("androidboot.serialno=", board_serialno_setup);
 
 #ifdef CONFIG_PERFLOCK
 static unsigned tc2_perf_acpu_table[] = {
@@ -2107,115 +2119,7 @@ static struct msm_spm_platform_data msm_spm_l2_data[] __initdata = {
 	},
 };
 
-#if 0
-#/* TODO: Remove this once PM8038 physically becomes
- * available.
- */
-#define ISA1200_HAP_EN_GPIO	77
-#define ISA1200_HAP_LEN_GPIO	78
-#define ISA1200_HAP_CLK		PM8038_GPIO_PM_TO_SYS(7)
-
-static int isa1200_power(int on)
-{
-	int rc = 0;
-
-	gpio_set_value_cansleep(ISA1200_HAP_CLK, !!on);
-
-	if (on)
-		rc = pm8xxx_aux_clk_control(CLK_MP3_1, XO_DIV_1, true);
-	else
-		rc = pm8xxx_aux_clk_control(CLK_MP3_1, XO_DIV_NONE, true);
-
-	if (rc) {
-		pr_err("%s: unable to write aux clock register(%d)\n",
-			__func__, rc);
-	}
-
-	return rc;
-}
-
-static int isa1200_dev_setup(bool enable)
-{
-	int rc = 0;
-
-	if (!enable)
-		goto fail_gpio_dir;
-
-	rc = gpio_request(ISA1200_HAP_CLK, "haptics_clk");
-	if (rc) {
-		pr_err("%s: gpio_request for %d gpio failed rc(%d)\n",
-					__func__, ISA1200_HAP_CLK, rc);
-		goto fail_gpio_req;
-	}
-
-	rc = gpio_direction_output(ISA1200_HAP_CLK, 0);
-	if (rc) {
-		pr_err("%s: gpio_direction_output failed for %d gpio rc(%d)\n",
-						__func__, ISA1200_HAP_CLK, rc);
-		goto fail_gpio_dir;
-	}
-
-	return 0;
-
-fail_gpio_dir:
-	gpio_free(ISA1200_HAP_CLK);
-fail_gpio_req:
-	return rc;
-
-}
-
-static struct isa1200_regulator isa1200_reg_data[] = {
-	{
-		.name = "vddp",
-		.min_uV = ISA_I2C_VTG_MIN_UV,
-		.max_uV = ISA_I2C_VTG_MAX_UV,
-		.load_uA = ISA_I2C_CURR_UA,
-	},
-	{
-		.name = "vcc_i2c",
-		.min_uV = ISA_I2C_VTG_MIN_UV,
-		.max_uV = ISA_I2C_VTG_MAX_UV,
-		.load_uA = ISA_I2C_CURR_UA,
-	},
-};
-
-static struct isa1200_platform_data isa1200_1_pdata = {
-	.name = "vibrator",
-	.dev_setup = isa1200_dev_setup,
-	.power_on = isa1200_power,
-	.hap_en_gpio = ISA1200_HAP_EN_GPIO,
-	.hap_len_gpio = ISA1200_HAP_LEN_GPIO,
-	.max_timeout = 15000,
-	.mode_ctrl = PWM_GEN_MODE,
-	.pwm_fd = {
-		.pwm_div = 256,
-	},
-	.is_erm = false,
-	.smart_en = true,
-	.ext_clk_en = true,
-	.chip_en = 1,
-	.regulator_info = isa1200_reg_data,
-	.num_regulators = ARRAY_SIZE(isa1200_reg_data),
-};
-
-static struct i2c_board_info msm_isa1200_board_info[] __initdata = {
-	{
-		I2C_BOARD_INFO("isa1200_1", 0x90>>1),
-		.platform_data = &isa1200_1_pdata,
-	},
-};
-#endif
-
 #ifdef CONFIG_FLASHLIGHT_TPS61310
-#if 0	// move to board_camera
-#ifdef CONFIG_MSM_CAMERA_FLASH
-int flashlight_control(int mode)
-{
-pr_info("%s, linear led, mode=%d", __func__, mode);
-	return tps61310_flashlight_control(mode);
-}
-#endif
-#endif
 static void config_flashlight_gpios(void)
 {
 	static uint32_t flashlight_gpio_table[] = {
@@ -2987,7 +2891,7 @@ static struct platform_device msm_device_saw_core0 = {
 	.name	= "saw-regulator",
 	.id	= 0,
 	.dev	= {
-		.platform_data = &msm8930_saw_regulator_core0_pdata,
+		.platform_data = &msm_saw_regulator_pdata_s5,
 	},
 };
 
@@ -2995,15 +2899,13 @@ static struct platform_device msm_device_saw_core1 = {
 	.name	= "saw-regulator",
 	.id	= 1,
 	.dev	= {
-		.platform_data = &msm8930_saw_regulator_core1_pdata,
+		.platform_data = &msm_saw_regulator_pdata_s6,
 	},
 };
 
 static struct tsens_platform_data msm_tsens_pdata  = {
 	.tsens_factor		= 1000,
 	.hw_type		= APQ_8064,
-	.patherm0		= ADC_MPP_1_AMUX3,
-	.patherm1		= -1,
 	.tsens_num_sensor	= 10,
 	.slope = {1132, 1135, 1137, 1135, 1157,
 			1142, 1124, 1153, 1175, 1166},
@@ -3016,10 +2918,10 @@ static struct platform_device msm_tsens_device = {
 
 static struct msm_thermal_data msm_thermal_pdata = {
 	.sensor_id = 9,
-	.poll_ms = 1000,
-	.limit_temp = 60,
-	.temp_hysteresis = 10,
-	.limit_freq = 918000,
+	.poll_ms = 250,
+	.limit_temp_degC = 60,
+	.temp_hysteresis_degC = 10,
+	.freq_step = 2,
 };
 
 #ifdef CONFIG_MSM_FAKE_BATTERY
@@ -3028,61 +2930,11 @@ static struct platform_device fish_battery_device = {
 };
 #endif
 
-#ifndef MSM8930_PHASE_2
-
-/* 8930 Phase 1 */
-static struct platform_device msm8930_device_ext_5v_vreg __devinitdata = {
-	.name	= GPIO_REGULATOR_DEV_NAME,
-	.id	= PM8921_MPP_PM_TO_SYS(7),
-	.dev	= {
-		.platform_data = &msm_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5V],
-	},
-};
-
-static struct platform_device msm8930_device_ext_l2_vreg __devinitdata = {
-	.name	= GPIO_REGULATOR_DEV_NAME,
-	.id	= 91,
-	.dev	= {
-		.platform_data = &msm_gpio_regulator_pdata[GPIO_VREG_ID_EXT_L2],
-	},
-};
-
-#else
-
-/* 8930 Phase 2 */
-//HTC_AUD ++
-//Deleting this part because GPIO 63 is used for HTC AUXPCM DOUT.
-/*
-static struct platform_device msm8930_device_ext_5v_vreg __devinitdata = {
-	.name	= GPIO_REGULATOR_DEV_NAME,
-	.id	= 63,
-	.dev	= {
-		.platform_data =
-		     &msm8930_gpio_regulator_pdata[MSM8930_GPIO_VREG_ID_EXT_5V],
-	},
-};
-*/
-//HTC_AUD --
-static struct platform_device msm8930_device_ext_otg_sw_vreg __devinitdata = {
-	.name	= GPIO_REGULATOR_DEV_NAME,
-	.id	= 97,
-	.dev	= {
-		.platform_data =
-		 &msm8930_gpio_regulator_pdata[MSM8930_GPIO_VREG_ID_EXT_OTG_SW],
-	},
-};
-
-#endif
-
 static struct platform_device msm8930_device_rpm_regulator __devinitdata = {
 	.name	= "rpm-regulator",
 	.id	= -1,
 	.dev	= {
-#ifndef MSM8930_PHASE_2
-		.platform_data = &msm_rpm_regulator_pdata,
-#else
-		.platform_data = &msm8930_rpm_regulator_pdata,
-#endif
+		.platform_data = &tc2_rpm_regulator_pdata,
 	},
 };
 
@@ -3091,8 +2943,10 @@ static struct msm_serial_hs_platform_data msm_uart_dm6_pdata = {
 	.inject_rx_on_wakeup = 0,
 
 	/* for bcm BT */
-	.bt_wakeup_pin = MSM_BT_DEV_WAKE,
-	.host_wakeup_pin = MSM_BT_HOST_WAKE,
+        //	.bt_wakeup_pin = MSM_BT_DEV_WAKE,
+        //	.host_wakeup_pin = MSM_BT_HOST_WAKE,
+
+        // TEMP REMOVED
 };
 #endif
 
@@ -3103,20 +2957,6 @@ static struct platform_device tc2_rfkill = {
 };
 #endif
 
-static struct resource ram_console_resources[] = {
-	{
-		.start	= MSM_RAM_CONSOLE_BASE,
-		.end	= MSM_RAM_CONSOLE_BASE + MSM_RAM_CONSOLE_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	},
-};
-
-static struct platform_device ram_console_device = {
-	.name		= "ram_console",
-	.id		= -1,
-	.num_resources	= ARRAY_SIZE(ram_console_resources),
-	.resource	= ram_console_resources,
-};
 static struct pm8xxx_vibrator_pwm_platform_data pm8xxx_vib_pwm_pdata = {
 	.initial_vibrate_ms = 0,
 	.max_timeout_ms = 15000,
@@ -3133,7 +2973,6 @@ static struct platform_device vibrator_pwm_device = {
 };
 
 static struct platform_device *common_devices[] __initdata = {
-	&ram_console_device,
 	&msm8960_device_dmov,
 	&msm_device_smd,
 	&msm8960_device_uart_gsbi3,
@@ -3141,17 +2980,8 @@ static struct platform_device *common_devices[] __initdata = {
 	//&msm_device_uart_dm6,
 	&msm_device_saw_core0,
 	&msm_device_saw_core1,
-//HTC_AUD ++
-//Deleting this part because GPIO 63 is used for HTC AUXPCM DOUT.
-//	&msm8930_device_ext_5v_vreg,
-//HTC_AUD --
-#ifndef MSM8930_PHASE_2
-	&msm8930_device_ext_l2_vreg,
-#endif
 	&msm8960_device_ssbi_pmic,
-#ifdef MSM8930_PHASE_2
 	&msm8930_device_ext_otg_sw_vreg,
-#endif
 #if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_RAWCHIP)
 	&tc2_msm_rawchip_device,
 #endif
@@ -3222,8 +3052,6 @@ static struct platform_device *common_devices[] __initdata = {
 #ifdef CONFIG_HTC_BATT_8960
 	&htc_battery_pdev,
 #endif
-	&msm8930_cpu_idle_device,
-	&msm8930_msm_gov_device,
 	&msm_bus_8930_apps_fabric,
 	&msm_bus_8930_sys_fabric,
 	&msm_bus_8930_mm_fabric,
@@ -3238,10 +3066,10 @@ static struct platform_device *common_devices[] __initdata = {
 #endif
 	&cable_detect_device,
 	&vibrator_pwm_device,
-//HTC_AUD++
-	&apq_cpudai_pri_i2s_rx,
-	&apq_cpudai_pri_i2s_tx,
-	&msm_cpudai_mi2s,
+//HTC_AUD++ TEMP REMOVE
+//	&apq_cpudai_pri_i2s_rx, 
+//	&apq_cpudai_pri_i2s_tx,
+//	&msm_cpudai_mi2s,
 //HTC_AUD --
 #ifdef CONFIG_PERFLOCK
 	&msm8960_device_perf_lock,
@@ -3250,7 +3078,9 @@ static struct platform_device *common_devices[] __initdata = {
 
 static struct platform_device *cdp_devices[] __initdata = {
 	&msm8960_device_otg,
+	&msm8960_device_gadget_peripheral,
 	&msm_device_hsusb_host,
+	&android_usb_device,
 	&msm_pcm,
 	&msm_pcm_routing,
 	&msm_cpudai0,
@@ -3316,14 +3146,6 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
 		true,
 		1, 784, 180000, 100,
 	},
-#if 0
-	{
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE,
-		MSM_RPMRS_LIMITS(ON, ACTIVE, MAX, ACTIVE),
-		true,
-		1300, 228, 1200000, 2000,
-	},
-#endif
 	{
 		MSM_PM_SLEEP_MODE_POWER_COLLAPSE,
 		MSM_RPMRS_LIMITS(ON, GDHS, MAX, ACTIVE),
@@ -3400,12 +3222,6 @@ static struct msm_pm_boot_platform_data msm_pm_boot_pdata __initdata = {
 };
 
 
-static struct msm_pm_sleep_status_data msm_pm_slp_sts_data = {
-	.base_addr = MSM_ACC0_BASE + 0x08,
-	.cpu_offset = MSM_ACC1_BASE - MSM_ACC0_BASE,
-	.mask = 1UL << 13,
-};
-
 #ifdef CONFIG_I2C
 #define I2C_SURF 1
 #define I2C_FFA  (1 << 1)
@@ -3449,7 +3265,7 @@ static struct i2c_board_info isl_charger_i2c_info[] __initdata = {
 					}
 
 static struct regulator *g_sensor_reg_l9;
-static struct regulator *compass_reg_l9;
+//static struct regulator *compass_reg_l9;
 
 static int tc2_g_sensor_power_LPM(int on)
 {
@@ -3505,6 +3321,7 @@ static struct bma250_platform_data gsensor_bma250_platform_data = {
 	.power_LPM = tc2_g_sensor_power_LPM,
 };
 
+#if 0
 static int tc2_compass_power_LPM(int on)
 {
 	int rc = 0;
@@ -3552,10 +3369,11 @@ static int tc2_compass_power_LPM(int on)
 	pr_info("[COMP][AKM8975] %s: sensor_lock unlock 4\n", __func__);
 	return 0;
 }
+#endif
 
 static struct akm8975_platform_data compass_platform_data = {
 	.layouts = TC2_LAYOUTS,
-	.power_LPM = tc2_compass_power_LPM,
+        //	.power_LPM = tc2_compass_power_LPM,
 };
 
 static struct i2c_board_info msm_i2c_gsbi12_info[] = {
@@ -3580,14 +3398,6 @@ static struct i2c_registry msm8960_i2c_devices[] __initdata = {
 		ARRAY_SIZE(isl_charger_i2c_info),
 	},
 #endif /* CONFIG_ISL9519_CHARGER */
-#if 0
-	{
-		I2C_SURF | I2C_FFA | I2C_FLUID,
-		MSM_8930_GSBI9_QUP_I2C_BUS_ID,
-		msm_isa1200_board_info,
-		ARRAY_SIZE(msm_isa1200_board_info),
-	},
-#endif
 	{
 		I2C_SURF | I2C_FFA | I2C_FLUID,
 		MSM_8930_GSBI9_QUP_I2C_BUS_ID,
@@ -3643,14 +3453,7 @@ static void __init register_i2c_devices(void)
 #endif
 
 	/* Build the matching 'supported_machs' bitmask */
-	if (machine_is_msm8930_cdp() || machine_is_msm8627_cdp() || machine_is_tc2())
 		mach_mask = I2C_SURF;
-	else if (machine_is_msm8930_fluid())
-		mach_mask = I2C_FLUID;
-	else if (machine_is_msm8930_mtp() || machine_is_msm8627_mtp())
-		mach_mask = I2C_FFA;
-	else
-		pr_err("unmatched machine ID in register_i2c_devices\n");
 
 	/* Run the array and install devices as appropriate */
 	for (i = 0; i < ARRAY_SIZE(msm8960_i2c_devices); ++i) {
@@ -3668,24 +3471,27 @@ static void __init register_i2c_devices(void)
 #endif
 }
 
+#if 0
 static struct msm_mmc_pad_drv tc2_sdc1_pad_drv_on_cfg[] = {
 	{TLMM_HDRV_SDC1_CLK, GPIO_CFG_14MA},
 	{TLMM_HDRV_SDC1_CMD, GPIO_CFG_10MA},
 	{TLMM_HDRV_SDC1_DATA, GPIO_CFG_10MA}
 };
+#endif
 
 static void __init tc2_init(void)
 {
-	struct msm_mmc_pad_drv_data *emmc_pad_drv_data;
-
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
+
+	htc_add_ramconsole_devices();
+        platform_device_register(&msm_gpio_device);
 
 	msm_tsens_early_init(&msm_tsens_pdata);
 	msm_thermal_init(&msm_thermal_pdata);
 	BUG_ON(msm_rpm_init(&msm8930_rpm_data));
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
-	msm_rpmrs_lpm_init(1, 1, 1, 1);
+        //	msm_rpmrs_lpm_init(1, 1, 1, 1);
 
 	regulator_suppress_info_printing();
 	if (msm_xo_init())
@@ -3696,12 +3502,12 @@ static void __init tc2_init(void)
 	msm_clock_init(&msm8930_clock_init_data);
 
   /* added by htc for clock debugging */
-  clk_ignor_list_add("msm_serial_hsl.0", "core_clk");
+        //  clk_ignor_list_add("msm_serial_hsl.0", "core_clk");
 	/*HTC_WIFI_START*/
 	/*Add sdc4_clk into ignore list*/
-	clk_ignor_list_add("msm_sdcc.4", "core_clk");
-	clk_ignor_list_add("msm_sdcc.4", "iface_clk");
-	clk_ignor_list_add("msm_sdcc.4", "bus_clk");
+        //	clk_ignor_list_add("msm_sdcc.4", "core_clk");
+        //	clk_ignor_list_add("msm_sdcc.4", "iface_clk");
+        //	clk_ignor_list_add("msm_sdcc.4", "bus_clk");
 	/*HTC_WIFI_END*/
 
 	msm8960_device_otg.dev.platform_data = &msm_otg_pdata;
@@ -3732,7 +3538,6 @@ static void __init tc2_init(void)
 
 #ifdef CONFIG_BT /* HTC_BT add */
 	bt_export_bd_address();
-	htc_sleep_clk_init(8);
 #endif
 
 #ifdef CONFIG_SERIAL_MSM_HS /* HTC_BT */
@@ -3741,8 +3546,8 @@ static void __init tc2_init(void)
 	msm_device_uart_dm6.dev.platform_data = &msm_uart_dm6_pdata;
 #endif
 
-	platform_add_devices(msm_footswitch_devices,
-		msm_num_footswitch_devices);
+	platform_add_devices(msm8930_footswitch,
+		msm8930_num_footswitch);
 	platform_add_devices(common_devices, ARRAY_SIZE(common_devices));
 	msm_uart_gsbi_gpio_init();
 	msm8930_add_vidc_device();
@@ -3760,11 +3565,7 @@ static void __init tc2_init(void)
 #endif
 	tc2_init_cam();
 #endif
-	emmc_pad_drv_data = mmc_get_pdd_drv_data(0);
-	if (emmc_pad_drv_data)
-		emmc_pad_drv_data->on = tc2_sdc1_pad_drv_on_cfg;
 	msm8930_init_mmc();
-	acpuclk_init(&acpuclk_8930_soc_data);
 
 	/*HTC_WIFI_START */
 	if (tc2_init_mmc() != 0)
@@ -3780,9 +3581,7 @@ static void __init tc2_init(void)
 
 	slim_register_board_info(msm_slim_devices,
 		ARRAY_SIZE(msm_slim_devices));
-	change_memory_power = &msm8930_change_memory_power;
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
-	msm_pm_init_sleep_status_data(&msm_pm_slp_sts_data);
 
 	create_proc_read_entry("emmc", 0, NULL, emmc_partition_read_proc, NULL);
 
@@ -3791,11 +3590,7 @@ static void __init tc2_init(void)
 #endif
 
 	tc2_init_keypad();
-	if ((get_kernel_flag() & KERNEL_FLAG_PM_MONITOR) ||
-		(!(get_kernel_flag() & KERNEL_FLAG_TEST_PWR_SUPPLY) && (!get_tamper_sf()))) {
-		htc_monitor_init();
-		htc_pm_monitor_init();
-	}
+
 	headset_device_register();
 
 	/* usb driver won't be loaded in MFG 58 station and gift mode */
@@ -3813,7 +3608,7 @@ static void __init tc2_init(void)
 #define PHY_BASE_ADDR2  0x90000000
 #define SIZE_ADDR2      (768 * 1024 * 1024)
 
-static void __init tc2_fixup(struct machine_desc *desc, struct tag *tags,
+static void __init tc2_fixup(struct tag *tags,
 				 char **cmdline, struct meminfo *mi)
 {
 	mi->nr_banks = 2;
