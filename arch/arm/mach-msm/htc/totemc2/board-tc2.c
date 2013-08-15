@@ -3631,5 +3631,6 @@ MACHINE_START(TC2, "tc2")
 	.init_machine = tc2_init,
 	.init_early = msm8930_allocate_memory_regions,
 	.init_very_early = tc2_early_memory,
+	.restart = msm_restart,
 MACHINE_END
 
