@@ -173,17 +173,16 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #else
 #define MSM_PMEM_SIZE 0x2800000 /* 40 Mbytes */
 #endif
-
 #define MSM_LIQUID_PMEM_SIZE 0x4000000 /* 64 Mbytes */
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 #define HOLE_SIZE	0x20000
-#define MSM_PMEM_KERNEL_EBI1_SIZE  0x65000
+#define MSM_CONTIG_MEM_SIZE  0x65000
 #ifdef CONFIG_MSM_IOMMU
 #define MSM_ION_MM_SIZE            0x3800000 /* Need to be multiple of 64K */
 #define MSM_ION_SF_SIZE            0x0
 #define MSM_ION_QSECOM_SIZE	0x780000 /* (7.5MB) */
-#define MSM_ION_HEAP_NUM	7
+#define MSM_ION_HEAP_NUM	8
 #else
 #define MSM_ION_SF_SIZE		MSM_PMEM_SIZE
 #define MSM_ION_MM_SIZE		MSM_PMEM_ADSP_SIZE
@@ -206,19 +205,19 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #define MSM_ION_ADSP_SIZE	SZ_8M
 
 #else
-#define MSM_PMEM_KERNEL_EBI1_SIZE  0x110C000
+#define MSM_CONTIG_MEM_SIZE  0x110C000
 #define MSM_ION_HEAP_NUM	1
 #endif
 
-//#ifdef CONFIG_KERNEL_PMEM_EBI_REGION
-static unsigned pmem_kernel_ebi1_size = MSM_PMEM_KERNEL_EBI1_SIZE;
-static int __init pmem_kernel_ebi1_size_setup(char *p)
+static unsigned msm_contig_mem_size = MSM_CONTIG_MEM_SIZE;
+#ifdef CONFIG_KERNEL_MSM_CONTIG_MEM_REGION
+static int __init msm_contig_mem_size_setup(char *p)
 {
-	pmem_kernel_ebi1_size = memparse(p, NULL);
+	msm_contig_mem_size = memparse(p, NULL);
 	return 0;
 }
-early_param("pmem_kernel_ebi1_size", pmem_kernel_ebi1_size_setup);
-//#endif
+early_param("msm_contig_mem_size", msm_contig_mem_size_setup);
+#endif
 
 #ifdef CONFIG_ANDROID_PMEM
 static unsigned pmem_size = MSM_PMEM_SIZE;
@@ -274,7 +273,6 @@ static struct platform_device msm8930_android_pmem_adsp_device = {
 	.id = 2,
 	.dev = { .platform_data = &android_pmem_adsp_pdata },
 };
-#endif
 
 static struct android_pmem_platform_data android_pmem_audio_pdata = {
 	.name = "pmem_audio",
@@ -288,7 +286,8 @@ static struct platform_device msm8930_android_pmem_audio_device = {
 	.id = 4,
 	.dev = { .platform_data = &android_pmem_audio_pdata },
 };
-#endif
+#endif /* CONFIG_MSM_MULTIMEDIA_USE_ION */
+#endif /* CONFIG_ANDROID_PMEM */
 
 struct fmem_platform_data msm8930_fmem_pdata = {
 };
@@ -328,6 +327,8 @@ static void __init reserve_rtb_memory(void)
 {
 #if defined(CONFIG_MSM_RTB)
 	msm8930_reserve_table[MEMTYPE_EBI1].size += msm8930_rtb_pdata.size;
+	pr_info("mem_map: rtb reserved with size 0x%x in pool\n",
+			msm8930_rtb_pdata.size);
 #endif
 }
 
@@ -337,15 +338,19 @@ static void __init size_pmem_devices(void)
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_pdata.size = pmem_size;
-#endif
 	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
-#endif
+#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+#endif /*CONFIG_ANDROID_PMEM*/
 }
 
+#ifdef CONFIG_ANDROID_PMEM
+#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 {
 	msm8930_reserve_table[p->memory_type].size += p->size;
 }
+#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+#endif /*CONFIG_ANDROID_PMEM*/
 
 static void __init reserve_pmem_memory(void)
 {
@@ -353,16 +358,19 @@ static void __init reserve_pmem_memory(void)
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	reserve_memory_for(&android_pmem_adsp_pdata);
 	reserve_memory_for(&android_pmem_pdata);
-#endif
 	reserve_memory_for(&android_pmem_audio_pdata);
-	msm8930_reserve_table[MEMTYPE_EBI1].size += pmem_kernel_ebi1_size;
-#endif
+#endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+	msm8930_reserve_table[MEMTYPE_EBI1].size += msm_contig_mem_size;
+	pr_info("mem_map: contig_mem reserved with size 0x%x in pool\n",
+			msm_contig_mem_size);
+#endif /*CONFIG_ANDROID_PMEM*/
 }
 
 static int msm8930_paddr_to_memtype(unsigned int paddr)
 {
 	return MEMTYPE_EBI1;
 }
+
 
 #define FMEM_ENABLED 0
 #ifdef CONFIG_ION_MSM
@@ -373,6 +381,8 @@ static struct ion_cp_heap_pdata cp_mm_msm8930_ion_pdata = {
 	.reusable = FMEM_ENABLED,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_MIDDLE,
+	.is_cma	= 1,
+	.no_nonsecure_alloc = 1,
 };
 
 static struct ion_cp_heap_pdata cp_mfc_msm8930_ion_pdata = {
@@ -381,12 +391,15 @@ static struct ion_cp_heap_pdata cp_mfc_msm8930_ion_pdata = {
 	.reusable = 0,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_HIGH,
+	.no_nonsecure_alloc = 1,
 };
+
 static struct ion_co_heap_pdata co_msm8930_ion_pdata = {
 	.adjacent_mem_id = INVALID_HEAP_ID,
 	.align = PAGE_SIZE,
 	.mem_is_fmem = 0,
 };
+
 static struct ion_co_heap_pdata fw_co_msm8930_ion_pdata = {
 	.adjacent_mem_id = ION_CP_MM_HEAP_ID,
 	.align = SZ_128K,
@@ -394,6 +407,7 @@ static struct ion_co_heap_pdata fw_co_msm8930_ion_pdata = {
 	.fixed_position = FIXED_LOW,
 };
 #endif
+
 
 static u64 msm_dmamask = DMA_BIT_MASK(32);
 
@@ -503,6 +517,7 @@ struct ion_platform_heap msm8930_heaps[] = {
 static struct ion_platform_data msm8930_ion_pdata = {
 	.nr = MSM_ION_HEAP_NUM,
 	.heaps = msm8930_heaps,
+
 };
 
 static struct platform_device msm8930_ion_dev = {
@@ -538,6 +553,9 @@ static void __init msm8930_reserve_fixed_area(unsigned long fixed_area_size)
 
 	ret = memblock_remove(reserve_info->fixed_area_start,
 		reserve_info->fixed_area_size);
+	pr_info("mem_map: fixed_area reserved at 0x%lx with size 0x%lx\n",
+			reserve_info->fixed_area_start,
+			reserve_info->fixed_area_size);
 	BUG_ON(ret);
 #endif
 }
@@ -732,8 +750,23 @@ static void __init reserve_ion_memory(void)
 
 static void __init reserve_mdp_memory(void)
 {
-	tc2_mdp_writeback(msm8930_reserve_table);
+  //	msm8930_mdp_writeback(msm8930_reserve_table);
 }
+
+#ifdef CONFIG_MSM_CACHE_DUMP
+static void __init reserve_cache_dump_memory(void)
+{
+	unsigned int total;
+
+	total = msm8930_cache_dump_pdata.l1_size +
+		msm8930_cache_dump_pdata.l2_size;
+	msm8930_reserve_table[MEMTYPE_EBI1].size += total;
+	pr_info("mem_map: cache_dump reserved with size 0x%x in pool\n",
+			total);
+}
+#else
+static void __init reserve_cache_dump_memory(void) { }
+#endif
 
 static void __init msm8930_calculate_reserve_sizes(void)
 {
@@ -742,6 +775,7 @@ static void __init msm8930_calculate_reserve_sizes(void)
 	reserve_ion_memory();
 	reserve_mdp_memory();
 	reserve_rtb_memory();
+	reserve_cache_dump_memory();
 }
 
 static struct reserve_info msm8930_reserve_info __initdata = {
@@ -751,82 +785,14 @@ static struct reserve_info msm8930_reserve_info __initdata = {
 	.paddr_to_memtype = msm8930_paddr_to_memtype,
 };
 
-static int msm8930_memory_bank_size(void)
-{
-	return 1<<29;
-}
-
-static void __init locate_unstable_memory(void)
-{
-	struct membank *mb = &meminfo.bank[meminfo.nr_banks - 1];
-	unsigned long bank_size;
-	unsigned long low, high;
-
-	bank_size = msm8930_memory_bank_size();
-	low = meminfo.bank[0].start;
-	high = mb->start + mb->size;
-
-	/* Check if 32 bit overflow occured */
-	if (high < mb->start)
-		high -= PAGE_SIZE;
-
-	if (high < MAX_FIXED_AREA_SIZE + MSM8930_FIXED_AREA_START)
-		panic("fixed area extends beyond end of memory\n");
-
-	low &= ~(bank_size - 1);
-
-	if (high - low <= bank_size)
-		goto no_dmm;
-
-	msm8930_reserve_info.bank_size = bank_size;
-#ifdef CONFIG_ENABLE_DMM
-	msm8930_reserve_info.low_unstable_address = mb->start -
-					MIN_MEMORY_BLOCK_SIZE + mb->size;
-	msm8930_reserve_info.max_unstable_size = MIN_MEMORY_BLOCK_SIZE;
-	pr_info("low unstable address %lx max size %lx bank size %lx\n",
-		msm8930_reserve_info.low_unstable_address,
-		msm8930_reserve_info.max_unstable_size,
-		msm8930_reserve_info.bank_size);
-#else
-	return;
-#endif
-no_dmm:
-	msm8930_reserve_info.low_unstable_address = high;
-	msm8930_reserve_info.max_unstable_size = 0;
-}
-
-static void __init place_movable_zone(void)
-{
-#ifdef CONFIG_ENABLE_DMM
-	movable_reserved_start = msm8930_reserve_info.low_unstable_address;
-	movable_reserved_size = msm8930_reserve_info.max_unstable_size;
-	pr_info("movable zone start %lx size %lx\n",
-		movable_reserved_start, movable_reserved_size);
-#endif
-}
-
 static void __init tc2_early_memory(void)
 {
 	reserve_info = &msm8930_reserve_info;
-	locate_unstable_memory();
-	place_movable_zone();
 }
 
 static void __init tc2_reserve(void)
 {
 	msm_reserve();
-	if (msm8930_fmem_pdata.size) {
-#if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
-		if (reserve_info->fixed_area_size) {
-			msm8930_fmem_pdata.phys =
-				reserve_info->fixed_area_start;
-		pr_info("mm fw at %lx (fixed) size %x\n",
-			reserve_info->fixed_area_start, MSM_MM_FW_SIZE);
-		pr_info("fmem start %lx (fixed) size %lx\n",
-			msm8930_fmem_pdata.phys, msm8930_fmem_pdata.size);
-		}
-#endif
-	}
 }
 
 #ifdef CONFIG_HTC_BATT_8960
@@ -1704,7 +1670,7 @@ struct msm_mpm_device_data msm8930_mpm_dev_data __initdata = {
 static void __init tc2_map_io(void)
 {
 	msm_shared_ram_phys = MSM_SHARED_RAM_PHYS;
-	msm_map_msm8930_io();
+        msm_map_msm8930_io();
 
 	if (socinfo_init() < 0)
 		pr_err("socinfo_init() failed!\n");
@@ -1714,7 +1680,7 @@ static void __init tc2_init_irq(void)
 {
 	struct msm_mpm_device_data *data = NULL;
 #ifdef CONFIG_MSM_MPM
-	data = &msm8930_mpm_dev_data;
+        data = &msm8930_mpm_dev_data;
 #endif
 
 	msm_mpm_irq_extn_init(data);
@@ -3038,8 +3004,8 @@ static struct platform_device *common_devices[] __initdata = {
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	&msm8930_android_pmem_device,
 	&msm8930_android_pmem_adsp_device,
+        &msm8930_android_pmem_audio_device,
 #endif
-	&msm8930_android_pmem_audio_device,
 #endif
 	&msm8930_fmem_device,
 	&msm_device_bam_dmux,
@@ -3516,14 +3482,14 @@ static void __init tc2_init(void)
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
         //	msm_rpmrs_lpm_init(1, 1, 1, 1);
 
-	regulator_suppress_info_printing();
+        //	regulator_suppress_info_printing();
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
 
 	platform_device_register(&msm8930_device_rpm_regulator);
 
-	msm_clock_init(&msm8930_clock_init_data);
-
+        msm_clock_init(&msm8930_clock_init_data);
+        return ;
   /* added by htc for clock debugging */
         //  clk_ignor_list_add("msm_serial_hsl.0", "core_clk");
 	/*HTC_WIFI_START*/
@@ -3621,12 +3587,9 @@ static void __init tc2_init(void)
 		tc2_add_usb_devices();
 }
 
-#define SMLOG_MB_SIZE       8 * 1024 *1024 /*defined by layer1*/
 #define PHY_BASE_ADDR1  	0x80400000
-#define SIZE_ADDR1			(138 * 1024 * 1024)
+#define SIZE_ADDR1		(132 * 1024 * 1024)
 #define SIZE_ADDR1_SMLOG	(SIZE_ADDR1 - SMLOG_MB_SIZE)
-
-
 
 #define PHY_BASE_ADDR2  0x90000000
 #define SIZE_ADDR2      (768 * 1024 * 1024)
@@ -3636,10 +3599,7 @@ static void __init tc2_fixup(struct tag *tags,
 {
 	mi->nr_banks = 2;
 	mi->bank[0].start = PHY_BASE_ADDR1;
-	if(parse_tag_smlog(tags))
-		mi->bank[0].size = SIZE_ADDR1_SMLOG;
-	else
-		mi->bank[0].size = SIZE_ADDR1;
+        mi->bank[0].size = SIZE_ADDR1;
 	mi->bank[1].start = PHY_BASE_ADDR2;
 	mi->bank[1].size = SIZE_ADDR2;
 }
