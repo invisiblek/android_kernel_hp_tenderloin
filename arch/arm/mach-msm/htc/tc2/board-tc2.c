@@ -86,6 +86,7 @@
 #include <mach/mdm2.h>
 #include <mach/msm_rtb.h>
 #include <linux/fmem.h>
+#include <mach/iommu_domains.h>
 
 #include "timer.h"
 #include "devices.h"
@@ -182,7 +183,7 @@ struct sx150x_platform_data msm8930_sx150x_data[] = {
 #define MSM_ION_MM_SIZE            0x3800000 /* Need to be multiple of 64K */
 #define MSM_ION_SF_SIZE            0x0
 #define MSM_ION_QSECOM_SIZE	0x780000 /* (7.5MB) */
-#define MSM_ION_HEAP_NUM	8
+#define MSM_ION_HEAP_NUM	7
 #else
 #define MSM_ION_SF_SIZE		MSM_PMEM_SIZE
 #define MSM_ION_MM_SIZE		MSM_PMEM_ADSP_SIZE
