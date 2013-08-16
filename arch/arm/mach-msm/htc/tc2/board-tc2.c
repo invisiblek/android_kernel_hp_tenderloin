@@ -2965,7 +2965,7 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_device_saw_core0,
 	&msm_device_saw_core1,
 	&msm8960_device_ssbi_pmic,
-	&msm8930_device_ext_otg_sw_vreg,
+        //	&msm8930_device_ext_otg_sw_vreg, // TEMP DISABLE
 #if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_RAWCHIP)
 	&tc2_msm_rawchip_device,
 #endif
