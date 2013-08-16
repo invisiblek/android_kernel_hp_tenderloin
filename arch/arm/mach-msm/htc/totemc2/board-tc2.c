@@ -2956,6 +2956,7 @@ static struct platform_device vibrator_pwm_device = {
 };
 
 static struct platform_device *common_devices[] __initdata = {
+        &msm8930_device_acpuclk,
 	&msm8960_device_dmov,
 	&msm_device_smd,
 	&msm8960_device_uart_gsbi3,
