@@ -2874,7 +2874,7 @@ static struct platform_device msm_device_saw_core0 = {
 	.name	= "saw-regulator",
 	.id	= 0,
 	.dev	= {
-		.platform_data = &msm_saw_regulator_pdata_s5,
+		.platform_data = &msm8930_pm8038_saw_regulator_core0_pdata,
 	},
 };
 
@@ -2882,7 +2882,7 @@ static struct platform_device msm_device_saw_core1 = {
 	.name	= "saw-regulator",
 	.id	= 1,
 	.dev	= {
-		.platform_data = &msm_saw_regulator_pdata_s6,
+		.platform_data = &msm8930_pm8038_saw_regulator_core1_pdata,
 	},
 };
 
@@ -3489,15 +3489,6 @@ static void __init tc2_init(void)
 	platform_device_register(&msm8930_device_rpm_regulator);
 
         msm_clock_init(&msm8930_clock_init_data);
-        return ;
-  /* added by htc for clock debugging */
-        //  clk_ignor_list_add("msm_serial_hsl.0", "core_clk");
-	/*HTC_WIFI_START*/
-	/*Add sdc4_clk into ignore list*/
-        //	clk_ignor_list_add("msm_sdcc.4", "core_clk");
-        //	clk_ignor_list_add("msm_sdcc.4", "iface_clk");
-        //	clk_ignor_list_add("msm_sdcc.4", "bus_clk");
-	/*HTC_WIFI_END*/
 
 	msm8960_device_otg.dev.platform_data = &msm_otg_pdata;
 	android_usb_pdata.swfi_latency =
