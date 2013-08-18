@@ -32,8 +32,8 @@
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
-#include <linux/dma-contiguous.h>
 #include <linux/dma-mapping.h>
+#include <linux/dma-contiguous.h>
 #include <linux/platform_data/qcom_crypto_device.h>
 #include <linux/platform_data/qcom_wcnss_device.h>
 #include <linux/leds.h>
@@ -382,8 +382,7 @@ static struct ion_cp_heap_pdata cp_mm_msm8930_ion_pdata = {
 	.reusable = FMEM_ENABLED,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_MIDDLE,
-	.iommu_map_all = 1,
-	.iommu_2x_map_domain = VIDEO_DOMAIN,
+	.no_nonsecure_alloc = 1,
 #ifdef CONFIG_CMA
 	.is_cma = 1,
 #endif
@@ -395,6 +394,7 @@ static struct ion_cp_heap_pdata cp_mfc_msm8930_ion_pdata = {
 	.reusable = 0,
 	.mem_is_fmem = FMEM_ENABLED,
 	.fixed_position = FIXED_HIGH,
+	.no_nonsecure_alloc = 1,
 };
 
 static struct ion_co_heap_pdata co_msm8930_ion_pdata = {
@@ -3463,16 +3463,16 @@ static void __init register_i2c_devices(void)
 #endif
 }
 
-#if 0
 static struct msm_mmc_pad_drv tc2_sdc1_pad_drv_on_cfg[] = {
 	{TLMM_HDRV_SDC1_CLK, GPIO_CFG_14MA},
 	{TLMM_HDRV_SDC1_CMD, GPIO_CFG_10MA},
 	{TLMM_HDRV_SDC1_DATA, GPIO_CFG_10MA}
 };
-#endif
 
 static void __init tc2_init(void)
 {
+	struct msm_mmc_pad_drv_data *emmc_pad_drv_data;
+
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
 
@@ -3554,6 +3554,9 @@ static void __init tc2_init(void)
 #endif
 	tc2_init_cam();
 #endif
+	emmc_pad_drv_data = mmc_get_pdd_drv_data(0);
+	if (emmc_pad_drv_data)
+		emmc_pad_drv_data->on = tc2_sdc1_pad_drv_on_cfg;
 	msm8930_init_mmc();
 
 	/*HTC_WIFI_START */

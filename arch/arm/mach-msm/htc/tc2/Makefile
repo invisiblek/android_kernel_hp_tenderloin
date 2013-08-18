@@ -9,6 +9,5 @@ obj-$(CONFIG_MACH_TC2) += board-tc2-wifi.o
 obj-$(CONFIG_MACH_TC2) += board-tc2-pmic.o
 obj-$(CONFIG_MACH_TC2) += board-tc2-keypad.o
 #obj-$(CONFIG_MACH_TC2) += board-tc2-camera.o
-obj-$(CONFIG_MACH_TC2) += ../../devices-8930.o
 obj-$(CONFIG_MACH_TC2) += display/
 CFLAGS_board-tc2-display.o += -Idrivers/video
