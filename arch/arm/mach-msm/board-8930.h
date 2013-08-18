@@ -25,6 +25,17 @@
 #include <mach/msm_memtypes.h>
 #include <mach/msm_rtb.h>
 
+#define EVM	0x99
+#define EVM1	99
+#define XA	0
+#define XB	1
+#define XC	2
+#define XD	3
+#define XE	4
+#define XF	5
+#define XG	6
+#define PVT	0x80
+
 /*
  * TODO: When physical 8930/PM8038 hardware becomes
  * available, remove this block.
@@ -76,6 +87,7 @@ extern struct rpm_regulator_platform_data msm_rpm_regulator_pdata __devinitdata;
 #define GPIO_VREG_ID_EXT_3P3V		2
 #endif
 
+struct msm_mmc_pad_drv_data *mmc_get_pdd_drv_data(int controller);
 extern struct regulator_init_data msm8930_pm8038_saw_regulator_core0_pdata;
 extern struct regulator_init_data msm8930_pm8038_saw_regulator_core1_pdata;
 extern struct regulator_init_data msm8930_pm8917_saw_regulator_core0_pdata;
