@@ -91,7 +91,7 @@ static void detect_gpio_work_func(struct work_struct *work)
 		return;
 
 	hi->headset_state = insert;
-	hs_notify_plug_event(insert);
+	hs_notify_plug_event(insert, 0);
 }
 
 static irqreturn_t detect_irq_handler(int irq, void *dev_id)
