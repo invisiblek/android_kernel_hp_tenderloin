@@ -253,6 +253,11 @@ struct pm8xxx_adc_map_pt {
 	int32_t y;
 };
 
+struct pm8xxx_adc_map_table {
+	const struct pm8xxx_adc_map_pt *table;
+	int32_t size;
+};
+
 /**
  * struct pm8xxx_adc_scaling_ratio - Represent scaling ratio for adc input
  * @num: Numerator scaling parameter
@@ -313,6 +318,8 @@ struct pm8xxx_adc_chan_result {
 
 #if defined(CONFIG_SENSORS_PM8XXX_ADC)					\
 			|| defined(CONFIG_SENSORS_PM8XXX_ADC_MODULE)
+void pm8xxx_adc_set_adcmap_btm_table(
+			struct pm8xxx_adc_map_table *adcmap_table);
 /**
  * pm8xxx_adc_scale_default() - Scales the pre-calibrated digital output
  *		of an ADC to the ADC reference and compensates for the
@@ -406,6 +413,9 @@ int32_t pm8xxx_adc_scale_batt_id(int32_t adc_code,
 			const struct pm8xxx_adc_chan_properties *chan_prop,
 			struct pm8xxx_adc_chan_result *chan_rslt);
 #else
+static inline void pm8xxx_adc_set_adcmap_btm_table(
+			struct pm8xxx_adc_map_table *adcmap_table)
+{ return; }
 static inline int32_t pm8xxx_adc_scale_default(int32_t adc_code,
 			const struct pm8xxx_adc_properties *adc_prop,
 			const struct pm8xxx_adc_chan_properties *chan_prop,
@@ -514,6 +524,7 @@ struct pm8xxx_adc_platform_data {
 	struct pm8xxx_adc_amux		*adc_channel;
 	uint32_t			adc_num_board_channel;
 	uint32_t			adc_mpp_base;
+	struct pm8xxx_adc_map_table	*adc_map_btm_table;
 #ifdef CONFIG_MACH_HTC
 	void				(*pm8xxx_adc_device_register)(void);
 #endif

@@ -111,6 +111,13 @@ static const struct pm8xxx_adc_map_pt adcmap_btm_threshold[] = {
 	{790,	203}
 };
 
+static struct pm8xxx_adc_map_table default_adcmap_btm = {
+	.table = adcmap_btm_threshold,
+	.size = ARRAY_SIZE(adcmap_btm_threshold),
+};
+
+static struct pm8xxx_adc_map_table *adcmap_btm_table = &default_adcmap_btm;
+
 static const struct pm8xxx_adc_map_pt adcmap_pa_therm[] = {
 	{1731,	-30},
 	{1726,	-29},
@@ -530,6 +537,12 @@ static int32_t pm8xxx_adc_map_batt_therm(const struct pm8xxx_adc_map_pt *pts,
 	return 0;
 }
 
+void pm8xxx_adc_set_adcmap_btm_table(struct pm8xxx_adc_map_table *adcmap_table)
+{
+	adcmap_btm_table = adcmap_table;
+}
+EXPORT_SYMBOL_GPL(pm8xxx_adc_set_adcmap_btm_table);
+
 int32_t pm8xxx_adc_scale_default(int32_t adc_code,
 		const struct pm8xxx_adc_properties *adc_properties,
 		const struct pm8xxx_adc_chan_properties *chan_properties,
@@ -622,12 +635,31 @@ int32_t pm8xxx_adc_scale_batt_therm(int32_t adc_code,
 			adc_properties, chan_properties);
 
 	return pm8xxx_adc_map_batt_therm(
+			adcmap_btm_table->table,
+			adcmap_btm_table->size,
+			bat_voltage,
+			&adc_chan_result->physical);
+}
+EXPORT_SYMBOL_GPL(pm8xxx_adc_scale_batt_therm);
+#if 0
+int32_t pm8xxx_adc_scale_batt_therm(int32_t adc_code,
+		const struct pm8xxx_adc_properties *adc_properties,
+		const struct pm8xxx_adc_chan_properties *chan_properties,
+		struct pm8xxx_adc_chan_result *adc_chan_result)
+{
+	int64_t bat_voltage = 0;
+
+	bat_voltage = pm8xxx_adc_scale_ratiometric_calib(adc_code,
+			adc_properties, chan_properties);
+
+	return pm8xxx_adc_map_batt_therm(
 			adcmap_btm_threshold,
 			ARRAY_SIZE(adcmap_btm_threshold),
 			bat_voltage,
 			&adc_chan_result->physical);
 }
 EXPORT_SYMBOL_GPL(pm8xxx_adc_scale_batt_therm);
+#endif
 
 int32_t pm8xxx_adc_scale_pa_therm(int32_t adc_code,
 		const struct pm8xxx_adc_properties *adc_properties,

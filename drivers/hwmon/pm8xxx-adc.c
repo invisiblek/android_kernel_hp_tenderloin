@@ -1251,6 +1251,11 @@ static int __devinit pm8xxx_adc_probe(struct platform_device *pdev)
 	adc_pmic->adc_num_board_channel = pdata->adc_num_board_channel;
 	adc_pmic->mpp_base = pdata->adc_mpp_base;
 
+	if (pdata->adc_map_btm_table)
+		pm8xxx_adc_set_adcmap_btm_table(pdata->adc_map_btm_table);
+	else
+		pr_warn("default adcmap_btm_table is applied.\n");
+
 	mutex_init(&adc_pmic->adc_lock);
 	mutex_init(&adc_pmic->mpp_adc_lock);
 	spin_lock_init(&adc_pmic->btm_lock);
