@@ -61,6 +61,9 @@ else
 obj-$(CONFIG_PM8921_BMS)	+= pm8921-bms.o
 obj-$(CONFIG_PM8921_CHARGER)	+= pm8921-charger.o
 endif
+ifdef CONFIG_AMP_RT5501
+               obj-y += pm8921-audio.o
+endif
 obj-$(CONFIG_LTC4088_CHARGER)	+= ltc4088-charger.o
 obj-$(CONFIG_CHARGER_SMB347)	+= smb347-charger.o
 obj-$(CONFIG_BATTERY_BCL)	+= battery_current_limit.o

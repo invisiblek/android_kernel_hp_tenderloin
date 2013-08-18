@@ -21,6 +21,7 @@
 #define HTC_AUDIO_A1028		0x08
 #define HTC_AUDIO_TPA6185 (HTC_AUDIO_A1028 << 1)
 #define HTC_AUDIO_RT5501 (HTC_AUDIO_TPA6185 << 1)
+#define HTC_AUDIO_TFA9887 (HTC_AUDIO_RT5501 << 1)
 
 struct acoustic_ops {
 	void (*set_q6_effect)(int mode);
