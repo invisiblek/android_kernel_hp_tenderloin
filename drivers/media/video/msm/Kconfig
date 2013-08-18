@@ -54,6 +54,16 @@ config S5K6A1GX
 	  Support for S5K6A1GX samsung sensor driver.
 	  It is a Bayer 1.3MP sensor it supports one mipi lanes.
 
+config S5K4E5YX
+	bool "Sensor Sensor S5K4E5YX (Samsung 5M)"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Support for S5k4E5YX samsung sensor driver.
+	  It is a Bayer 5MP sensor with auto focus and it supports
+	  two mipi lanes, required for msm8930 platform.
+	  Say Y here if this is msm8930 variant platform.
+
 config AR0260
 	bool "Sensor ar0260"
 	depends on MSM_CAMERA
@@ -405,6 +415,13 @@ config IMX175_2LANE
 	depends on MSM_CAMERA
 	---help---
 	SONY 8 MP Bayer Sensor for 2-lane hardware
+
+config S5K4E5YX_ACT
+	bool "Sensor S5K4E5YX actuator"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Autofocus of s5k4e5yx actuator
 
 config OV5693_ACT
 	bool "Sensor OV5693 actuator"
