@@ -8,6 +8,8 @@ obj-$(CONFIG_MACH_TC2) += board-tc2-wifi.o
 #obj-$(CONFIG_MACH_TC2) += board-tc2-audio.o
 obj-$(CONFIG_MACH_TC2) += board-tc2-pmic.o
 obj-$(CONFIG_MACH_TC2) += board-tc2-keypad.o
-#obj-$(CONFIG_MACH_TC2) += board-tc2-camera.o
+ifeq ($(CONFIG_MSM_CAMERA),y)
+obj-$(CONFIG_MACH_TC2) += board-tc2-camera.o
+endif
 obj-$(CONFIG_MACH_TC2) += display/
 CFLAGS_board-tc2-display.o += -Idrivers/video

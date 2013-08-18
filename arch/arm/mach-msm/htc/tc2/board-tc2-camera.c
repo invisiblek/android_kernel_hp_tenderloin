@@ -20,6 +20,7 @@
 #include "devices.h"
 #include "board-8930.h"
 #include "board-tc2.h"
+#include <asm/setup.h>
 
 #include <linux/spi/spi.h>
 
