@@ -304,7 +304,7 @@ static int mipi_dsi_panel_power(int on)
 		}
 		msleep(10);
 
-		gpio_set_value(MSM_LCMIO_1V8_EN, 1);
+		gpio_set_value(MSM_V_LCMIO_1V8_EN, 1);
 		msleep(5);
 
 		rc = regulator_enable(reg_l2);
@@ -329,7 +329,7 @@ static int mipi_dsi_panel_power(int on)
 
 		gpio_set_value(MSM_LCD_RSTz, 0);
 		usleep(150);
-		gpio_set_value(MSM_LCMIO_1V8_EN, 0);
+		gpio_set_value(MSM_V_LCMIO_1V8_EN, 0);
 
 		msleep(2);
 		rc = regulator_disable(reg_l10);

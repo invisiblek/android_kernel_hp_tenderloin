@@ -200,7 +200,7 @@ extern struct platform_device tc2_msm_rawchip_device;
 
 int __init tc2_gpiomux_init(void);
 int __init tc2_init_keypad(void);
-void tc2_init_panel(void);
+void tc2_init_fb(void);
 void tc2_allocate_fb_region(void);
 void tc2_mdp_writeback(struct memtype_reserve* reserve_table);
 int __init tc2_init_mmc(void);

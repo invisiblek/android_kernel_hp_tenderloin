@@ -3558,7 +3558,7 @@ static void __init tc2_init(void)
 	if (emmc_pad_drv_data)
 		emmc_pad_drv_data->on = tc2_sdc1_pad_drv_on_cfg;
 	msm8930_init_mmc();
-
+	tc2_init_fb();
 	/*HTC_WIFI_START */
 	if (tc2_init_mmc() != 0)
 		printk(KERN_ERR "%s: Unable to initialize MMC (SDCC4)\n", __func__);
@@ -3566,7 +3566,6 @@ static void __init tc2_init(void)
 	syn_init_vkeys_tc2();
 
 	register_i2c_devices();
-	tc2_init_panel();
 	/*HTC_WIFI_START */
 	tc2_wifi_init();
 	/*HTC_WIFI_END */
