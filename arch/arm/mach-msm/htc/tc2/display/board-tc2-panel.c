@@ -13,45 +13,48 @@
  *
  */
 
-#include <linux/init.h>
-#include <linux/ioport.h>
-#include <linux/platform_device.h>
-#include <linux/bootmem.h>
-#include <asm/mach-types.h>
-#include <mach/msm_bus_board.h>
-#include <mach/msm_memtypes.h>
-#include <mach/board.h>
+#include "../../../../drivers/video/msm/msm_fb.h"
+#include "../../../../drivers/video/msm/mipi_dsi.h"
+#include "../../../../drivers/video/msm/mdp.h"
+#include "../../../../drivers/video/msm/mdp4.h"
+#include "../../../../drivers/video/msm/msm_fb_panel.h"
 #include <linux/gpio.h>
 #include <mach/gpio.h>
-#include <mach/gpiomux.h>
-#include <mach/socinfo.h>
-#include <linux/msm_ion.h>
-#include <mach/ion.h>
-#include <linux/regulator/consumer.h>
+#include <mach/panel_id.h>
+#include <mach/msm_memtypes.h>
+#include <linux/bootmem.h>
+#ifdef CONFIG_FB_MSM_HDMI_MHL
+#include <video/msm_hdmi_modes.h>
+#endif
 
 #include "../devices.h"
 #include "../board-tc2.h"
-#include <mach/panel_id.h>
-#include <mach/debug_display.h>
+#if defined (CONFIG_FB_MSM_MDP_ABL)
+#include <linux/fb.h>
+#endif
 
 extern unsigned int system_rev;
 
-#define RESOLUTION_WIDTH 544
-#define RESOLUTION_HEIGHT 960
-
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE \
-		(roundup((RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 4), 4096) * 3) /* 4 bpp x 3 pages */
+#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 3) /* 4 bpp x 3 pages */
 #else
-#define MSM_FB_PRIM_BUF_SIZE \
-		(roundup((RESOLUTION_WIDTH * RESOLUTION_HEIGHT * 4), 4096) * 2) /* 4 bpp x 2 pages */
+#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 2) /* 4 bpp x 2 pages */
+#endif
+
+
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+#define MSM_FB_EXT_BUF_SIZE (1920 * 1088 * 2 * 1) /* 2 bpp x 1 page */
+#elif defined(CONFIG_FB_MSM_TVOUT)
+#define MSM_FB_EXT_BUF_SIZE (720 * 576 * 2 * 2) /* 2 bpp x 2 pages */
+#else
+#define MSM_FB_EXT_BUF_SIZE 0
 #endif
 
 /* Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1376 * 768 * 3 * 2), 4096)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((960 * 544 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
@@ -62,35 +65,13 @@ extern unsigned int system_rev;
 #define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
 
-#define MDP_VSYNC_GPIO 0
-
-#define MIPI_CMD_ORISE_QHD_PANEL_NAME	"mipi_cmd_orise_qhd"
-//#define MIPI_CMD_ORISE_QHD_PANEL_NAME	"mipi_video_novatek_wvga"
-#define HDMI_PANEL_NAME	"hdmi_msm"
-#define TVOUT_PANEL_NAME	"tvout_msm"
-
 static struct resource msm_fb_resources[] = {
 	{
 		.flags = IORESOURCE_DMA,
 	},
 };
 
-static int msm_fb_detect_panel(const char *name)
-{
-	if (!strncmp(name, MIPI_CMD_ORISE_QHD_PANEL_NAME,
-			strnlen(MIPI_CMD_ORISE_QHD_PANEL_NAME,
-				PANEL_NAME_MAX_LEN))) {
-		PR_DISP_INFO("%s: Support (%s)\n",__func__, name);
-		return 0;
-	}
-
-
-	PR_DISP_WARN("%s: not supported '%s'\n", __func__, name);
-	return -ENODEV;
-}
-
 static struct msm_fb_platform_data msm_fb_pdata = {
-	.detect_client = msm_fb_detect_panel,
 };
 
 static struct platform_device msm_fb_device = {
@@ -100,6 +81,19 @@ static struct platform_device msm_fb_device = {
 	.resource          = msm_fb_resources,
 	.dev.platform_data = &msm_fb_pdata,
 };
+
+void __init tc2_allocate_fb_region(void)
+{
+	void *addr;
+	unsigned long size;
+
+	size = MSM_FB_SIZE;
+	addr = alloc_bootmem_align(size, 0x1000);
+	msm_fb_resources[0].start = __pa(addr);
+	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
+	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
+			size, addr, __pa(addr));
+}
 
 #ifdef CONFIG_MSM_BUS_SCALING
 
@@ -112,43 +106,6 @@ static struct msm_bus_vectors mdp_init_vectors[] = {
 	},
 };
 
-#ifdef CONFIG_FB_MSM_HDMI_AS_PRIMARY
-static struct msm_bus_vectors hdmi_as_primary_vectors[] = {
-	/* If HDMI is used as primary */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 2000000000,
-		.ib = 2000000000,
-	},
-};
-static struct msm_bus_paths mdp_bus_scale_usecases[] = {
-	{
-		ARRAY_SIZE(mdp_init_vectors),
-		mdp_init_vectors,
-	},
-	{
-		ARRAY_SIZE(hdmi_as_primary_vectors),
-		hdmi_as_primary_vectors,
-	},
-	{
-		ARRAY_SIZE(hdmi_as_primary_vectors),
-		hdmi_as_primary_vectors,
-	},
-	{
-		ARRAY_SIZE(hdmi_as_primary_vectors),
-		hdmi_as_primary_vectors,
-	},
-	{
-		ARRAY_SIZE(hdmi_as_primary_vectors),
-		hdmi_as_primary_vectors,
-	},
-	{
-		ARRAY_SIZE(hdmi_as_primary_vectors),
-		hdmi_as_primary_vectors,
-	},
-};
-#else
 static struct msm_bus_vectors mdp_ui_vectors[] = {
 	{
 		.src = MSM_BUS_MASTER_MDP_PORT0,
@@ -214,7 +171,6 @@ static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 		mdp_1080p_vectors,
 	},
 };
-#endif
 
 static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 	mdp_bus_scale_usecases,
@@ -225,7 +181,11 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 #endif
 
 static struct msm_panel_common_pdata mdp_pdata = {
-	.gpio = MDP_VSYNC_GPIO,
+	.gpio = MSM_LCD_TE,
+	.mdp_max_clk = 200000000,
+	.mdp_max_bw = 2000000000,
+	.mdp_bw_ab_factor = 115,
+	.mdp_bw_ib_factor = 150,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
@@ -235,9 +195,10 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
-	.mdp_iommu_split_domain = 0,
-	/* Command mode panel does not need this feature */
 	.cont_splash_enabled = 0x00,
+	.splash_screen_addr = 0x00,
+	.splash_screen_size = 0x00,
+	.mdp_iommu_split_domain = 0,
 };
 
 void __init tc2_mdp_writeback(struct memtype_reserve* reserve_table)
@@ -252,67 +213,18 @@ void __init tc2_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 
-#if 0
-#define BRI_SETTING_MIN                 30
-#define BRI_SETTING_DEF                 143
-#define BRI_SETTING_MAX                 255
-
-static unsigned char tc2_shrink_pwm(int val)
-{
-	unsigned int pwm_min, pwm_default, pwm_max;
-	unsigned char shrink_br = BRI_SETTING_MAX;
-
-	pwm_min = 7;
-	pwm_default = 86;
-	pwm_max = 255;
-
-
-	if (val <= 0) {
-		shrink_br = 0;
-	} else if (val > 0 && (val < BRI_SETTING_MIN)) {
-			shrink_br = pwm_min;
-	} else if ((val >= BRI_SETTING_MIN) && (val <= BRI_SETTING_DEF)) {
-			shrink_br = (val - BRI_SETTING_MIN) * (pwm_default - pwm_min) /
-		(BRI_SETTING_DEF - BRI_SETTING_MIN) + pwm_min;
-	} else if (val > BRI_SETTING_DEF && val <= BRI_SETTING_MAX) {
-			shrink_br = (val - BRI_SETTING_DEF) * (pwm_max - pwm_default) /
-		(BRI_SETTING_MAX - BRI_SETTING_DEF) + pwm_default;
-	} else if (val > BRI_SETTING_MAX)
-			shrink_br = pwm_max;
-
-	PR_DISP_INFO("brightness orig=%d, transformed=%d\n", val, shrink_br);
-
-	return shrink_br;
-}
-#endif
-
-static struct mipi_dsi_panel_platform_data orise_pdata = {
-	.dlane_swap = 1,
-#ifdef CONFIG_BACKLIGHT_WLED_CABC
-	.enable_wled_bl_ctrl = 0x0,
-#else
-	.enable_wled_bl_ctrl = 0x1,
-#endif
-};
-
-static struct platform_device mipi_dsi_orise_panel_device = {
-	.name = "mipi_orise",
-	.id = 0,
-	.dev = {
-		.platform_data = &orise_pdata,
-	}
-};
-
+extern int mipi_lcd_on;
 static bool dsi_power_on;
-static bool first_inited = true;
-static int tc2_panel_power(int on)
+
+static int mipi_dsi_panel_power(int on)
 {
 	static struct regulator *reg_l2;
 	static struct regulator *reg_l10;
+	static bool bPanelPowerOn = false;
 
 	int rc;
 
-	PR_DISP_INFO("%s: power %s.\n", __func__, on ? "on" : "off");
+	pr_info("%s: power %s.\n", __func__, on ? "on" : "off");
 
 	if (!dsi_power_on) {
 		/* MIPI DSI power */
@@ -323,12 +235,6 @@ static int tc2_panel_power(int on)
 				PTR_ERR(reg_l2));
 			return -ENODEV;
 		}
-		rc = regulator_set_voltage(reg_l2, 1200000, 1200000);
-		if (rc) {
-			pr_err("set_voltage l2 failed, rc=%d\n", rc);
-			return -EINVAL;
-		}
-
 		//V_LCM_3V3_EN
 		reg_l10 = regulator_get(&msm_mipi_dsi1_device.dev,
 				"8038_l10");
@@ -337,6 +243,13 @@ static int tc2_panel_power(int on)
 				PTR_ERR(reg_l10));
 			return -ENODEV;
 		}
+
+		rc = regulator_set_voltage(reg_l2, 1200000, 1200000);
+		if (rc) {
+			pr_err("set_voltage l2 failed, rc=%d\n", rc);
+			return -EINVAL;
+		}
+
 		rc = regulator_set_voltage(reg_l10, 3000000, 3000000);
 		if (rc) {
 			pr_err("set_voltage l10 failed, rc=%d\n", rc);
@@ -346,34 +259,29 @@ static int tc2_panel_power(int on)
 		//MSM_LCD_ID0, need to set OUTPUT LOW to select MIPI mode
 		gpio_tlmm_config(GPIO_CFG(MSM_LCD_ID0, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, 0), GPIO_CFG_ENABLE);
 
-		dsi_power_on = true;
+                rc = regulator_set_optimum_mode(reg_l2, 100000);
+                if (rc < 0) {
+                  pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
+                  return -EINVAL;
+                }
+                rc = regulator_enable(reg_l2);
+                if (rc) {
+                  pr_err("enable l2 failed, rc=%d\n", rc);
+                  return -ENODEV;
+                }
+                //V_LCM_3V3_EN
+                rc = regulator_set_optimum_mode(reg_l10, 100000);
+                if (rc < 0) {
+                  pr_err("set_optimum_mode l10 failed, rc=%d\n", rc);
+                  return -EINVAL;
+                }
+                rc = regulator_enable(reg_l10);
+                if (rc) {
+                  pr_err("enable l10 failed, rc=%d\n", rc);
+                  return -ENODEV;
+                }
 
-		if (first_inited) {
-			first_inited = false;
-
-			rc = regulator_set_optimum_mode(reg_l2, 100000);
-			if (rc < 0) {
-				pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
-				return -EINVAL;
-			}
-			rc = regulator_enable(reg_l2);
-			if (rc) {
-				pr_err("enable l2 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			//V_LCM_3V3_EN
-			rc = regulator_set_optimum_mode(reg_l10, 100000);
-			if (rc < 0) {
-				pr_err("set_optimum_mode l10 failed, rc=%d\n", rc);
-				return -EINVAL;
-			}
-			rc = regulator_enable(reg_l10);
-			if (rc) {
-				pr_err("enable l10 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			return 0;
-		}
+                dsi_power_on = true;
 	}
 
 	if (on) {
@@ -396,7 +304,7 @@ static int tc2_panel_power(int on)
 		}
 		msleep(10);
 
-		gpio_set_value(MSM_V_LCMIO_1V8_EN, 1);
+		gpio_set_value(MSM_LCMIO_1V8_EN, 1);
 		msleep(5);
 
 		rc = regulator_enable(reg_l2);
@@ -405,16 +313,23 @@ static int tc2_panel_power(int on)
 			return -ENODEV;
 		}
 
-		gpio_set_value(MSM_LCD_RSTz, 1);
-		msleep(10);
-		gpio_set_value(MSM_LCD_RSTz, 0);
-		msleep(1);
-		gpio_set_value(MSM_LCD_RSTz, 1);
-		msleep(30);
+                if (!mipi_lcd_on) {
+                  gpio_set_value(MSM_LCD_RSTz, 1);
+                  msleep(10);
+                  gpio_set_value(MSM_LCD_RSTz, 0);
+                  msleep(1);
+                  gpio_set_value(MSM_LCD_RSTz, 1);
+                  msleep(30);
+                }
+                msleep(30);
+
+                bPanelPowerOn = true;
 	} else {
+		if (!bPanelPowerOn) return 0;
+
 		gpio_set_value(MSM_LCD_RSTz, 0);
 		usleep(150);
-		gpio_set_value(MSM_V_LCMIO_1V8_EN, 0);
+		gpio_set_value(MSM_LCMIO_1V8_EN, 0);
 
 		msleep(2);
 		rc = regulator_disable(reg_l10);
@@ -442,52 +357,124 @@ static int tc2_panel_power(int on)
 	return 0;
 }
 
-static int mipi_dsi_panel_power(int on)
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+static char wfd_check_mdp_iommu_split_domain(void)
 {
-	pr_debug("%s: on=%d\n", __func__, on);
+	return mdp_pdata.mdp_iommu_split_domain;
+}
 
-	return tc2_panel_power(on);
+static struct msm_wfd_platform_data wfd_pdata = {
+	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
+};
+
+static struct platform_device wfd_panel_device = {
+	.name = "wfd_panel",
+	.id = 0,
+	.dev.platform_data = NULL,
+};
+
+static struct platform_device wfd_device = {
+	.name = "msm_wfd",
+	.id = -1,
+	.dev.platform_data = &wfd_pdata,
+};
+#endif
+
+static char mipi_dsi_splash_is_enabled(void)
+{
+	return mdp_pdata.cont_splash_enabled;
 }
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
-	.vsync_gpio = MDP_VSYNC_GPIO,
+        .vsync_gpio = MSM_LCD_TE,
 	.dsi_power_save = mipi_dsi_panel_power,
+	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 };
 
-void __init tc2_init_panel(void)
+static struct mipi_dsi_panel_platform_data tc2_pdata = {
+	.dlane_swap = 1,
+#ifdef CONFIG_BACKLIGHT_WLED_CABC
+	.enable_wled_bl_ctrl = 0x0,
+#else
+	.enable_wled_bl_ctrl = 0x1,
+#endif
+};
+
+static struct platform_device mipi_dsi_tc2_panel_device = {
+	.name = "mipi_tc2",
+	.id = 0,
+	.dev = {
+		.platform_data = &tc2_pdata,
+	}
+};
+
+#ifdef CONFIG_MSM_BUS_SCALING
+static struct msm_bus_vectors dtv_bus_init_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 0,
+	},
+};
+static struct msm_bus_vectors dtv_bus_def_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 566092800 * 2,
+		.ib = 707616000 * 2,
+	},
+};
+static struct msm_bus_paths dtv_bus_scale_usecases[] = {
+	{
+		ARRAY_SIZE(dtv_bus_init_vectors),
+		dtv_bus_init_vectors,
+	},
+	{
+		ARRAY_SIZE(dtv_bus_def_vectors),
+		dtv_bus_def_vectors,
+	},
+};
+static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
+	dtv_bus_scale_usecases,
+	ARRAY_SIZE(dtv_bus_scale_usecases),
+	.name = "dtv",
+};
+#endif
+
+static struct lcdc_platform_data dtv_pdata = {
+#ifdef CONFIG_MSM_BUS_SCALING
+	.bus_scale_table = &dtv_bus_scale_pdata,
+#endif
+};
+
+static void __init msm8960_set_display_params(char *prim_panel, char *ext_panel)
 {
-	platform_device_register(&msm_fb_device);
+	if (strnlen(prim_panel, PANEL_NAME_MAX_LEN)) {
+		strlcpy(msm_fb_pdata.prim_panel_name, prim_panel,
+			PANEL_NAME_MAX_LEN);
+		pr_debug("msm_fb_pdata.prim_panel_name %s\n",
+			msm_fb_pdata.prim_panel_name);
+	}
 
-	if (1) {
-		mipi_dsi_orise_panel_device.name = "mipi_orise";
-                //		orise_pdata.shrink_pwm = tc2_shrink_pwm;
-
-		PR_DISP_DEBUG("system_rev = %d\n", system_rev);
-		/* XA (system_rev = 0): PMIC,
-		   XB (system_rev = 1): External IC */
-		if (system_rev >= 1)
-			orise_pdata.enable_wled_bl_ctrl = 0x0;
-	} else
-		mipi_dsi_panel_power(0);
-
-	platform_device_register(&mipi_dsi_orise_panel_device);
-
-	if(panel_type != PANEL_ID_NONE) {
-		msm_fb_register_device("mdp", &mdp_pdata);
-		msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+	if (strnlen(ext_panel, PANEL_NAME_MAX_LEN)) {
+		strlcpy(msm_fb_pdata.ext_panel_name, ext_panel,
+			PANEL_NAME_MAX_LEN);
+		pr_debug("msm_fb_pdata.ext_panel_name %s\n",
+			msm_fb_pdata.ext_panel_name);
 	}
 }
 
-void __init tc2_allocate_fb_region(void)
+void __init tc2_init_fb(void)
 {
-	void *addr;
-	unsigned long size;
-
-	size = MSM_FB_SIZE;
-	addr = alloc_bootmem_align(size, 0x1000);
-	msm_fb_resources[0].start = __pa(addr);
-	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
-	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
-			size, addr, __pa(addr));
+	msm8960_set_display_params("mipi_tc2", "hdmi_msm");
+	platform_device_register(&msm_fb_device);
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+        platform_device_register(&wfd_panel_device);
+        platform_device_register(&wfd_device);
+#endif
+	platform_device_register(&mipi_dsi_tc2_panel_device);
+	msm_fb_register_device("mdp", &mdp_pdata);
+	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+	msm_fb_register_device("dtv", &dtv_pdata);
 }
-

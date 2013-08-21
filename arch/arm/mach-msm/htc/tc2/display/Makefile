@@ -1,2 +1,2 @@
 #obj-$(CONFIG_MACH_TC2) += mipi_tc2.o mipi_tc2_cmd_qhd_pt.o board-tc2-panel.o
-obj-$(CONFIG_MACH_TC2) += board-tc2-gpu.o board-tc2-panel.o
+obj-$(CONFIG_MACH_TC2) += board-tc2-panel.o mipi_tc2.o mipi_tc2_cmd_qhd_pt.o board-tc2-panel.o
