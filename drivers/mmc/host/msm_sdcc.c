@@ -2509,7 +2509,6 @@ static int msmsdcc_setup_vreg(struct msmsdcc_host *host, bool enable,
 
 	curr_slot = host->plat->vreg_data;
 	if (!curr_slot) {
-		rc = -EINVAL;
 		goto out;
 	}
 
