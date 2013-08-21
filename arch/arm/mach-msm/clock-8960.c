@@ -6106,7 +6106,7 @@ static struct clk_lookup msm_clocks_8930[] = {
 	/* used on 8930 SGLTE for Primary IPC */
 	CLK_LOOKUP("iface_clk",         gsbi9_p_clk.c,	"msm_serial_hs.1"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c,		"qup_i2c.0"),
-	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"spi_qsd.10"),
+	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"spi_qsd.1"),
 	/* used on 8930 SGLTE for serial console */
 	CLK_LOOKUP("iface_clk",         gsbi10_p_clk.c, "msm_serial_hsl.1"),
 	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,	"msm_serial_hsl.2"),
