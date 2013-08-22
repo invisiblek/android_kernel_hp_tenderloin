@@ -129,23 +129,6 @@
 #ifdef CONFIG_CPU_FREQ_GOV_ONDEMAND_2_PHASE
 int set_two_phase_freq(int cpufreq);
 #endif
-#define AUTORESTART 10000
-#ifdef AUTORESTART
-#include <linux/workqueue.h>
-static void my_work_handler(struct work_struct *w);
-
-static struct workqueue_struct *wq = 0;
-static DECLARE_DELAYED_WORK(my_work, my_work_handler);
-static unsigned long delay;
-
-static void
-my_work_handler(struct work_struct *w)
-{
-  //uint32_t restart_reason = 0x6f656d99;
-  //msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
-  msm_restart(0, "");
-}
-#endif
 
 static struct platform_device msm_fm_platform_init = {
 	.name = "iris_fm",
@@ -3475,12 +3458,6 @@ static void __init tc2_init(void)
 
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
-
-#ifdef AUTORESTART
-        delay = msecs_to_jiffies(AUTORESTART);
-        wq = create_singlethread_workqueue("my");
-        queue_delayed_work(wq, &my_work, delay);
-#endif
 
 	htc_add_ramconsole_devices();
         platform_device_register(&msm_gpio_device);
