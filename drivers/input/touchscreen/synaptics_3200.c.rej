@@ -1,0 +1,156 @@
+diff a/drivers/input/touchscreen/synaptics_3200.c b/drivers/input/touchscreen/synaptics_3200.c	(rejected hunks)
+@@ -409,26 +444,38 @@ static int wait_flash_interrupt(struct synaptics_ts_data *ts, int attr)
+ 				break;
+ 			}
+ 		}
+-		msleep(20);
++		if (fw)
++			mdelay(2);
++		else
++			msleep(2);
+ 	}
+ 
+-	if (i == 5 && syn_panel_version == 0) {
++	if (i == 5000 && syn_panel_version == 0) {
+ 		ret = i2c_syn_read(ts->client, get_address_base(ts, 0x01, DATA_BASE) + 1, &data, 1);
+ 		if (ret < 0)
+ 			return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:2", __func__);
+-	} else if (i == 5) {
++	} else if (i == 5000) {
+ 		printk(KERN_INFO "[TP] wait_flash_interrupt: interrupt over time!\n");
+ 		return SYN_PROCESS_ERR;
+ 	}
+ 
+-	ret = i2c_syn_read(ts->client,
+-		get_address_base(ts, 0x34, DATA_BASE) + 18, &data, 1);
++	if (ts->package_id < 3400)
++		ret = i2c_syn_read(ts->client,
++			get_address_base(ts, 0x34, DATA_BASE) + 0x12, &data, 1);
++	else
++		ret = i2c_syn_read(ts->client,
++			get_address_base(ts, 0x34, DATA_BASE) + 0x3, &data, 1);
+ 	if (ret < 0)
+ 		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:3", __func__);
+ 	
+-	if (data != 0x80) {
+-		printk(KERN_INFO "[TP] wait_flash_interrupt: block config fail!\n");
++	if (!(data & 0x80)) {
++		printk(KERN_INFO "[TP] Not in program enable mode, F34_data = %x\n", data);
++		ret = i2c_syn_read(ts->client,
++			get_address_base(ts, 0x01, DATA_BASE), &data, 1);
++		printk(KERN_INFO "[TP] Not in program enable mode, 01_data = %x\n", data);
+ 		return SYN_PROCESS_ERR;
++	} else if (data != 0x80) {
++		printk(KERN_INFO "[TP] Not in program enable mode, data = %x\n", data);
+ 	}
+ 	return 0;
+ }
+@@ -557,37 +869,6 @@ static int program_config(struct synaptics_ts_data *ts, uint8_t *config, int att
+ 	return 0;
+ }
+ 
+-static int disable_flash_programming(struct synaptics_ts_data *ts, int status)
+-{
+-	int ret;
+-	uint8_t data = 0, i;
+-
+-	ret = i2c_syn_write_byte_data(ts->client,
+-		get_address_base(ts, 0x01, COMMAND_BASE), 0x01);
+-	if (ret < 0)
+-		return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "w:1", __func__);
+-
+-	for (i = 0; i < 25; i++) {
+-		ret = i2c_syn_read(ts->client,
+-			get_address_base(ts, 0x01, DATA_BASE), &data, 1);
+-		if (ret < 0)
+-			return i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "r:2", __func__);
+-
+-		if ((data & 0x40) == 0)
+-			break;
+-		else
+-			msleep(20);
+-	}
+-
+-	if (i == 25) {
+-		printk(KERN_INFO "[TP] Disable flash programming fail! F01_data: %X\n", data);
+-		return SYN_PROCESS_ERR;
+-	} else {
+-		printk(KERN_INFO "[TP] Disable flash programming success! F01_data: %X\n", data);
+-		return status;
+-	}
+-}
+-
+ static int syn_config_update(struct synaptics_ts_data *ts, int attr)
+ {
+ 	uint8_t retry;
+@@ -2382,47 +3022,44 @@ static int syn_get_information(struct synaptics_ts_data *ts)
+ 	return 0;
+ }
+ 
+-static int synaptics_ts_probe(
+-	struct i2c_client *client, const struct i2c_device_id *id)
++static int syn_probe_init(void *arg)
+ {
+-	struct synaptics_ts_data *ts;
+-	uint8_t i;
+-	int ret = 0;
++	struct synaptics_ts_data *ts = (struct synaptics_ts_data *)arg;
+ 	struct synaptics_i2c_rmi_platform_data *pdata;
+-	uint8_t data = 0;
++	int ret = 0;
++	uint8_t data = 0, i;
++	uint16_t wait_time = SYN_FW_TIMEOUT;
+ 
+ 	printk(KERN_INFO "[TP] %s: enter", __func__);
+-	if (!i2c_check_functionality(client->adapter, I2C_FUNC_I2C)) {
+-		printk(KERN_ERR "[TP] TOUCH_ERR: synaptics_ts_probe: need I2C_FUNC_I2C\n");
+-		ret = -ENODEV;
+-		goto err_check_functionality_failed;
+-	}
+-
+-	ts = kzalloc(sizeof(*ts), GFP_KERNEL);
+-	if (ts == NULL) {
+-		ret = -ENOMEM;
+-		goto err_alloc_data_failed;
+-	}
+-	ts->client = client;
+-	i2c_set_clientdata(client, ts);
+-	pdata = client->dev.platform_data;
++	pdata = ts->client->dev.platform_data;
+ 
+ 	if (pdata == NULL) {
+ 		printk(KERN_INFO "[TP] pdata is NULL\n");
+ 		goto err_get_platform_data_fail;
+ 	}
+ 
+-	ret = i2c_syn_read(ts->client, 0x00EE, &data, 1);
+-	if (ret < 0) {
+-		printk(KERN_INFO "[TP] No Synaptics chip\n");
+-		goto err_detect_failed;
++	if (board_build_flag() == MFG_BUILD) {
++		wait_time = SYN_FW_TIMEOUT;
++		wait_event_interruptible_timeout(ts->syn_fw_wait, atomic_read(&ts->syn_fw_condition),
++							msecs_to_jiffies(wait_time));
++	}
++	ts->block_touch_event = 0;
++	ts->i2c_err_handler_en = pdata->i2c_err_handler_en;
++	if (ts->i2c_err_handler_en) {
++		ts->gpio_reset = pdata->gpio_reset;
++		ts->use_irq = 1;
++		if (ts->gpio_reset) {
++			ret = gpio_request(ts->gpio_reset, "synaptics_reset");
++			if (ret)
++				printk(KERN_INFO "[TP]%s: Failed to obtain reset pin: %d. Code: %d.", __func__, ts->gpio_reset, ret);
++		}
+ 	}
+ 
+ 	for (i = 0; i < 10; i++) {
+-		ret = i2c_syn_read(ts->client, SYN_F01DATA_BASEADDR, &data, 1);
++		ret = i2c_syn_read(ts->client, get_address_base(ts, 0x01, DATA_BASE), &data, 1);
+ 		if (ret < 0) {
+ 			i2c_syn_error_handler(ts, ts->i2c_err_handler_en, "read device status failed!", __func__);
+-			goto err_detect_failed;
++			goto err_init_failed;
+ 		}
+ 		if (data & 0x44) {
+ 			msleep(20);
