@@ -37,18 +37,10 @@ endif
    zreladdr-$(CONFIG_ARCH_MSM8X60)	:= 0x40208000
 
 # MSM8960
-ifeq ($(CONFIG_MACH_HTC),y)
-   zreladdr-$(CONFIG_ARCH_MSM8960)	:= 0x80408000
-else
    zreladdr-$(CONFIG_ARCH_MSM8960)	:= 0x80208000
-endif
 
 # MSM8930
-ifeq ($(CONFIG_MACH_HTC),y)
-   zreladdr-$(CONFIG_ARCH_MSM8930)	:= 0x80408000
-else
    zreladdr-$(CONFIG_ARCH_MSM8930)	:= 0x80208000
-endif
 
 # APQ8064
    zreladdr-$(CONFIG_ARCH_APQ8064)	:= 0x80208000
@@ -66,3 +58,7 @@ endif
    zreladdr-$(CONFIG_ARCH_FSM9XXX)	:= 0x10008000
 params_phys-$(CONFIG_ARCH_FSM9XXX)	:= 0x10000100
 initrd_phys-$(CONFIG_ARCH_FSM9XXX)	:= 0x12000000
+
+ifeq ($(CONFIG_MACH_HTC),y)
+include $(srctree)/$(MACHINE)/htc/Makefile.boot
+endif

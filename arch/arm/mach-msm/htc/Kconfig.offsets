@@ -1,0 +1,6 @@
+config PHYS_OFFSET
+	hex
+	default "0x80400000" if ARCH_MSM8930 && !MACH_M4_UL
+	default "0x80600000" if ARCH_MSM8930 && MACH_M4_UL
+	default "0x80400000" if ARCH_MSM8960 && !ARCH_MSM8930
+	default "0x10000000"
