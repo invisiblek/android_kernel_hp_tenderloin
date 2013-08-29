@@ -1,0 +1,10 @@
+config BOARD_HEADER_FILE
+	string "HTC board specific header file name"
+	default ""
+
+config MACH_M4_UL
+	depends on ARCH_MSM8930
+	select MACH_HTC
+	bool "HTC One Mini"
+	help
+	  Support for the HTC One Mini device.

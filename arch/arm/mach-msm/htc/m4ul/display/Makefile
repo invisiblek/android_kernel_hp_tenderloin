@@ -1,0 +1,1 @@
+obj-$(CONFIG_MACH_M4_UL) += board-m4-display.o

@@ -19,3 +19,6 @@ obj-$(CONFIG_MACH_TC2) += tc2/
 
 # OPEARUL
 obj-$(CONFIG_MACH_OPERAUL) += operaul/
+
+# M4_UL
+obj-$(CONFIG_MACH_M4_UL) += m4ul/
