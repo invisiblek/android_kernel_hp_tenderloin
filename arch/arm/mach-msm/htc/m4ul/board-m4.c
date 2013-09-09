@@ -96,7 +96,7 @@
 #include <mach/cpuidle.h>
 #include "rpm_resources.h"
 #include <mach/mpm.h>
-#include "acpuclock.h"
+#include "acpuclock-8930ab.h"
 #include "smd_private.h"
 #include "pm-boot.h"
 #include <mach/board_htc.h>
@@ -3244,12 +3244,11 @@ struct platform_device device_htc_ramdump = {
 };
 
 static struct platform_device *common_devices[] __initdata = {
-	&msm8960_device_acpuclk,
+	&msm8930_device_acpuclk,
 	&msm8960_device_dmov,
 	&msm_device_smd,
 	&msm8960_device_uart_gsbi3,
         //	&msm8960_device_uart_gsbi8,
-	
 	&msm_device_saw_core0,
 	&msm_device_saw_core1,
 #ifndef MSM8930_PHASE_2
