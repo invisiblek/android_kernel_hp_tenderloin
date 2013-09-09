@@ -96,7 +96,6 @@
 #include <mach/cpuidle.h>
 #include "rpm_resources.h"
 #include <mach/mpm.h>
-#include "acpuclock-8930ab.h"
 #include "smd_private.h"
 #include "pm-boot.h"
 #include <mach/board_htc.h>
