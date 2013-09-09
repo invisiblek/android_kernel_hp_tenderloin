@@ -183,5 +183,5 @@ void m4_mdp_writeback(struct memtype_reserve* reserve_table);
 int __init m4_init_mmc(void);
 int __init m4_wifi_init(void);
 void __init m4_init_cam(void);
-void m4_init_fb(void);
+void __init m4_init_fb(void);
 void m4_init_gpu(void);
