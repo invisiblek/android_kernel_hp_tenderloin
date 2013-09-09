@@ -23,5 +23,8 @@ source "arch/arm/mach-msm/htc/operaul/Kconfig"
 # M4_UL
 source "arch/arm/mach-msm/htc/m4ul/Kconfig"
 
+# PYRAMID
+source "arch/arm/mach-msm/htc/pyramid/Kconfig"
+
 config MACH_HTC_DUMMY
 	bool "NONE (No device)"

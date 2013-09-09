@@ -22,3 +22,6 @@ obj-$(CONFIG_MACH_OPERAUL) += operaul/
 
 # M4_UL
 obj-$(CONFIG_MACH_M4_UL) += m4ul/
+
+# PYRAMID
+obj-$(CONFIG_MACH_PYRAMID) += pyramid/

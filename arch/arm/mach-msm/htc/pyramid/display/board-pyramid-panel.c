@@ -1,0 +1,470 @@
+/* linux/arch/arm/mach-msm/board-mecha-panel.c
+ *
+ * Copyright (c) 2011 HTC.
+ *
+ * This software is licensed under the terms of the GNU General Public
+ * License version 2, as published by the Free Software Foundation, and
+ * may be copied, distributed, and modified under those terms.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ */
+
+#include "../../../../drivers/video/msm/msm_fb.h"
+#include "../../../../drivers/video/msm/mipi_dsi.h"
+#include "../../../../drivers/video/msm/mdp.h"
+#include "../../../../drivers/video/msm/mdp4.h"
+#include "../../../../drivers/video/msm/msm_fb_panel.h"
+#include <linux/gpio.h>
+#include <mach/gpio.h>
+#include <mach/panel_id.h>
+#include <mach/msm_memtypes.h>
+#include <linux/bootmem.h>
+#ifdef CONFIG_FB_MSM_HDMI_MHL
+#include <video/msm_hdmi_modes.h>
+#endif
+
+#include "../devices.h"
+#include "../board-pyramid.h"
+#if defined (CONFIG_FB_MSM_MDP_ABL)
+#include <linux/fb.h>
+#endif
+
+#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
+#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 3) /* 4 bpp x 3 pages */
+#else
+#define MSM_FB_PRIM_BUF_SIZE (960 * 544 * 4 * 2) /* 4 bpp x 2 pages */
+#endif
+
+
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+#define MSM_FB_EXT_BUF_SIZE (1920 * 1088 * 2 * 1) /* 2 bpp x 1 page */
+#elif defined(CONFIG_FB_MSM_TVOUT)
+#define MSM_FB_EXT_BUF_SIZE (720 * 576 * 2 * 2) /* 2 bpp x 2 pages */
+#else
+#define MSM_FB_EXT_BUF_SIZE 0
+#endif
+
+/* Note: must be multiple of 4096 */
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE, 4096)
+
+#ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((960 * 544 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
+#endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
+
+#ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
+#define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
+#else
+#define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
+#endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
+
+static struct resource msm_fb_resources[] = {
+	{
+		.flags = IORESOURCE_DMA,
+	}
+};
+
+static struct msm_fb_platform_data msm_fb_pdata;
+
+static struct platform_device msm_fb_device = {
+	.name              = "msm_fb",
+	.id                = 0,
+	.num_resources     = ARRAY_SIZE(msm_fb_resources),
+	.resource          = msm_fb_resources,
+	.dev.platform_data = &msm_fb_pdata,
+};
+
+void __init msm8x60_allocate_fb_region(void)
+{
+	void *addr;
+	unsigned long size;
+
+	size = MSM_FB_SIZE;
+	addr = alloc_bootmem_align(size, 0x1000);
+	msm_fb_resources[0].start = __pa(addr);
+	msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
+	pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
+			size, addr, __pa(addr));
+}
+
+#ifdef CONFIG_MSM_BUS_SCALING
+static struct msm_bus_vectors mdp_init_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 0,
+	},
+};
+
+static struct msm_bus_vectors mdp_ui_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 216000000 * 2,
+		.ib = 270000000 * 2,
+	},
+};
+
+static struct msm_bus_vectors mdp_vga_vectors[] = {
+	/* VGA and less video */
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 216000000 * 2,
+		.ib = 270000000 * 2,
+	},
+};
+
+static struct msm_bus_vectors mdp_720p_vectors[] = {
+	/* 720p and less video */
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 230400000 * 2,
+		.ib = 288000000 * 2,
+	},
+};
+
+static struct msm_bus_vectors mdp_1080p_vectors[] = {
+	/* 1080p and less video */
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 334080000 * 2,
+		.ib = 417600000 * 2,
+	},
+};
+
+static struct msm_bus_paths mdp_bus_scale_usecases[] = {
+	{
+		ARRAY_SIZE(mdp_init_vectors),
+		mdp_init_vectors,
+	},
+	{
+		ARRAY_SIZE(mdp_ui_vectors),
+		mdp_ui_vectors,
+	},
+	{
+		ARRAY_SIZE(mdp_ui_vectors),
+		mdp_ui_vectors,
+	},
+	{
+		ARRAY_SIZE(mdp_vga_vectors),
+		mdp_vga_vectors,
+	},
+	{
+		ARRAY_SIZE(mdp_720p_vectors),
+		mdp_720p_vectors,
+	},
+	{
+		ARRAY_SIZE(mdp_1080p_vectors),
+		mdp_1080p_vectors,
+	},
+};
+
+static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
+	mdp_bus_scale_usecases,
+	ARRAY_SIZE(mdp_bus_scale_usecases),
+	.name = "mdp",
+};
+#endif /* CONFIG_MSM_BUS_SCALING */
+
+static struct msm_panel_common_pdata mdp_pdata = {
+	.gpio = GPIO_LCD_TE,
+	.mdp_max_clk = 200000000,
+	.mdp_max_bw = 2000000000,
+	.mdp_bw_ab_factor = 115,
+	.mdp_bw_ib_factor = 150,
+#ifdef CONFIG_MSM_BUS_SCALING
+	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
+#endif
+	.mdp_rev = MDP_REV_42,
+#ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
+	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
+#else
+	.mem_hid = MEMTYPE_EBI1,
+#endif
+	.cont_splash_enabled = 0x00,
+	.splash_screen_addr = 0x00,
+	.splash_screen_size = 0x00,
+	.mdp_iommu_split_domain = 0,
+};
+
+void __init msm8x60_mdp_writeback(struct memtype_reserve* reserve_table)
+{
+	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
+	mdp_pdata.ov1_wb_size = MSM_FB_OVERLAY1_WRITEBACK_SIZE;
+#if defined(CONFIG_ANDROID_PMEM) && !defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
+	reserve_table[mdp_pdata.mem_hid].size +=
+		mdp_pdata.ov0_wb_size;
+	reserve_table[mdp_pdata.mem_hid].size +=
+		mdp_pdata.ov1_wb_size;
+#endif
+}
+
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+static struct resource hdmi_msm_resources[] = {
+	{
+		.name  = "hdmi_msm_qfprom_addr",
+		.start = 0x00700000,
+		.end   = 0x007060FF,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "hdmi_msm_hdmi_addr",
+		.start = 0x04A00000,
+		.end   = 0x04A00FFF,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.name  = "hdmi_msm_irq",
+		.start = HDMI_IRQ,
+		.end   = HDMI_IRQ,
+		.flags = IORESOURCE_IRQ,
+	},
+};
+
+#ifdef CONFIG_FB_MSM_HDMI_MHL
+static mhl_driving_params ville_driving_params[] = {
+	{.format = HDMI_VFRMT_640x480p60_4_3,	.reg_a3=0xEC, .reg_a6=0x0C},
+	{.format = HDMI_VFRMT_720x480p60_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
+	{.format = HDMI_VFRMT_1280x720p60_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
+	{.format = HDMI_VFRMT_720x576p50_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
+	{.format = HDMI_VFRMT_1920x1080p24_16_9, .reg_a3=0xEC, .reg_a6=0x0C},
+	{.format = HDMI_VFRMT_1920x1080p30_16_9, .reg_a3=0xEC, .reg_a6=0x0C},
+};
+#endif
+
+static int hdmi_core_power(int on, int show);
+static int hdmi_cec_power(int on);
+static int hdmi_gpio_config(int on);
+//static int hdmi_panel_power(int on);
+
+static struct msm_hdmi_platform_data hdmi_msm_data = {
+	.irq = HDMI_IRQ,
+	.enable_5v = hdmi_enable_5v,
+	.core_power = hdmi_core_power,
+	.cec_power = hdmi_cec_power,
+//	.panel_power = hdmi_panel_power,
+	.gpio_config = hdmi_gpio_config,
+#ifdef CONFIG_FB_MSM_HDMI_MHL
+	.driving_params =  ville_driving_params,
+	.driving_params_count = ARRAY_SIZE(ville_driving_params),
+#endif
+};
+
+static struct platform_device hdmi_msm_device = {
+	.name = "hdmi_msm",
+	.id = 0,
+	.num_resources = ARRAY_SIZE(hdmi_msm_resources),
+	.resource = hdmi_msm_resources,
+	.dev.platform_data = &hdmi_msm_data,
+};
+#endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
+
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+static char wfd_check_mdp_iommu_split_domain(void)
+{
+	return mdp_pdata.mdp_iommu_split_domain;
+}
+
+static struct msm_wfd_platform_data wfd_pdata = {
+	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
+};
+
+static struct platform_device wfd_panel_device = {
+	.name = "wfd_panel",
+	.id = 0,
+	.dev.platform_data = NULL,
+};
+
+static struct platform_device wfd_device = {
+	.name = "msm_wfd",
+	.id = -1,
+	.dev.platform_data = &wfd_pdata,
+};
+#endif
+
+extern int mipi_lcd_on;
+static bool dsi_power_on;
+static int mipi_dsi_panel_power(int on)
+{
+        static struct regulator *l1_3v, *lvs1_1v8, *l4_1v8;
+	static bool bPanelPowerOn = false;
+	int ret;
+	int rc;
+
+        printk(KERN_ERR  "[DISP] %s +++\n", __func__);
+	/* To avoid system crash in shutdown for non-panel case */
+	if (panel_type == PANEL_ID_NONE)
+		return -ENODEV;
+
+	/* If panel is already on (or off), do nothing. */
+	if (!dsi_power_on) {
+		l1_3v = regulator_get(NULL, "8901_l1");
+		if (IS_ERR_OR_NULL(l1_3v)) {
+			pr_err("[DISP] %s: unable to get 8901_l1\n", __func__);
+                        return -ENODEV;
+		}
+		if (system_rev >= 1) {
+			l4_1v8 = regulator_get(NULL, "8901_l4");
+			if (IS_ERR_OR_NULL(l4_1v8)) {
+				pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
+                                return -ENODEV;
+			}
+		} else {
+			lvs1_1v8 = regulator_get(NULL, "8901_lvs1");
+			if (IS_ERR(lvs1_1v8)) {
+				pr_err("[DISP] %s: unable to get 8901_lvs1\n", __func__);
+                                return -ENODEV;
+			}
+		}
+
+		ret = regulator_set_voltage(l1_3v, 3100000, 3100000);
+		if (ret) {
+			pr_err("[DISP] %s: error setting l1_3v voltage\n", __func__);
+                        return -EINVAL;
+		}
+
+		if (system_rev >= 1) {
+			ret = regulator_set_voltage(l4_1v8, 1800000, 1800000);
+			if (ret) {
+				pr_err("[DISP] %s: error setting l4_1v8 voltage\n", __func__);
+                                return -EINVAL;
+			}
+		}
+
+		/* LCM Reset */
+		rc = gpio_request(GPIO_LCM_RST_N,
+				"LCM_RST_N");
+		if (rc) {
+			printk(KERN_ERR "%s:LCM gpio %d request"
+					"failed\n", __func__,
+					GPIO_LCM_RST_N);
+			return -EINVAL;
+		}
+
+		dsi_power_on = true;
+	}
+
+	if (on) {
+		if (regulator_enable(l1_3v)) {
+			pr_err("[DISP] %s: Unable to enable the regulator:"
+					" l1_3v\n", __func__);
+			return -ENODEV;
+		}
+		msleep(5);
+
+		if (system_rev >= 1) {
+			if (regulator_enable(l4_1v8)) {
+				pr_err("[DISP] %s: Unable to enable the regulator:"
+						" l4_1v8\n", __func__);
+				return -ENODEV;
+			}
+		} else {
+
+			if (regulator_enable(lvs1_1v8)) {
+				pr_err("[DISP] %s: Unable to enable the regulator:"
+						" lvs1_1v8\n", __func__);
+				return -ENODEV;
+			}
+		}
+
+                if (!mipi_lcd_on)
+                  {
+			msleep(10);
+			gpio_set_value(GPIO_LCM_RST_N, 1);
+			msleep(1);
+			gpio_set_value(GPIO_LCM_RST_N, 0);
+			msleep(1);
+			gpio_set_value(GPIO_LCM_RST_N, 1);
+			msleep(20);
+		}
+	} else {
+                if (!bPanelPowerOn) return 0;
+		gpio_set_value(GPIO_LCM_RST_N, 0);
+		msleep(5);
+		if (system_rev >= 1) {
+			if (regulator_disable(l4_1v8)) {
+				pr_err("[DISP] %s: Unable to enable the regulator:"
+						" l4_1v8\n", __func__);
+				return -EINVAL;
+			}
+		} else {
+			if (regulator_disable(lvs1_1v8)) {
+				pr_err("[DISP] %s: Unable to enable the regulator:"
+						" lvs1_1v8\n", __func__);
+				return -EINVAL;
+			}
+		}
+		msleep(5);
+		if (regulator_disable(l1_3v)) {
+			pr_err("[DISP] %s: Unable to enable the regulator:"
+					" l1_3v\n", __func__);
+			return -EINVAL;
+		}
+	}
+	return 0;
+}
+
+static char mipi_dsi_splash_is_enabled(void)
+{
+	return mdp_pdata.cont_splash_enabled;
+}
+
+static struct mipi_dsi_platform_data mipi_dsi_pdata = {
+  	.vsync_gpio		= GPIO_LCD_TE,
+	.dsi_power_save = mipi_dsi_panel_power,
+	.splash_is_enabled = mipi_dsi_splash_is_enabled,
+};
+
+static struct msm_panel_common_pdata mipi_pyramid_panel_data;
+
+static struct platform_device mipi_dsi_pyramid_panel_device = {
+	.name = "mipi_pyramid",
+	.id = 0,
+	.dev = {
+		.platform_data = &mipi_pyramid_panel_data,
+	}
+};
+
+static void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
+{
+	if (strnlen(prim_panel, PANEL_NAME_MAX_LEN)) {
+		strlcpy(msm_fb_pdata.prim_panel_name, prim_panel,
+			PANEL_NAME_MAX_LEN);
+		pr_debug("msm_fb_pdata.prim_panel_name %s\n",
+			msm_fb_pdata.prim_panel_name);
+	}
+
+	if (strnlen(ext_panel, PANEL_NAME_MAX_LEN)) {
+		strlcpy(msm_fb_pdata.ext_panel_name, ext_panel,
+			PANEL_NAME_MAX_LEN);
+		pr_debug("msm_fb_pdata.ext_panel_name %s\n",
+			msm_fb_pdata.ext_panel_name);
+	}
+}
+
+void __init pyramid_init_fb(void)
+{
+  printk(KERN_ERR "%s: ++\n", __func__);
+	msm8x60_set_display_params("mipi_pyramid", "hdmi_msm");
+	platform_device_register(&msm_fb_device);
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
+	platform_device_register(&wfd_panel_device);
+	platform_device_register(&wfd_device);
+#endif
+	platform_device_register(&mipi_dsi_pyramid_panel_device);
+	msm_fb_register_device("mdp", &mdp_pdata);
+	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+	platform_device_register(&hdmi_msm_device);
+#endif
+        //	msm_fb_register_device("dtv", &dtv_pdata);
+}

@@ -143,6 +143,7 @@
 #define MAXI_EN2_REG				REG_MM(0x0020)
 #define MAXI_EN3_REG				REG_MM(0x002C)
 #define MDP_CC_REG				REG_MM(0x00C0)
+#define MDP_LUT_CC_REG				REG_MM(0x016C)
 #define MDP_MD0_REG				REG_MM(0x00C4)
 #define MDP_MD1_REG				REG_MM(0x00C8)
 #define MDP_NS_REG				REG_MM(0x00D0)
@@ -2474,6 +2475,23 @@ static struct rcg_clk mdp_clk = {
 	},
 };
 
+static struct branch_clk lut_mdp_clk = {
+	.b = {
+		.ctl_reg = MDP_LUT_CC_REG,
+		.en_mask = BIT(0),
+		.halt_reg = DBG_BUS_VEC_I_REG,
+		.halt_bit = 13,
+		.retain_reg = MDP_LUT_CC_REG,
+		.retain_mask = BIT(31),
+	},
+	.parent = &mdp_clk.c,
+	.c = {
+		.dbg_name = "lut_mdp_clk",
+		.ops = &clk_ops_branch,
+		CLK_INIT(lut_mdp_clk.c),
+	},
+};
+
 #define F_MDP_VSYNC(f, s) \
 	{ \
 		.freq_hz = f, \
@@ -3642,6 +3660,8 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		mdp_clk.c,	"footswitch-8x60.4"),
 	CLK_LOOKUP("vsync_clk",	mdp_vsync_clk.c,		"mdp.0"),
 	CLK_LOOKUP("vsync_clk",		mdp_vsync_clk.c, "footswitch-8x60.4"),
+	CLK_LOOKUP("lut_clk",		lut_mdp_clk.c,		"mdp.0"),
+	CLK_LOOKUP("lut_clk",		lut_mdp_clk.c,	"footswitch-8x60.4"),
 	CLK_LOOKUP("lcdc_clk",	pixel_lcdc_clk.c,		"lcdc.0"),
 	CLK_LOOKUP("pixel_lcdc_clk",	pixel_lcdc_clk.c, "footswitch-8x60.4"),
 	CLK_LOOKUP("mdp_clk",	pixel_mdp_clk.c,	"lcdc.0"),
@@ -3821,6 +3841,7 @@ static void __init msm8660_clock_pre_init(void)
 	rmwreg(0x80FF0000, IJPEG_CC_REG,  0xE0FF0018);
 	rmwreg(0x80FF0000, JPEGD_CC_REG,  0xE0FF0018);
 	rmwreg(0x80FF0000, MDP_CC_REG,    0xE1FF0010);
+	rmwreg(0x80FF0000, MDP_LUT_CC_REG,0xE0FF0018);
 	rmwreg(0x80FF0000, PIXEL_CC_REG,  0xE1FF0010);
 	rmwreg(0x000004FF, PIXEL_CC2_REG, 0x000007FF);
 	rmwreg(0x80FF0000, ROT_CC_REG,    0xE0FF0010);
