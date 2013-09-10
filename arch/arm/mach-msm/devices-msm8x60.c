@@ -1596,7 +1596,7 @@ static struct resource msm_mipi_dsi_resources[] = {
 	},
 };
 
-static struct platform_device msm_mipi_dsi_device = {
+struct platform_device msm_mipi_dsi1_device = {
 	.name   = "mipi_dsi",
 	.id     = 1,
 	.num_resources  = ARRAY_SIZE(msm_mipi_dsi_resources),
@@ -1929,7 +1929,7 @@ void __init msm_fb_register_device(char *name, void *data)
 	else if (!strncmp(name, "lcdc", 4))
 		msm_register_device(&msm_lcdc_device, data);
 	else if (!strncmp(name, "mipi_dsi", 8))
-		msm_register_device(&msm_mipi_dsi_device, data);
+		msm_register_device(&msm_mipi_dsi1_device, data);
 #ifdef CONFIG_FB_MSM_TVOUT
 	else if (!strncmp(name, "tvenc", 5))
 		msm_register_device(&msm_tvenc_device, data);
@@ -1964,10 +1964,25 @@ struct platform_device msm_device_otg = {
 	.resource	= resources_otg,
 };
 
+static struct resource resources_hsusb[] = {
+	{
+		.start	= 0x12500000,
+		.end	= 0x12500000 + SZ_1K - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= USB1_HS_IRQ,
+		.end	= USB1_HS_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
 static u64 dma_mask = 0xffffffffULL;
 struct platform_device msm_device_gadget_peripheral = {
 	.name		= "msm_hsusb",
 	.id		= -1,
+	.num_resources	= ARRAY_SIZE(resources_hsusb),
+	.resource	= resources_hsusb,
 	.dev		= {
 		.dma_mask 		= &dma_mask,
 		.coherent_dma_mask	= 0xffffffffULL,
