@@ -143,7 +143,6 @@
 #define MAXI_EN2_REG				REG_MM(0x0020)
 #define MAXI_EN3_REG				REG_MM(0x002C)
 #define MDP_CC_REG				REG_MM(0x00C0)
-#define MDP_LUT_CC_REG				REG_MM(0x016C)
 #define MDP_MD0_REG				REG_MM(0x00C4)
 #define MDP_MD1_REG				REG_MM(0x00C8)
 #define MDP_NS_REG				REG_MM(0x00D0)
@@ -2475,23 +2474,6 @@ static struct rcg_clk mdp_clk = {
 	},
 };
 
-static struct branch_clk lut_mdp_clk = {
-	.b = {
-		.ctl_reg = MDP_LUT_CC_REG,
-		.en_mask = BIT(0),
-		.halt_reg = DBG_BUS_VEC_I_REG,
-		.halt_bit = 13,
-		.retain_reg = MDP_LUT_CC_REG,
-		.retain_mask = BIT(31),
-	},
-	.parent = &mdp_clk.c,
-	.c = {
-		.dbg_name = "lut_mdp_clk",
-		.ops = &clk_ops_branch,
-		CLK_INIT(lut_mdp_clk.c),
-	},
-};
-
 #define F_MDP_VSYNC(f, s) \
 	{ \
 		.freq_hz = f, \
@@ -3567,15 +3549,17 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		gsbi11_uart_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi12_uart_clk.c, "msm_serial_hsl.0"),
 	CLK_LOOKUP("core_clk",		gsbi1_qup_clk.c,	"spi_qsd.0"),
-	CLK_LOOKUP("core_clk",		gsbi2_qup_clk.c,	""),
+	CLK_LOOKUP("core_clk",		gsbi2_qup_clk.c,	"spi_qsd.1"),
 	CLK_LOOKUP("core_clk",		gsbi3_qup_clk.c,	"qup_i2c.0"),
+	CLK_LOOKUP("core_clk",		gsbi3_qup_clk.c,	"spi_qsd.2"),
 	CLK_LOOKUP("core_clk",		gsbi4_qup_clk.c,	"qup_i2c.1"),
-	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	""),
+	CLK_LOOKUP("core_clk",		gsbi5_qup_clk.c,	"qup_i2c.10"),
 	CLK_LOOKUP("core_clk",		gsbi6_qup_clk.c,	""),
 	CLK_LOOKUP("core_clk",		gsbi7_qup_clk.c,	"qup_i2c.4"),
+	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"spi_qsd.3"),
 	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"qup_i2c.3"),
 	CLK_LOOKUP("core_clk",		gsbi9_qup_clk.c,	"qup_i2c.2"),
-	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"spi_qsd.1"),
+	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.11"),
 	CLK_LOOKUP("core_clk",		gsbi11_qup_clk.c,	""),
 	CLK_LOOKUP("gsbi_qup_clk",	gsbi12_qup_clk.c,	"msm_dsps"),
 	CLK_LOOKUP("core_clk",		gsbi12_qup_clk.c,	"qup_i2c.5"),
@@ -3601,18 +3585,21 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		ce2_p_clk.c,		"qce.0"),
 	CLK_LOOKUP("core_clk",		ce2_p_clk.c,		"qcrypto.0"),
 	CLK_LOOKUP("iface_clk",		gsbi1_p_clk.c,		"spi_qsd.0"),
-	CLK_LOOKUP("iface_clk",		gsbi2_p_clk.c,		""),
+	CLK_LOOKUP("iface_clk",		gsbi2_p_clk.c,		"spi_qsd.1"),
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c, "msm_serial_hsl.2"),
 	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"qup_i2c.0"),
+	CLK_LOOKUP("iface_clk",		gsbi3_p_clk.c,		"spi_qsd.2"),
 	CLK_LOOKUP("iface_clk",		gsbi4_p_clk.c,		"qup_i2c.1"),
-	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		""),
+	CLK_LOOKUP("iface_clk",		gsbi5_p_clk.c,		"qup_i2c.10"),
 	CLK_LOOKUP("iface_clk",		gsbi6_p_clk.c, "msm_serial_hs.0"),
+	CLK_LOOKUP("iface_clk",		gsbi6_p_clk.c, "msm_serial_hs_brcm.0"),
 	CLK_LOOKUP("iface_clk",		gsbi7_p_clk.c,		"qup_i2c.4"),
 	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,		"qup_i2c.3"),
+	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,		"spi_qsd.3"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c, "msm_serial_hsl.1"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c,		"qup_i2c.2"),
-	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"spi_qsd.1"),
-	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,		""),
+	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.11"),
+	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,		"msm_serial_hsl.3"),
 	CLK_LOOKUP("iface_clk",		gsbi12_p_clk.c,		""),
 	CLK_LOOKUP("iface_clk",		gsbi12_p_clk.c, "msm_serial_hsl.0"),
 	CLK_LOOKUP("iface_clk",		gsbi12_p_clk.c,		"qup_i2c.5"),
@@ -3660,8 +3647,6 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		mdp_clk.c,	"footswitch-8x60.4"),
 	CLK_LOOKUP("vsync_clk",	mdp_vsync_clk.c,		"mdp.0"),
 	CLK_LOOKUP("vsync_clk",		mdp_vsync_clk.c, "footswitch-8x60.4"),
-	CLK_LOOKUP("lut_clk",		lut_mdp_clk.c,		"mdp.0"),
-	CLK_LOOKUP("lut_clk",		lut_mdp_clk.c,	"footswitch-8x60.4"),
 	CLK_LOOKUP("lcdc_clk",	pixel_lcdc_clk.c,		"lcdc.0"),
 	CLK_LOOKUP("pixel_lcdc_clk",	pixel_lcdc_clk.c, "footswitch-8x60.4"),
 	CLK_LOOKUP("mdp_clk",	pixel_mdp_clk.c,	"lcdc.0"),
@@ -3841,7 +3826,6 @@ static void __init msm8660_clock_pre_init(void)
 	rmwreg(0x80FF0000, IJPEG_CC_REG,  0xE0FF0018);
 	rmwreg(0x80FF0000, JPEGD_CC_REG,  0xE0FF0018);
 	rmwreg(0x80FF0000, MDP_CC_REG,    0xE1FF0010);
-	rmwreg(0x80FF0000, MDP_LUT_CC_REG,0xE0FF0018);
 	rmwreg(0x80FF0000, PIXEL_CC_REG,  0xE1FF0010);
 	rmwreg(0x000004FF, PIXEL_CC2_REG, 0x000007FF);
 	rmwreg(0x80FF0000, ROT_CC_REG,    0xE0FF0010);
