@@ -28,13 +28,8 @@
  * -----------------------------------------------------------------------------
  */
 
-static void mipi_pyramid_bkl_ctrl(bool on);
-static void mipi_pyramid_bkl_switch(struct msm_fb_data_type *mfd, bool on);
-
-
 char max_pktsize[2] = {MIPI_DSI_MRPS, 0x00}; /* LSB tx first, 16 bytes */
 
-int mipi_status = 1;
 int bl_level_prevset = 1;
 struct dsi_cmd_desc *mipi_power_on_cmd = NULL;
 struct dsi_cmd_desc *mipi_power_off_cmd = NULL;
@@ -53,7 +48,6 @@ static void mipi_pyramid_send_cmd(struct dsi_cmd_desc *cmd, unsigned int len)
   mipi_dsi_cmdlist_put(&cmdreq);
 }
 
-#ifndef HTC_USED_0_3_MIPI_INIT
 const char NOVATEK_SONY_C3_MIPI_INIT[] = {
 	3,
 	DTYPE_DCS_WRITE, 0x11, 0x00,
@@ -113,7 +107,6 @@ static struct dsi_cmd_desc NOVATEK_SONY_MIPI_INIT[] = {
 	{DTYPE_DCS_WRITE1, 1, 0, 0, 0, 2, (char[]){0x35, 0x00} },
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0, 3, (char[]){0x44, 0x02, 0xCF} },
 };
-#endif /* HTC_USED_0_3_MIPI_INIT */
 
 
 /* -----------------------------------------------------------------------------
@@ -131,88 +124,8 @@ static char led_pwm1[] =
 	0x51, 0x0,
 };
 
-static char led_pwm2[] =
-{
-	0x53, 0x24,
-};
-
-static char led_pwm3[] =
-{
-	0x55, 0x00,
-};
 static unsigned char bkl_enable_cmds[] = {0x53, 0x24};/* DTYPE_DCS_WRITE1 */ /* bkl on and no dim */
 static unsigned char bkl_disable_cmds[] = {0x53, 0x00};/* DTYPE_DCS_WRITE1 */ /* bkl off */
-
-#ifdef NOVETAK_COMMANDS_UNUSED
-static char display_config_cmd_mode1[] = {
-	/* TYPE_DCS_LWRITE */
-	0x2A, 0x00, 0x00, 0x01,
-	0x3F, 0xFF, 0xFF, 0xFF
-};
-
-static char display_config_cmd_mode2[] = {
-	/* DTYPE_DCS_LWRITE */
-	0x2B, 0x00, 0x00, 0x01,
-	0xDF, 0xFF, 0xFF, 0xFF
-};
-
-static char display_config_cmd_mode3_666[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x3A, 0x66, 0x15, 0x80 /* 666 Packed (18-bits) */
-};
-
-static char display_config_cmd_mode3_565[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x3A, 0x55, 0x15, 0x80 /* 565 mode */
-};
-
-static char display_config_321[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x66, 0x2e, 0x15, 0x00 /* Reg 0x66 : 2E */
-};
-
-static char display_config_323[] = {
-	/* DTYPE_DCS_WRITE */
-	0x13, 0x00, 0x05, 0x00 /* Reg 0x13 < Set for Normal Mode> */
-};
-
-static char display_config_2lan[] = {
-	/* DTYPE_DCS_WRITE */
-	0x61, 0x01, 0x02, 0xff /* Reg 0x61 : 01,02 < Set for 2 Data Lane > */
-};
-
-static char display_config_exit_sleep[] = {
-	/* DTYPE_DCS_WRITE */
-	0x11, 0x00, 0x05, 0x80 /* Reg 0x11 < exit sleep mode> */
-};
-
-static char display_config_TE_ON[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0x35, 0x00, 0x15, 0x80
-};
-
-static char display_config_39H[] = {
-	/* DTYPE_DCS_WRITE */
-	0x39, 0x00, 0x05, 0x80
-};
-
-static char display_config_set_tear_scanline[] = {
-	/* DTYPE_DCS_LWRITE */
-	0x44, 0x02, 0xcf, 0xff
-};
-
-static char display_config_set_twolane[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0xae, 0x03, 0x15, 0x80
-};
-
-static char display_config_set_threelane[] = {
-	/* DTYPE_DCS_WRITE1 */
-	0xae, 0x05, 0x15, 0x80
-};
-
-
-#else
 
 static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
 static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
@@ -255,85 +168,6 @@ static char maucctr_1[6] = {0xF0, 0x55, 0xAA, 0x52, 0x08, 0x01}; /* DTYPE_DCS_LW
 static char novatek_b5x[4] = {0xB5, 0x05, 0x05, 0x05}; /* DTYPE_DCS_LWRITE */
 static char novatek_ce[8] = {0xCE, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
 static char novatek_e0[3] = {0xE0, 0x01, 0x03}; /* DTYPE_DCS_LWRITE */
-
-#ifdef HTC_USED_0_3_MIPI_INIT
-/* NT35510 init command */
-
-static char novatek_b1[3] = {0xB1, 0xEC, 0x0A}; /* DTYPE_DCS_LWRITE */
-static char novatek_b5[2] = {0xB5, 0x50}; /* DTYPE_DCS_WRITE1 */
-static char novatek_b6[2] = {0xB6, 0x07}; /* DTYPE_DCS_WRITE1 */
-static char novatek_b7[3] = {0xB7, 0x00, 0x73}; /* DTYPE_DCS_LWRITE */
-static char novatek_b8[5] = {0xB8, 0x01, 0x04, 0x06, 0x05}; /* DTYPE_DCS_LWRITE */
-static char novatek_b9[3] = {0xB9, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
-static char novatek_ba[2] = {0xBA, 0x02}; /* DTYPE_DCS_WRITE1 */
-static char novatek_bb[4] = {0xBB, 0x88, 0x08, 0x88}; /* DTYPE_DCS_LWRITE */
-static char novatek_bc[4] = {0xBC, 0x01, 0x01, 0x01}; /* DTYPE_DCS_LWRITE */
-static char novatek_bd[6] = {0xBD, 0x01, 0x84, 0x1D, 0x1C, 0x00}; /* DTYPE_DCS_LWRITE */
-static char novatek_be[6] = {0xBE, 0x01, 0x84, 0x1D, 0x1C, 0x00}; /* DTYPE_DCS_LWRITE */
-static char novatek_bf[6] = {0xBF, 0x01, 0x84, 0x1D, 0x1C, 0x00}; /* DTYPE_DCS_LWRITE */
-static char novatek_ca[13] = { /* DTYPE_DCS_LWRITE */
-	0xCA, 0x01, 0xE4, 0xE4, 0xE4, 0xE4, 0xE4,
-	0xE4, 0xE4, 0x08, 0x08, 0x00, 0x01};
-
-static char novatek_b0x[4] = {0xB0, 0x0A, 0x0A, 0x0A}; /* DTYPE_DCS_LWRITE */
-static char novatek_b1x[4] = {0xB1, 0x0A, 0x0A, 0x0A}; /* DTYPE_DCS_LWRITE */
-static char novatek_b2x[4] = {0xB2, 0x02, 0x02, 0x02}; /* DTYPE_DCS_LWRITE */
-static char novatek_b3x[4] = {0xB3, 0x08, 0x08, 0x08}; /* DTYPE_DCS_LWRITE */
-static char novatek_b6x[4] = {0xB6, 0x44, 0x44, 0x44}; /* DTYPE_DCS_LWRITE */
-static char novatek_b7x[4] = {0xB7, 0x24, 0x24, 0x24}; /* DTYPE_DCS_LWRITE */
-static char novatek_b8x[4] = {0xB8, 0x36, 0x36, 0x36}; /* DTYPE_DCS_LWRITE */
-static char novatek_b9x[4] = {0xB9, 0x36, 0x36, 0x36}; /* DTYPE_DCS_LWRITE */
-static char novatek_bax[4] = {0xBA, 0x14, 0x14, 0x14}; /* DTYPE_DCS_LWRITE */
-static char novatek_bbx[2] = {0xBB, 0x44}; /* DTYPE_DCS_WRITE1 */
-static char novatek_bfx[2] = {0xBF, 0x01}; /* DTYPE_DCS_WRITE1 */
-static char btenctr_1[2] = {0xC2, 0x01}; /* DTYPE_DCS_WRITE1 */
-static char maucctr_2[6] = {0xF0, 0x55, 0xAA, 0x52, 0x00, 0x00}; /* DTYPE_DCS_LWRITE */
-static char lv3[5] = {0xFF, 0xAA, 0x55, 0x25, 0x01}; /* DTYPE_DCS_LWRITE */
-static char novatek_f3[9] = { /* DTYPE_DCS_LWRITE */
-	0xF3, 0x00, 0x32, 0x00, 0x38, 0x31, 0x08,
-	0x11, 0x00};
-static char novatek_f8[39] = { /* DTYPE_DCS_LWRITE */
-	0xF8, 0x02, 0x02, 0x00, 0x20, 0x33, 0x00,
-	0x00, 0x40, 0x00, 0x00, 0x23, 0x02, 0x99,
-	0xC8, 0x02, 0x00, 0x00, 0x00, 0x00, 0x23,
-	0x0F, 0x22, 0x22, 0x22, 0x22, 0x00, 0x00,
-	0x05, 0x05, 0x00, 0x34, 0x00, 0x04, 0x55,
-	0x00, 0x04, 0x11, 0x38};
-
-static char novatek_d2[2] = {0xD2, 0x00}; /* DTYPE_DCS_WRITE1 */
-static char novatek_d3[2] = {0xD3, 0x00}; /* DTYPE_DCS_WRITE1 */
-static char novatek_d4[2] = {0xD4, 0x04}; /* DTYPE_DCS_WRITE1 */
-static char novatek_d5[2] = {0xD5, 0x11}; /* DTYPE_DCS_WRITE1 */
-static char novatek_dd[2] = {0xDD, 0x44}; /* DTYPE_DCS_WRITE1 */
-static char novatek_e1[3] = {0xE1, 0x00, 0xFF}; /* DTYPE_DCS_LWRITE */
-static char novatek_3a[2] = {0x3A, 0x77}; /* DTYPE_DCS_WRITE1 */
-static char novatek_36[2] = {0x36, 0x00}; /* DTYPE_DCS_WRITE1 */
-static char novatek_2a[5] = {0x2A, 0x00, 0x00, 0x01, 0xDF}; /* DTYPE_DCS_LWRITE */
-static char novatek_2b[5] = {0x2B, 0x00, 0x00, 0x03, 0x1F}; /* DTYPE_DCS_LWRITE */
-static char memory_start[2] = {0x2C, 0x00}; /* DTYPE_DCS_LWRITE */
-#endif /* HTC_USED_0_3_MIPI_INIT */
-#endif
-
-static struct dsi_cmd_desc novatek_video_on_cmds[] = {
-	{DTYPE_DCS_WRITE, 1, 0, 0, 50,
-		sizeof(sw_reset), sw_reset},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 10,
-		sizeof(exit_sleep), exit_sleep},
-	{DTYPE_DCS_WRITE, 1, 0, 0, 120,
-		sizeof(display_on), display_on},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(enable_te), enable_te},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(set_twolane), set_twolane},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(rgb_888), rgb_888},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(led_pwm1), led_pwm1},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(led_pwm2), led_pwm2},
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 10,
-		sizeof(led_pwm3), led_pwm3},
-};
 
 static struct dsi_cmd_desc novatek_wvga_c3_cmd_on_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 0,
@@ -1705,117 +1539,6 @@ static struct dsi_cmd_desc novatek_display_off_cmds[] = {
 			sizeof(enter_sleep), enter_sleep}
 };
 
-static char peripheral_off[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
-static char vsync_start[2] = {0x00, 0x00}; /* DTYPE_DCS_READ */
-
-static struct dsi_cmd_desc novatek_restart_vcounter_cmd[] = {
-	{DTYPE_VSYNC_START, 1, 0, 1, 0,
-		sizeof(vsync_start), vsync_start},
-	{DTYPE_PERIPHERAL_OFF, 1, 0, 1, 0,
-		sizeof(peripheral_off), peripheral_off}
-};
-
-int mipi_pyramid_restart_vcounter(uint32_t mfd)
-{
-	uint32 dma_ctrl;
-        //	mutex_lock(&((struct msm_fb_data_type *)mfd)->dma->ov_mutex);
-	/* DSI_COMMAND_MODE_DMA_CTRL */
-	dma_ctrl = MIPI_INP(MIPI_DSI_BASE + 0x38);
-	/* PR_DISP_INFO("%s+ dma_ctrl=0x%x\n", __func__, dma_ctrl); */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x38, 0x10000000);
-        //	mutex_unlock(&((struct msm_fb_data_type *)mfd)->dma->ov_mutex);
-	mipi_dsi_op_mode_config(DSI_CMD_MODE);
-        mipi_pyramid_send_cmd(novatek_restart_vcounter_cmd,
-			ARRAY_SIZE(novatek_restart_vcounter_cmd));
-        //	mutex_lock(&((struct msm_fb_data_type *)mfd)->dma->ov_mutex);
-	MIPI_OUTP(MIPI_DSI_BASE + 0x38, dma_ctrl);
-        //	mutex_unlock(&((struct msm_fb_data_type *)mfd)->dma->ov_mutex);
-	/* PR_DISP_INFO("%s-\n", __func__); */
-	return 0;
-}
-
-/* Decide how many times should the write-then-read sequence goes on */
-/* don't change this definition unless you are going for a stress test */
-#define GAMMA_STRESS_TEST_LOOP 1
-
-#if (GAMMA_STRESS_TEST_LOOP > 1)
-
-static uint8_t gm_regs[] = {
-0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2D, 0x2F, 0x30, 0x31,
-0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x3A, 0x3B, 0x3D, 0x3F,
-0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B,
-0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54, 0x55, 0x56, 0x57,
-0x58, 0x59, 0x5A, 0x5B, 0x5C, 0x5D, 0x5E, 0x5F, 0x60, 0x61, 0x62, 0x63,
-0x64, 0x65, 0x66, 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F,
-0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B,
-0x7C, 0x7D, 0x7E, 0x7F, 0x80, 0x81, 0x82, 0x83, 0x84, 0x85, 0x86, 0x87,
-0x88, 0x89, 0x8A, 0x8B, 0x8C, 0x8D, 0x8E, 0x8F, 0x90, 0x91, 0x92, 0x93,
-};
-
-static int find_gamma_value(uint8_t reg, int panel, uint8_t *value)
-{
-	int i;
-	uint8_t *cmds;
-	int len_cmds;
-
-	switch (panel) {
-	case PANEL_ID_PYD_SHARP:
-		cmds = pyd_sharp_gm;
-		len_cmds = ARRAY_SIZE(gm_regs);
-		break;
-	case PANEL_ID_PYD_AUO_NT:
-	default:
-		cmds = pyd_auo_gm;
-		len_cmds = ARRAY_SIZE(gm_regs);
-		break;
-	}
-
-	for (i = 2; i <= len_cmds * 2; i += 2)
-		if (reg == cmds[i]) {
-			*value = cmds[i+1];
-			return 1;
-		}
-
-	return 0;
-}
-
-/* change gamma value each time */
-/* the algorithm should be able to change back to the original values */
-static void invert_gamma_value(int panel)
-{
-	int i;
-	uint8_t *cmds;
-	int len_cmds;
-
-	switch (panel) {
-	case PANEL_ID_PYD_SHARP:
-		cmds = pyd_sharp_gm;
-		len_cmds = ARRAY_SIZE(gm_regs);
-		for (i = 2; i <= len_cmds * 2; i += 2) {
-			if (0x34 == cmds[i] || 0x68 == cmds[i])
-				continue;
-			if (cmds[i+1] <= 0x4F)
-				cmds[i + 1] = 0x4F - cmds[i + 1];
-		}
-		break;
-	case PANEL_ID_PYD_AUO_NT:
-		cmds = pyd_auo_gm;
-		len_cmds = ARRAY_SIZE(gm_regs);
-		for (i = 2; i <= len_cmds * 2; i += 2) {
-			if (cmds[i + 1] <= 0x4F)
-				cmds[i + 1] = 0x4F - cmds[i + 1];
-			else if (cmds[i + 1] <= 0x7F)
-				cmds[i + 1] = 0x7F - cmds[i + 1];
-		}
-		break;
-	default:
-		PR_DISP_INFO("warning: panel not supported so far\n");
-		break;
-	}
-}
-
-#endif
-
 static struct dsi_cmd_desc novatek_cmd_backlight_cmds[] = {
 	{DTYPE_DCS_LWRITE, 1, 0, 0, 1,
 		sizeof(led_pwm1), led_pwm1},
@@ -1875,13 +1598,8 @@ void mipi_pyramid_panel_type_detect(void)
 		mipi_power_off_cmd_size = ARRAY_SIZE(novatek_display_off_cmds);
 	} else if (panel_type == PANEL_ID_DOT_SONY) {
 		PR_DISP_INFO("%s: panel_type=PANEL_ID_DOT_SONY\n", __func__);
-		#ifdef HTC_USED_0_3_MIPI_INIT
-		mipi_power_on_cmd = novatek_wvga_cmd_on_cmds;
-		mipi_power_on_cmd_size = ARRAY_SIZE(novatek_wvga_cmd_on_cmds);
-		#else
 		mipi_power_on_cmd = NOVATEK_SONY_MIPI_INIT;
 		mipi_power_on_cmd_size = ARRAY_SIZE(NOVATEK_SONY_MIPI_INIT);
-		#endif /* HTC_USED_0_3_MIPI_INIT */
 		mipi_power_off_cmd = novatek_display_off_cmds;
 		mipi_power_off_cmd_size = ARRAY_SIZE(novatek_display_off_cmds);
 	} else if (panel_type == PANEL_ID_DOT_SONY_C3) {
@@ -1915,31 +1633,62 @@ void mipi_pyramid_panel_type_detect(void)
 }
 
 int mipi_lcd_on = 1;
+
+static void mipi_pyramid_bkl_switch(struct msm_fb_data_type *mfd, bool on)
+{
+	unsigned int val = 0;
+
+	if (on) {
+		val = mfd->bl_level;
+		if (val == 0) {
+			if (bl_level_prevset != 1) {
+				val = bl_level_prevset;
+				mfd->bl_level = val;
+			} else {
+                                val = 83; // DEFAULT_BRIGHTNESS
+				mfd->bl_level = val;
+			}
+		}
+		mipi_dsi_set_backlight(mfd, mfd->bl_level);
+	} else {
+		mfd->bl_level = 0;
+		mipi_dsi_set_backlight(mfd, mfd->bl_level);
+	}
+}
+
+static void mipi_pyramid_bkl_ctrl(bool on)
+{
+	if (on)
+          mipi_pyramid_send_cmd(novatek_bkl_enable_cmds, ARRAY_SIZE(novatek_bkl_enable_cmds));
+        else 
+          mipi_pyramid_send_cmd(novatek_bkl_disable_cmds, ARRAY_SIZE(novatek_bkl_disable_cmds));
+}
+
 static int mipi_pyramid_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 	struct mipi_panel_info *mipi;
 
         printk(KERN_ERR "%s: ++\n", __func__);
+
 	mfd = platform_get_drvdata(pdev);
 	if (!mfd)
 		return -ENODEV;
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
-	mipi  = &mfd->panel_info.mipi;
-
-        if (mipi->mode == DSI_VIDEO_MODE)
-          mipi_pyramid_send_cmd(novatek_video_on_cmds,
-                                ARRAY_SIZE(novatek_video_on_cmds));
-        else
-          mipi_pyramid_send_cmd(mipi_power_on_cmd, mipi_power_on_cmd_size);
+        if (mipi_lcd_on)
+          return 0;
 
         mipi_pyramid_send_cmd(novatek_display_on_cmds, ARRAY_SIZE(novatek_display_on_cmds));
 
         mipi_pyramid_bkl_ctrl(1);
 
         mipi_pyramid_bkl_switch(mfd, 1);
+
+	mipi  = &mfd->panel_info.mipi;
+
+        mipi_pyramid_send_cmd(mipi_power_on_cmd, mipi_power_on_cmd_size);
 
         mipi_lcd_on = 1;
 
@@ -1961,12 +1710,10 @@ static int mipi_pyramid_lcd_off(struct platform_device *pdev)
         if (!mipi_lcd_on)
           return 0;
 
-	if (panel_type != PANEL_ID_NONE) {
-		mipi_pyramid_send_cmd(mipi_power_off_cmd,
-			mipi_power_off_cmd_size);
-	} else
-		printk(KERN_ERR "panel_type=0x%x not support at power off\n",
-			panel_type);
+	if (panel_type != PANEL_ID_NONE) 
+          {
+            mipi_pyramid_send_cmd(mipi_power_off_cmd, mipi_power_off_cmd_size);
+	}
 
         mipi_lcd_on = 0;
 
@@ -2027,10 +1774,10 @@ inline void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
 	static int bl_level_old = 0;
         //	mutex_lock(&mfd->dma->ov_mutex);
 
-        printk(KERN_ERR "%s: %d\n", __func__, mfd->bl_level);
+        mfd->bl_level = level = 255;
+        printk(KERN_ERR "%s: %d\n", __func__, level);
 	mipi  = &mfd->panel_info.mipi;
-	if (mipi_status == 0)
-		goto end;
+
 	if (panel_type == PANEL_ID_PYD_SHARP)
           led_pwm1[1] = pyd_shp_shrink_pwm(mfd->bl_level);
 	else
@@ -2045,53 +1792,14 @@ inline void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
         mipi_pyramid_send_cmd(novatek_cmd_backlight_cmds, ARRAY_SIZE(novatek_cmd_backlight_cmds));
 
 	bl_level_prevset = bl_level_old = mfd->bl_level;
-end:
-        //	mutex_unlock(&mfd->dma->ov_mutex);
+
 	return ;
 }
 
 static void mipi_pyramid_set_backlight(struct msm_fb_data_type *mfd)
 {
-        static int bl_level = 0;
-
-        if (bl_level != mfd->bl_level)
-          {
-            bl_level = mfd->bl_level;
-            
-            mipi_dsi_set_backlight(mfd, mfd->bl_level);
-          }
-}
-
-static void mipi_pyramid_bkl_switch(struct msm_fb_data_type *mfd, bool on)
-{
-	unsigned int val = 0;
-
-	if (on) {
-		mipi_status = 1;
-		val = mfd->bl_level;
-		if (val == 0) {
-			if (bl_level_prevset != 1) {
-				val = bl_level_prevset;
-				mfd->bl_level = val;
-			} else {
-                                val = 83; // DEFAULT_BRIGHTNESS
-				mfd->bl_level = val;
-			}
-		}
-		mipi_dsi_set_backlight(mfd, mfd->bl_level);
-	} else {
-		mipi_status = 0;
-		mfd->bl_level = 0;
-		mipi_dsi_set_backlight(mfd, mfd->bl_level);
-	}
-}
-
-static void mipi_pyramid_bkl_ctrl(bool on)
-{
-	if (on)
-          mipi_pyramid_send_cmd(novatek_bkl_enable_cmds, ARRAY_SIZE(novatek_bkl_enable_cmds));
-        else 
-          mipi_pyramid_send_cmd(novatek_bkl_disable_cmds, ARRAY_SIZE(novatek_bkl_disable_cmds));
+  
+        mipi_dsi_set_backlight(mfd, mfd->bl_level);
 }
 
 static int mipi_pyramid_lcd_probe(struct platform_device *pdev)
@@ -2115,8 +1823,8 @@ static struct platform_driver this_driver = {
 
 static struct msm_fb_panel_data pyramid_panel_data = {
 	.on		= mipi_pyramid_lcd_on,
-	.off		= mipi_pyramid_lcd_off,
-	.set_backlight  = mipi_pyramid_set_backlight,
+        .off		= mipi_pyramid_lcd_off,
+        .set_backlight  = mipi_pyramid_set_backlight,
 };
 
 static int ch_used[3];
@@ -2126,7 +1834,7 @@ int mipi_pyramid_device_register(struct msm_panel_info *pinfo,
 {
 	struct platform_device *pdev = NULL;
 	int ret;
-        printk(KERN_ERR "%s ++\n", __func__);
+
 	if ((channel >= 3) || ch_used[channel])
 		return -ENODEV;
 

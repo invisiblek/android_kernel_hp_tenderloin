@@ -184,15 +184,16 @@ static struct msm_panel_common_pdata mdp_pdata = {
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
-	.mdp_rev = MDP_REV_42,
+	.mdp_rev = MDP_REV_41,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
+        //	.cont_splash_enabled = 0x01,
 	.cont_splash_enabled = 0x00,
-	.splash_screen_addr = 0x00,
-	.splash_screen_size = 0x00,
+        //        //	.splash_screen_addr = 0x00,
+        //	.splash_screen_size = 4096000,//0x00,
 	.mdp_iommu_split_domain = 0,
 };
 
@@ -268,29 +269,6 @@ static struct platform_device hdmi_msm_device = {
 };
 #endif /* CONFIG_FB_MSM_HDMI_MSM_PANEL */
 
-#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-static char wfd_check_mdp_iommu_split_domain(void)
-{
-	return mdp_pdata.mdp_iommu_split_domain;
-}
-
-static struct msm_wfd_platform_data wfd_pdata = {
-	.wfd_check_mdp_iommu_split = wfd_check_mdp_iommu_split_domain,
-};
-
-static struct platform_device wfd_panel_device = {
-	.name = "wfd_panel",
-	.id = 0,
-	.dev.platform_data = NULL,
-};
-
-static struct platform_device wfd_device = {
-	.name = "msm_wfd",
-	.id = -1,
-	.dev.platform_data = &wfd_pdata,
-};
-#endif
-
 extern int mipi_lcd_on;
 static bool dsi_power_on;
 static int mipi_dsi_panel_power(int on)
@@ -307,19 +285,19 @@ static int mipi_dsi_panel_power(int on)
 
 	/* If panel is already on (or off), do nothing. */
 	if (!dsi_power_on) {
-		l1_3v = regulator_get(NULL, "8901_l1");
+		l1_3v = regulator_get(&msm_mipi_dsi1_device.dev, "8901_l1");
 		if (IS_ERR_OR_NULL(l1_3v)) {
 			pr_err("[DISP] %s: unable to get 8901_l1\n", __func__);
                         return -ENODEV;
 		}
 		if (system_rev >= 1) {
-			l4_1v8 = regulator_get(NULL, "8901_l4");
+			l4_1v8 = regulator_get(&msm_mipi_dsi1_device.dev, "8901_l4");
 			if (IS_ERR_OR_NULL(l4_1v8)) {
 				pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
                                 return -ENODEV;
 			}
 		} else {
-			lvs1_1v8 = regulator_get(NULL, "8901_lvs1");
+			lvs1_1v8 = regulator_get(&msm_mipi_dsi1_device.dev, "8901_lvs1");
 			if (IS_ERR(lvs1_1v8)) {
 				pr_err("[DISP] %s: unable to get 8901_lvs1\n", __func__);
                                 return -ENODEV;
@@ -386,6 +364,7 @@ static int mipi_dsi_panel_power(int on)
 			gpio_set_value(GPIO_LCM_RST_N, 1);
 			msleep(20);
 		}
+                bPanelPowerOn = true;
 	} else {
                 if (!bPanelPowerOn) return 0;
 		gpio_set_value(GPIO_LCM_RST_N, 0);
@@ -409,6 +388,8 @@ static int mipi_dsi_panel_power(int on)
 					" l1_3v\n", __func__);
 			return -EINVAL;
 		}
+
+                bPanelPowerOn = false;
 	}
 	return 0;
 }
@@ -424,14 +405,52 @@ static struct mipi_dsi_platform_data mipi_dsi_pdata = {
 	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 };
 
-static struct msm_panel_common_pdata mipi_pyramid_panel_data;
-
 static struct platform_device mipi_dsi_pyramid_panel_device = {
 	.name = "mipi_pyramid",
 	.id = 0,
-	.dev = {
-		.platform_data = &mipi_pyramid_panel_data,
-	}
+};
+
+#ifdef CONFIG_MSM_BUS_SCALING
+static struct msm_bus_vectors dtv_bus_init_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 0,
+		.ib = 0,
+	},
+};
+static struct msm_bus_vectors dtv_bus_def_vectors[] = {
+	{
+		.src = MSM_BUS_MASTER_MDP_PORT0,
+		.dst = MSM_BUS_SLAVE_EBI_CH0,
+		.ab = 566092800 * 2,
+		.ib = 707616000 * 2,
+	},
+};
+static struct msm_bus_paths dtv_bus_scale_usecases[] = {
+	{
+		ARRAY_SIZE(dtv_bus_init_vectors),
+		dtv_bus_init_vectors,
+	},
+	{
+		ARRAY_SIZE(dtv_bus_def_vectors),
+		dtv_bus_def_vectors,
+	},
+};
+static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
+	dtv_bus_scale_usecases,
+	ARRAY_SIZE(dtv_bus_scale_usecases),
+	.name = "dtv",
+};
+#endif
+
+static struct lcdc_platform_data dtv_pdata = {
+#ifdef CONFIG_MSM_BUS_SCALING
+	.bus_scale_table = &dtv_bus_scale_pdata,
+#endif
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+//	.lcdc_power_save = hdmi_panel_power,
+#endif
 };
 
 static void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
@@ -451,20 +470,17 @@ static void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
 	}
 }
 
+int mipi_cmd_pyramid_qhd_pt_init(void);
+
 void __init pyramid_init_fb(void)
 {
-  printk(KERN_ERR "%s: ++\n", __func__);
 	msm8x60_set_display_params("mipi_pyramid", "hdmi_msm");
 	platform_device_register(&msm_fb_device);
-#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
-	platform_device_register(&wfd_panel_device);
-	platform_device_register(&wfd_device);
-#endif
 	platform_device_register(&mipi_dsi_pyramid_panel_device);
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	platform_device_register(&hdmi_msm_device);
 #endif
-        //	msm_fb_register_device("dtv", &dtv_pdata);
+        msm_fb_register_device("dtv", &dtv_pdata);
 }

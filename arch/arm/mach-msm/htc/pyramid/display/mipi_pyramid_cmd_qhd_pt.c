@@ -19,7 +19,6 @@
 #include "../../../../drivers/video/msm/msm_fb.h"
 #include "../../../../drivers/video/msm/mipi_dsi.h"
 #include "mipi_pyramid.h"
-#include <mach/debug_display.h>
 
 static struct msm_panel_info pinfo;
 
@@ -40,8 +39,6 @@ static struct mipi_dsi_phy_ctrl dsi_cmd_mode_phy_db = {
 static int __init mipi_cmd_pyramid_qhd_pt_init(void)
 {
 	int ret;
-
-        printk(KERN_ERR "%s: ++\n",__func__);
 
 	pinfo.xres = 540;
 	pinfo.yres = 960;
@@ -70,6 +67,7 @@ static int __init mipi_cmd_pyramid_qhd_pt_init(void)
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
 	pinfo.mipi.vc = 0;
 	pinfo.mipi.rgb_swap = DSI_RGB_SWAP_BGR;
+	pinfo.mipi.esc_byte_ratio = 4;
 	pinfo.mipi.data_lane0 = TRUE;
 	pinfo.mipi.data_lane1 = TRUE;
 	pinfo.mipi.t_clk_post = 0x0a;
@@ -87,11 +85,10 @@ static int __init mipi_cmd_pyramid_qhd_pt_init(void)
 	ret = mipi_pyramid_device_register(&pinfo, MIPI_DSI_PRIM,
 						MIPI_DSI_PANEL_QHD_PT);
 	if (ret)
-		PR_DISP_ERR("%s: failed to register device!\n", __func__);
+          printk(KERN_ERR "%s: failed to register device!\n", __func__);
 
-        printk(KERN_ERR "%s: %d\n", __func__, ret);
 	return ret;
 }
 
 //late_initcall(mipi_cmd_pyramid_qhd_pt_init);
-module_init(mipi_cmd_pyramid_qhd_pt_init);
+device_initcall_sync(mipi_cmd_pyramid_qhd_pt_init);

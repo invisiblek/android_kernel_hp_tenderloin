@@ -33,14 +33,6 @@
 int mipi_pyramid_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);
 
-extern int mipi_status;
-extern int bl_level_prevset;
-extern struct mutex cmdlock;
-extern struct dsi_cmd_desc *mipi_power_on_cmd;
-extern struct dsi_cmd_desc *mipi_power_off_cmd;
-extern int mipi_power_on_cmd_size;
-extern int mipi_power_off_cmd_size;
-
 #define BRI_SETTING_MIN                 30
 #define BRI_SETTING_DEF                 143
 #define BRI_SETTING_MAX                 255
