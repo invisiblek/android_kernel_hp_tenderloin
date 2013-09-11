@@ -18,6 +18,7 @@
 #include <mach/board.h>
 #include <mach/msm_memtypes.h>
 #include <mach/rpm-regulator.h>
+#include <linux/regulator/pmic8901-regulator.h>
 
 #define PYRAMID_PROJECT_NAME	"pyramid"
 
@@ -129,11 +130,16 @@
 #define PYRAMID_AUD_REMO_PRES      PMGPIO(37)
 #define PYRAMID_WIFI_BT_SLEEP_CLK  PMGPIO(38)
 
+extern struct rpm_regulator_platform_data pyramid_rpm_regulator_pdata __devinitdata;
+extern struct pm8901_vreg_pdata pm8901_regulator_pdata[];
+extern int pm8901_regulator_pdata_len;
+extern struct platform_device msm_adc_device;
 
 int __init pyramid_init_mmc(void);
 void __init pyramid_audio_init(void);
 int __init pyramid_init_keypad(void);
 void __init pyramid_init_fb(void);
+void __init pyramid_init_pmic(void);
 int __init pyramid_wifi_init(void);
 void pyramid_init_gpiomux(void);
 void __init msm8x60_allocate_fb_region(void);
