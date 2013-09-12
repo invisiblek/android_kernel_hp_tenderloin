@@ -1,4 +1,4 @@
-/* Copyright (c) 2008-2013, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2008-2012, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -13,39 +13,9 @@
 #include <linux/clk.h>
 #include <mach/clk.h>
 #include "msm_fb.h"
-#include "mdp.h"
-#include "mdp4.h"
 #include "mipi_dsi.h"
 #include "hdmi_msm.h"
 #include <mach/msm_iomap.h>
-
-/* HDMI PHY macros */
-#define HDMI_PHY_REG_0                   (0x00000400)
-#define HDMI_PHY_REG_1                   (0x00000404)
-#define HDMI_PHY_REG_2                   (0x00000408)
-#define HDMI_PHY_REG_3                   (0x0000040c)
-#define HDMI_PHY_REG_4                   (0x00000410)
-#define HDMI_PHY_REG_5                   (0x00000414)
-#define HDMI_PHY_REG_6                   (0x00000418)
-#define HDMI_PHY_REG_7                   (0x0000041c)
-#define HDMI_PHY_REG_8                   (0x00000420)
-#define HDMI_PHY_REG_9                   (0x00000424)
-#define HDMI_PHY_REG_10                  (0x00000428)
-#define HDMI_PHY_REG_11                  (0x0000042c)
-#define HDMI_PHY_REG_12                  (0x00000430)
-#define HDMI_PHY_REG_BIST_CFG            (0x00000434)
-#define HDMI_PHY_DEBUG_BUS_SEL           (0x00000438)
-#define HDMI_PHY_REG_MISC0               (0x0000043c)
-#define HDMI_PHY_REG_13                  (0x00000440)
-#define HDMI_PHY_REG_14                  (0x00000444)
-#define HDMI_PHY_REG_15                  (0x00000448)
-#define HDMI_PHY_CTRL			         (0x000002D4)
-
-/* HDMI PHY/PLL bit field macros */
-#define HDMI_PHY_PLL_STATUS0             (0x00000598)
-#define SW_RESET BIT(2)
-#define SW_RESET_PLL BIT(0)
-#define PWRDN_B BIT(7)
 
 /* multimedia sub system clock control */
 char *mmss_cc_base = MSM_MMSS_CLK_CTL_BASE;
@@ -66,11 +36,7 @@ int mipi_dsi_clk_on;
 
 int mipi_dsi_clk_init(struct platform_device *pdev)
 {
-	struct msm_fb_data_type *mfd;
 	struct device *dev = &pdev->dev;
-
-	mfd = platform_get_drvdata(pdev);
-
 	amp_pclk = clk_get(dev, "arb_clk");
 	if (IS_ERR_OR_NULL(amp_pclk)) {
 		pr_err("can't find amp_pclk\n");
@@ -93,14 +59,14 @@ int mipi_dsi_clk_init(struct platform_device *pdev)
 	}
 
 	dsi_byte_div_clk = clk_get(dev, "byte_clk");
-	if (IS_ERR(dsi_byte_div_clk)) {
+	if (IS_ERR_OR_NULL(dsi_byte_div_clk)) {
 		pr_err("can't find dsi_byte_div_clk\n");
 		dsi_byte_div_clk = NULL;
 		goto mipi_dsi_clk_err;
 	}
 
 	dsi_esc_clk = clk_get(dev, "esc_clk");
-	if (IS_ERR(dsi_esc_clk)) {
+	if (IS_ERR_OR_NULL(dsi_esc_clk)) {
 		printk(KERN_ERR "can't find dsi_esc_clk\n");
 		dsi_esc_clk = NULL;
 		goto mipi_dsi_clk_err;
@@ -109,7 +75,7 @@ int mipi_dsi_clk_init(struct platform_device *pdev)
 	return 0;
 
 mipi_dsi_clk_err:
-	mipi_dsi_clk_deinit(dev);
+	mipi_dsi_clk_deinit(NULL);
 	return -EPERM;
 }
 
@@ -117,7 +83,7 @@ void mipi_dsi_clk_deinit(struct device *dev)
 {
 	if (amp_pclk)
 		clk_put(amp_pclk);
-	if (amp_pclk)
+	if (dsi_m_pclk)
 		clk_put(dsi_m_pclk);
 	if (dsi_s_pclk)
 		clk_put(dsi_s_pclk);
@@ -163,6 +129,7 @@ static void mipi_dsi_clk_ctrl(struct dsi_clk_desc *clk, int clk_en)
 					      | (mnd_en << 5)
 					      | (root_en << 2) | clk_en));
 		}
+
 	} else
 		MIPI_OUTP_SECURE(cc, 0);
 
@@ -215,6 +182,7 @@ static void mipi_dsi_pclk_ctrl(struct dsi_clk_desc *clk, int clk_en)
 					      | (mnd_en << 5)
 					      | (root_en << 2) | clk_en));
 		}
+
 	} else
 		MIPI_OUTP_SECURE(cc, 0);
 
@@ -231,105 +199,25 @@ static void mipi_dsi_ahb_en(void)
 		__func__, (int) ahb, MIPI_INP_SECURE(ahb));
 }
 
-void mipi_dsi_lane_cfg(void)
-{
-	int i, ln_offset;
-
-	ln_offset = 0x300;
-	for (i = 0; i < 4; i++) {
-		/* DSI1_DSIPHY_LN_CFG0 */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset, 0x80);
-		/* DSI1_DSIPHY_LN_CFG1 */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset + 0x04, 0x45);
-		/* DSI1_DSIPHY_LN_CFG2 */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset + 0x08, 0x0);
-		/* DSI1_DSIPHY_LN_TEST_DATAPATH */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset + 0x0c, 0x0);
-		/* DSI1_DSIPHY_LN_TEST_STR0 */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset + 0x14, 0x1);
-		/* DSI1_DSIPHY_LN_TEST_STR1 */
-		MIPI_OUTP(MIPI_DSI_BASE + ln_offset + 0x18, 0x66);
-		ln_offset += 0x40;
-	}
-
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0400, 0x40); /* DSI1_DSIPHY_LNCK_CFG0 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0404, 0x67); /* DSI1_DSIPHY_LNCK_CFG1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0408, 0x0); /* DSI1_DSIPHY_LNCK_CFG2 */
-	/* DSI1_DSIPHY_LNCK_TEST_DATAPATH */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x040c, 0x0);
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0414, 0x1); /* DSI1_DSIPHY_LNCK_TEST_STR0 */
-	/* DSI1_DSIPHY_LNCK_TEST_STR1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0418, 0x88);
-}
-
-void mipi_dsi_bist_ctrl(void)
-{
-	MIPI_OUTP(MIPI_DSI_BASE + 0x049c, 0x0f); /* DSI1_DSIPHY_BIST_CTRL4 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0490, 0x03); /* DSI1_DSIPHY_BIST_CTRL1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x048c, 0x03); /* DSI1_DSIPHY_BIST_CTRL0 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x049c, 0x0); /* DSI1_DSIPHY_BIST_CTRL4 */
-}
-
 static void mipi_dsi_calibration(void)
 {
-	int i = 0;
-	uint32 term_cnt = 5000;
-	int cal_busy = MIPI_INP(MIPI_DSI_BASE + 0x550);
+	uint32 data;
 
-	/* DSI1_DSIPHY_REGULATOR_CAL_PWR_CFG */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0518, 0x03);
+	MIPI_OUTP(MIPI_DSI_BASE + 0xf4, 0x0000ff11); /* cal_ctrl */
+	MIPI_OUTP(MIPI_DSI_BASE + 0xf0, 0x01); /* cal_hw_trigger */
 
-	/* DSI1_DSIPHY_CAL_SW_CFG2 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0534, 0x0);
-	/* DSI1_DSIPHY_CAL_HW_CFG1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x053c, 0x5a);
-	/* DSI1_DSIPHY_CAL_HW_CFG3 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0544, 0x10);
-	/* DSI1_DSIPHY_CAL_HW_CFG4 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0548, 0x01);
-	/* DSI1_DSIPHY_CAL_HW_CFG0 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0538, 0x01);
-
-	/* DSI1_DSIPHY_CAL_HW_TRIGGER */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0528, 0x01);
-	usleep_range(5000, 5000);
-	/* DSI1_DSIPHY_CAL_HW_TRIGGER */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0528, 0x00);
-
-	cal_busy = MIPI_INP(MIPI_DSI_BASE + 0x550);
-	while (cal_busy & 0x10) {
-		i++;
-		if (i > term_cnt) {
-			pr_err("DSI1 PHY REGULATOR NOT READY,"
-				"exceeded polling TIMEOUT!\n");
+	while (1) {
+		data = MIPI_INP(MIPI_DSI_BASE + 0xfc); /* cal_status */
+		if ((data & 0x10000000) == 0)
 			break;
-		}
-		cal_busy = MIPI_INP(MIPI_DSI_BASE + 0x550);
-	}
-}
 
-void mipi_dsi_phy_rdy_poll(void)
-{
-	uint32 phy_pll_busy;
-	uint32 i = 0;
-	uint32 term_cnt = 0xFFFFFF;
-
-	phy_pll_busy = MIPI_INP(MIPI_DSI_BASE + 0x280);
-	while (!(phy_pll_busy & 0x1)) {
-		i++;
-		if (i > term_cnt) {
-			pr_err("DSI1 PHY NOT READY, exceeded polling TIMEOUT!\n");
-			break;
-		}
-		phy_pll_busy = MIPI_INP(MIPI_DSI_BASE + 0x280);
+		udelay(10);
 	}
 }
 
 #define PREF_DIV_RATIO 27
-#define VCO_MINIMUM 600
 struct dsiphy_pll_divider_config pll_divider_config;
-u32 vco_level_100;
-u32 vco_min_allowed;
+
 
 int mipi_dsi_phy_pll_config(u32 clk_rate)
 {
@@ -371,35 +259,10 @@ int mipi_dsi_phy_pll_config(u32 clk_rate)
 	return 0;
 }
 
-void mipi_dsi_configure_fb_divider(u32 fps_level)
-{
-	u32 fb_div_req, fb_div_req_by_2;
-	u32 vco_required;
-
-	vco_required = vco_level_100 * fps_level/100;
-	if (vco_required < vco_min_allowed) {
-		printk(KERN_WARNING "Can not change fps. Min level allowed is \
-	%d \n", (vco_min_allowed * 100 / vco_level_100) + 1);
-		return;
-	}
-
-	fb_div_req = vco_required * PREF_DIV_RATIO / 27;
-	fb_div_req_by_2 = (fb_div_req / 2) - 1;
-
-	pll_divider_config.fb_divider = fb_div_req;
-
-	/* DSIPHY_PLL_CTRL_1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x204, fb_div_req_by_2 & 0xff);
-	wmb();
-}
-
 int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 			    uint32 *expected_dsi_pclk)
 {
 	u32 fb_divider, rate, vco;
-	u32 fb_div_min, fb_div_by_2_min,
-			 fb_div_by_2;
-	u32 vco_level_75;
 	u32 div_ratio = 0;
 	struct dsi_clk_mnd_table const *mnd_entry = mnd_table;
 	if (pll_divider_config.clk_rate == 0)
@@ -413,7 +276,7 @@ int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 	} else if (rate < 250) {
 		vco = rate * 4;
 		div_ratio = 4;
-	} else if (rate < 600) {
+	} else if (rate < 500) {
 		vco = rate * 2;
 		div_ratio = 2;
 	} else {
@@ -442,18 +305,8 @@ int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 	pll_divider_config.dsi_clk_divider =
 			(mnd_entry->dsiclk_div) * div_ratio;
 
-	vco_level_100 = vco;
-	fb_div_by_2 = (fb_divider / 2) - 1;
-	fb_div_by_2_min = (fb_div_by_2 / 256) * 256;
-	fb_div_min = (fb_div_by_2_min + 1) * 2;
-	vco_min_allowed = (fb_div_min * 27 / PREF_DIV_RATIO);
-	vco_level_75 = vco_level_100 * 75 / 100;
-	if (vco_min_allowed < VCO_MINIMUM)
-		vco_min_allowed = VCO_MINIMUM;
-	if (vco_min_allowed < vco_level_75)
-		vco_min_allowed = vco_level_75;
-
-	if (mnd_entry->dsiclk_d == 0) {
+	if ((mnd_entry->dsiclk_d == 0)
+		|| (mnd_entry->dsiclk_m == 1)) {
 		dsicore_clk.mnd_mode = 0;
 		dsicore_clk.src = 0x3;
 		dsicore_clk.pre_div_func = (mnd_entry->dsiclk_n - 1);
@@ -486,78 +339,6 @@ int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 	return 0;
 }
 
-static void mipi_dsi_configure_serdes(void)
-{
-	void __iomem *cc;
-
-	/* PHY registers programemd thru S2P interface */
-	if (periph_base) {
-		MIPI_OUTP(periph_base + 0x2c, 0x000000b6);
-		MIPI_OUTP(periph_base + 0x2c, 0x000001b5);
-		MIPI_OUTP(periph_base + 0x2c, 0x000001b4);
-		MIPI_OUTP(periph_base + 0x2c, 0x000003b3);
-		MIPI_OUTP(periph_base + 0x2c, 0x000003a2);
-		MIPI_OUTP(periph_base + 0x2c, 0x000002a1);
-		MIPI_OUTP(periph_base + 0x2c, 0x000008a0);
-		MIPI_OUTP(periph_base + 0x2c, 0x00000d9f);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000109e);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000209d);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000109c);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000079a);
-		MIPI_OUTP(periph_base + 0x2c, 0x00000c99);
-		MIPI_OUTP(periph_base + 0x2c, 0x00002298);
-		MIPI_OUTP(periph_base + 0x2c, 0x000000a7);
-		MIPI_OUTP(periph_base + 0x2c, 0x000000a6);
-		MIPI_OUTP(periph_base + 0x2c, 0x000000a5);
-		MIPI_OUTP(periph_base + 0x2c, 0x00007fa4);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000eea8);
-		MIPI_OUTP(periph_base + 0x2c, 0x000006aa);
-		MIPI_OUTP(periph_base + 0x2c, 0x00002095);
-		MIPI_OUTP(periph_base + 0x2c, 0x00000493);
-		MIPI_OUTP(periph_base + 0x2c, 0x00001092);
-		MIPI_OUTP(periph_base + 0x2c, 0x00000691);
-		MIPI_OUTP(periph_base + 0x2c, 0x00005490);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000038d);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000148c);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000058b);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000078a);
-		MIPI_OUTP(periph_base + 0x2c, 0x00001f89);
-		MIPI_OUTP(periph_base + 0x2c, 0x00003388);
-		MIPI_OUTP(periph_base + 0x2c, 0x00006387);
-		MIPI_OUTP(periph_base + 0x2c, 0x00004886);
-		MIPI_OUTP(periph_base + 0x2c, 0x00005085);
-		MIPI_OUTP(periph_base + 0x2c, 0x00000084);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000da83);
-		MIPI_OUTP(periph_base + 0x2c, 0x0000b182);
-		MIPI_OUTP(periph_base + 0x2c, 0x00002f81);
-		MIPI_OUTP(periph_base + 0x2c, 0x00004080);
-		MIPI_OUTP(periph_base + 0x2c, 0x00004180);
-		MIPI_OUTP(periph_base + 0x2c, 0x000006aa);
-	}
-
-	cc = MIPI_DSI_BASE + 0x0130;
-	MIPI_OUTP(cc, 0x806c11c8);
-	MIPI_OUTP(cc, 0x804c11c8);
-	MIPI_OUTP(cc, 0x806d0080);
-	MIPI_OUTP(cc, 0x804d0080);
-	MIPI_OUTP(cc, 0x00000000);
-	MIPI_OUTP(cc, 0x807b1597);
-	MIPI_OUTP(cc, 0x805b1597);
-	MIPI_OUTP(cc, 0x807c0080);
-	MIPI_OUTP(cc, 0x805c0080);
-	MIPI_OUTP(cc, 0x00000000);
-	MIPI_OUTP(cc, 0x807911c8);
-	MIPI_OUTP(cc, 0x805911c8);
-	MIPI_OUTP(cc, 0x807a0080);
-	MIPI_OUTP(cc, 0x805a0080);
-	MIPI_OUTP(cc, 0x00000000);
-	MIPI_OUTP(cc, 0x80721555);
-	MIPI_OUTP(cc, 0x80521555);
-	MIPI_OUTP(cc, 0x80730000);
-	MIPI_OUTP(cc, 0x80530000);
-	MIPI_OUTP(cc, 0x00000000);
-}
-
 void mipi_dsi_phy_init(int panel_ndx, struct msm_panel_info const *panel_info,
 	int target_type)
 {
@@ -570,42 +351,48 @@ void mipi_dsi_phy_init(int panel_ndx, struct msm_panel_info const *panel_info,
 	MIPI_OUTP(MIPI_DSI_BASE + 0x128, 0x0000);/* end phy w reset */
 	wmb();
 	usleep(1);
-	MIPI_OUTP(MIPI_DSI_BASE + 0x500, 0x0003);/* regulator_ctrl_0 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x504, 0x0001);/* regulator_ctrl_1 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x508, 0x0001);/* regulator_ctrl_2 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x50c, 0x0000);/* regulator_ctrl_3 */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x510, 0x0100);/* regulator_ctrl_4 */
-
-	MIPI_OUTP(MIPI_DSI_BASE + 0x4b0, 0x04);/* DSIPHY_LDO_CNTRL */
+	MIPI_OUTP(MIPI_DSI_BASE + 0x2cc, 0x0003);/* regulator_ctrl_0 */
+	MIPI_OUTP(MIPI_DSI_BASE + 0x2d0, 0x0001);/* regulator_ctrl_1 */
+	MIPI_OUTP(MIPI_DSI_BASE + 0x2d4, 0x0001);/* regulator_ctrl_2 */
+	MIPI_OUTP(MIPI_DSI_BASE + 0x2d8, 0x0000);/* regulator_ctrl_3 */
+#ifdef DSI_POWER
+	MIPI_OUTP(MIPI_DSI_BASE + 0x2dc, 0x0100);/* regulator_ctrl_4 */
+#endif
 
 	pd = (panel_info->mipi).dsi_phy_db;
 
-	off = 0x0480;	/* strength 0 - 2 */
-	for (i = 0; i < 3; i++) {
-		MIPI_OUTP(MIPI_DSI_BASE + off, pd->strength[i]);
+	off = 0x02cc;	/* regulator ctrl 0 */
+	for (i = 0; i < 4; i++) {
+		MIPI_OUTP(MIPI_DSI_BASE + off, pd->regulator[i]);
 		wmb();
 		off += 4;
 	}
 
-	off = 0x0470;	/* ctrl 0 - 3 */
+	off = 0x0260;	/* phy timig ctrl 0 */
+	for (i = 0; i < 11; i++) {
+		MIPI_OUTP(MIPI_DSI_BASE + off, pd->timing[i]);
+		wmb();
+		off += 4;
+	}
+
+	off = 0x0290;	/* ctrl 0 */
 	for (i = 0; i < 4; i++) {
 		MIPI_OUTP(MIPI_DSI_BASE + off, pd->ctrl[i]);
 		wmb();
 		off += 4;
 	}
 
-	off = 0x0500;	/* regulator ctrl 0 - 4 */
-	for (i = 0; i < 5; i++) {
-		MIPI_OUTP(MIPI_DSI_BASE + off, pd->regulator[i]);
+	off = 0x02a0;	/* strength 0 */
+	for (i = 0; i < 4; i++) {
+		MIPI_OUTP(MIPI_DSI_BASE + off, pd->strength[i]);
 		wmb();
 		off += 4;
 	}
-	mipi_dsi_calibration();
-	mipi_dsi_lane_cfg(); /* lane cfgs */
-	mipi_dsi_bist_ctrl(); /* bist ctrl */
 
-	off = 0x0204;	/* pll ctrl 1 - 19, skip 0 */
-	for (i = 1; i < 20; i++) {
+	mipi_dsi_calibration();
+
+	off = 0x0204;	/* pll ctrl 1, skip 0 */
+	for (i = 1; i < 21; i++) {
 		MIPI_OUTP(MIPI_DSI_BASE + off, pd->pll[i]);
 		wmb();
 		off += 4;
@@ -617,36 +404,10 @@ void mipi_dsi_phy_init(int panel_ndx, struct msm_panel_info const *panel_info,
 	/* pll ctrl 0 */
 	MIPI_OUTP(MIPI_DSI_BASE + 0x200, pd->pll[0]);
 	wmb();
-
-	off = 0x0440;	/* phy timing ctrl 0 - 11 */
-	for (i = 0; i < 12; i++) {
-		MIPI_OUTP(MIPI_DSI_BASE + off, pd->timing[i]);
-		wmb();
-		off += 4;
-	}
-
-	if (target_type == 1)
-		mipi_dsi_configure_serdes();
 }
 
 void cont_splash_clk_ctrl(int enable)
 {
-	static int cont_splash_clks_enabled;
-	if (enable && !cont_splash_clks_enabled) {
-		if (clk_set_rate(dsi_byte_div_clk, 1) < 0)      /* divided by 1 */
-			pr_err("%s: dsi_byte_div_clk - "
-				"clk_set_rate failed\n", __func__);
-		if (clk_set_rate(dsi_esc_clk, esc_byte_ratio) < 0) /* divided by esc */
-			pr_err("%s: dsi_esc_clk - "                      /* clk ratio */
-				"clk_set_rate failed\n", __func__);
-			clk_prepare_enable(dsi_byte_div_clk);
-			clk_prepare_enable(dsi_esc_clk);
-			cont_splash_clks_enabled = 1;
-	} else if (!enable && cont_splash_clks_enabled) {
-			clk_disable_unprepare(dsi_byte_div_clk);
-			clk_disable_unprepare(dsi_esc_clk);
-			cont_splash_clks_enabled = 0;
-	}
 }
 
 void mipi_dsi_prepare_ahb_clocks(void)
@@ -655,6 +416,8 @@ void mipi_dsi_prepare_ahb_clocks(void)
 	clk_prepare(dsi_m_pclk);
 	clk_prepare(dsi_s_pclk);
 }
+//	clk_prepare(dsi_byte_div_clk);
+//	clk_prepare(dsi_esc_clk);
 
 void mipi_dsi_unprepare_ahb_clocks(void)
 {
@@ -662,11 +425,14 @@ void mipi_dsi_unprepare_ahb_clocks(void)
 	clk_unprepare(dsi_s_pclk);
 	clk_unprepare(amp_pclk);
 }
-
 void mipi_dsi_unprepare_clocks(void)
 {
 	clk_unprepare(dsi_esc_clk);
 	clk_unprepare(dsi_byte_div_clk);
+}
+
+void mipi_dsi_configure_fb_divider(u32 fps_level)
+{
 }
 
 void mipi_dsi_ahb_ctrl(u32 enable)
@@ -703,20 +469,15 @@ void mipi_dsi_clk_enable(void)
 		return;
 	}
 	MIPI_OUTP(MIPI_DSI_BASE + 0x0200, pll_ctrl | 0x01);
-	mipi_dsi_phy_rdy_poll();
+	mb();
 
-	if (clk_set_rate(dsi_byte_div_clk, 1) < 0)      /* divided by 1 */
-		pr_err("%s: dsi_byte_div_clk - "
-			"clk_set_rate failed\n", __func__);
-	if (clk_set_rate(dsi_esc_clk, esc_byte_ratio) < 0) /* divided by esc */
-		pr_err("%s: dsi_esc_clk - "                      /* clk ratio */
-			"clk_set_rate failed\n", __func__);
+	if (clk_set_rate(dsi_byte_div_clk, 1) < 0)	/* divided by 1 */
+		pr_err("%s: clk_set_rate failed\n",	__func__);
 	mipi_dsi_pclk_ctrl(&dsi_pclk, 1);
 	mipi_dsi_clk_ctrl(&dsicore_clk, 1);
 	clk_prepare_enable(dsi_byte_div_clk);
 	clk_prepare_enable(dsi_esc_clk);
 	mipi_dsi_clk_on = 1;
-	mdp4_stat.dsi_clk_on++;
 }
 
 void mipi_dsi_clk_disable(void)
@@ -727,12 +488,12 @@ void mipi_dsi_clk_disable(void)
 	}
 	clk_disable(dsi_esc_clk);
 	clk_disable(dsi_byte_div_clk);
+
 	mipi_dsi_pclk_ctrl(&dsi_pclk, 0);
 	mipi_dsi_clk_ctrl(&dsicore_clk, 0);
 	/* DSIPHY_PLL_CTRL_0, disable dsi pll */
-	MIPI_OUTP(MIPI_DSI_BASE + 0x0200, 0x0);
+	MIPI_OUTP(MIPI_DSI_BASE + 0x0200, 0x40);
 	mipi_dsi_clk_on = 0;
-	mdp4_stat.dsi_clk_off++;
 }
 
 void mipi_dsi_phy_ctrl(int on)
@@ -740,18 +501,30 @@ void mipi_dsi_phy_ctrl(int on)
 	if (on) {
 		/* DSIPHY_PLL_CTRL_5 */
 		MIPI_OUTP(MIPI_DSI_BASE + 0x0214, 0x050);
+
+		/* DSIPHY_TPA_CTRL_1 */
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0258, 0x00f);
+
+		/* DSIPHY_TPA_CTRL_2 */
+		MIPI_OUTP(MIPI_DSI_BASE + 0x025c, 0x000);
 	} else {
 		/* DSIPHY_PLL_CTRL_5 */
 		MIPI_OUTP(MIPI_DSI_BASE + 0x0214, 0x05f);
 
+		/* DSIPHY_TPA_CTRL_1 */
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0258, 0x08f);
+
+		/* DSIPHY_TPA_CTRL_2 */
+		MIPI_OUTP(MIPI_DSI_BASE + 0x025c, 0x001);
+
 		/* DSIPHY_REGULATOR_CTRL_0 */
-		MIPI_OUTP(MIPI_DSI_BASE + 0x0500, 0x02);
+		MIPI_OUTP(MIPI_DSI_BASE + 0x02cc, 0x02);
 
 		/* DSIPHY_CTRL_0 */
-		MIPI_OUTP(MIPI_DSI_BASE + 0x0470, 0x00);
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0290, 0x00);
 
 		/* DSIPHY_CTRL_1 */
-		MIPI_OUTP(MIPI_DSI_BASE + 0x0474, 0x7f);
+		MIPI_OUTP(MIPI_DSI_BASE + 0x0294, 0x7f);
 
 		/* disable dsi clk */
 		MIPI_OUTP(MIPI_DSI_BASE + 0x0118, 0);
@@ -759,37 +532,25 @@ void mipi_dsi_phy_ctrl(int on)
 }
 
 #ifdef CONFIG_FB_MSM_HDMI_COMMON
+#define SW_RESET BIT(2)
 void hdmi_phy_reset(void)
 {
 	unsigned int phy_reset_polarity = 0x0;
-	unsigned int pll_reset_polarity = 0x0;
-
-	unsigned int val = HDMI_INP_ND(HDMI_PHY_CTRL);
+	unsigned int val = HDMI_INP_ND(0x2D4);
 
 	phy_reset_polarity = val >> 3 & 0x1;
-	pll_reset_polarity = val >> 1 & 0x1;
 
 	if (phy_reset_polarity == 0)
-		HDMI_OUTP(HDMI_PHY_CTRL, val | SW_RESET);
+		HDMI_OUTP(0x2D4, val | SW_RESET);
 	else
-		HDMI_OUTP(HDMI_PHY_CTRL, val & (~SW_RESET));
-
-	if (pll_reset_polarity == 0)
-		HDMI_OUTP(HDMI_PHY_CTRL, val | SW_RESET_PLL);
-	else
-		HDMI_OUTP(HDMI_PHY_CTRL, val & (~SW_RESET_PLL));
+		HDMI_OUTP(0x2D4, val & (~SW_RESET));
 
 	msleep(100);
 
 	if (phy_reset_polarity == 0)
-		HDMI_OUTP(HDMI_PHY_CTRL, val & (~SW_RESET));
+		HDMI_OUTP(0x2D4, val & (~SW_RESET));
 	else
-		HDMI_OUTP(HDMI_PHY_CTRL, val | SW_RESET);
-
-	if (pll_reset_polarity == 0)
-		HDMI_OUTP(HDMI_PHY_CTRL, val & (~SW_RESET_PLL));
-	else
-		HDMI_OUTP(HDMI_PHY_CTRL, val | SW_RESET_PLL);
+		HDMI_OUTP(0x2D4, val | SW_RESET);
 }
 
 void hdmi_msm_reset_core(void)
@@ -806,33 +567,100 @@ void hdmi_msm_reset_core(void)
 void hdmi_msm_init_phy(int video_format)
 {
 	uint32 offset;
+	/* De-serializer delay D/C for non-lbk mode
+	 * PHY REG0 = (DESER_SEL(0) | DESER_DEL_CTRL(3)
+	 * | AMUX_OUT_SEL(0))
+	 */
+	HDMI_OUTP_ND(0x0300, 0x0C); /*0b00001100*/
 
-	pr_err("Video format is : %u\n", video_format);
-
-	HDMI_OUTP(HDMI_PHY_REG_0, 0x1B);
-	HDMI_OUTP(HDMI_PHY_REG_1, 0xF2);
-
-	/* Set HDMI_PHY_REG1 based on chip source id[30:28] and PTE_HDMI[31] bit
-	 * of QFPROM_RAW_PTE_ROW1_LSB */
-	 if (hdmi_msm_state->pd->source) {
-		if ((hdmi_msm_state->pd->source()) &&
-			(((inpdw(QFPROM_BASE + 0x00c0) & 0xF0000000) >> 28) ==
-									0x1))
-			HDMI_OUTP(HDMI_PHY_REG_1, 0xF1);
+	if (video_format == HDMI_VFRMT_720x480p60_16_9) {
+		/* PHY REG1 = DTEST_MUX_SEL(5) | PLL_GAIN_SEL(0)
+		 * | OUTVOL_SWING_CTRL(3)
+		 */
+		HDMI_OUTP_ND(0x0304, 0x53); /*0b01010011*/
+	} else {
+		/* If the freq. is less than 120MHz, use low gain 0
+		 * for board with termination
+		 * PHY REG1 = DTEST_MUX_SEL(5) | PLL_GAIN_SEL(0)
+		 * | OUTVOL_SWING_CTRL(4)
+		 */
+		HDMI_OUTP_ND(0x0304, 0x54); /*0b01010100*/
 	}
-	offset = HDMI_PHY_REG_4;
-	while (offset <= HDMI_PHY_REG_11) {
+
+	/* No matter what, start from the power down mode
+	 * PHY REG2 = PD_PWRGEN | PD_PLL | PD_DRIVE_4 | PD_DRIVE_3
+	 * | PD_DRIVE_2 | PD_DRIVE_1 | PD_DESER
+	 */
+	HDMI_OUTP_ND(0x0308, 0x7F); /*0b01111111*/
+
+	/* Turn PowerGen on
+	 * PHY REG2 = PD_PLL | PD_DRIVE_4 | PD_DRIVE_3
+	 * | PD_DRIVE_2 | PD_DRIVE_1 | PD_DESER
+	 */
+	HDMI_OUTP_ND(0x0308, 0x3F); /*0b00111111*/
+
+	/* Turn PLL power on
+	 * PHY REG2 = PD_DRIVE_4 | PD_DRIVE_3
+	 * | PD_DRIVE_2 | PD_DRIVE_1 | PD_DESER
+	 */
+	HDMI_OUTP_ND(0x0308, 0x1F); /*0b00011111*/
+
+	/* Write to HIGH after PLL power down de-assert
+	 * PHY REG3 = PLL_ENABLE
+	 */
+	HDMI_OUTP_ND(0x030C, 0x01);
+	/* ASIC power on; PHY REG9 = 0 */
+	HDMI_OUTP_ND(0x0324, 0x00);
+	/* Enable PLL lock detect, PLL lock det will go high after lock
+	 * Enable the re-time logic
+	 * PHY REG12 = PLL_LOCK_DETECT_EN | RETIMING_ENABLE
+	 */
+	HDMI_OUTP_ND(0x0330, 0x03); /*0b00000011*/
+
+	/* Drivers are on
+	 * PHY REG2 = PD_DESER
+	 */
+	HDMI_OUTP_ND(0x0308, 0x01); /*0b00000001*/
+	/* If the RX detector is needed
+	 * PHY REG2 = RCV_SENSE_EN | PD_DESER
+	 */
+	HDMI_OUTP_ND(0x0308, 0x81); /*0b10000001*/
+
+	offset = 0x0310;
+	while (offset <= 0x032C) {
 		HDMI_OUTP(offset, 0x0);
 		offset += 0x4;
 	}
 
-	HDMI_OUTP(HDMI_PHY_REG_3, 0x20);
+	/* If we want to use lock enable based on counting
+	 * PHY REG12 = FORCE_LOCK | PLL_LOCK_DETECT_EN | RETIMING_ENABLE
+	 */
+	HDMI_OUTP_ND(0x0330, 0x13); /*0b00010011*/
 }
 
 void hdmi_msm_powerdown_phy(void)
 {
+	/* Assert RESET PHY from controller */
+	HDMI_OUTP_ND(0x02D4, 0x4);
+	udelay(10);
+	/* De-assert RESET PHY from controller */
+	HDMI_OUTP_ND(0x02D4, 0x0);
+	/* Turn off Driver */
+	HDMI_OUTP_ND(0x0308, 0x1F);
+	udelay(10);
+	/* Disable PLL */
+	HDMI_OUTP_ND(0x030C, 0x00);
+
+#ifdef WORKAROUND_FOR_HDMI_CURRENT_LEAKAGE_FIX
+	HDMI_OUTP_ND(0x02D4, 0x4);	//Assert RESET PHY from controller
+	udelay(10);
+	HDMI_OUTP_ND(0x02D4, 0x0);	//De-assert RESET PHY from controller
+	HDMI_OUTP_ND(0x0308, 0x1F); //Turn off Driver
+	udelay(10);
+#endif
+
 	/* Power down PHY */
-	HDMI_OUTP_ND(HDMI_PHY_REG_2, 0x7F); /*0b01111111*/
+	HDMI_OUTP_ND(0x0308, 0x7F); /*0b01111111*/
 }
 
 void hdmi_frame_ctrl_cfg(const struct msm_hdmi_mode_timing_info *timing)
@@ -852,34 +680,22 @@ void hdmi_frame_ctrl_cfg(const struct msm_hdmi_mode_timing_info *timing)
 	HDMI_OUTP(0x02C8,
 		  ((timing->interlaced << 31) & 0x80000000)
 		| ((timing->active_low_h << 29) & 0x20000000)
-		| ((timing->active_low_v << 28) & 0x10000000));
+		| ((timing->active_low_v << 28) & 0x10000000)
+		| (1 << 12));
 }
 
 void hdmi_msm_phy_status_poll(void)
 {
-	unsigned int lock_det, phy_ready;
-	lock_det = 0x1 & HDMI_INP_ND(HDMI_PHY_PLL_STATUS0);
-	if (lock_det) {
-		pr_debug("HDMI Phy PLL Lock Detect Bit is set\n");
-	} else {
-		pr_debug("HDMI Phy Lock Detect Bit is not set,"
-			 "waiting for lock detection\n");
-		do {
-			lock_det = 0x1 & \
-				HDMI_INP_ND(HDMI_PHY_PLL_STATUS0);
-		} while (!lock_det);
-	}
-
-	phy_ready = 0x1 & HDMI_INP_ND(HDMI_PHY_REG_15);
+	unsigned int phy_ready;
+	phy_ready = 0x1 & HDMI_INP_ND(0x33c);
 	if (phy_ready) {
 		pr_debug("HDMI Phy Status bit is set and ready\n");
 	} else {
 		pr_debug("HDMI Phy Status bit is not set,"
 			"waiting for ready status\n");
 		do {
-			phy_ready = 0x1 & HDMI_INP_ND(HDMI_PHY_REG_15);
+			phy_ready = 0x1 & HDMI_INP_ND(0x33c);
 		} while (!phy_ready);
 	}
 }
-
 #endif
