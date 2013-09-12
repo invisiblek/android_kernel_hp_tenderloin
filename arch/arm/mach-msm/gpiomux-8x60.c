@@ -1642,7 +1642,6 @@ msm8x60_pyramid_gpiomux_cfgs[] __initdata = {
 #if defined(CONFIG_MMC_MSM_SDC2_SUPPORT) && defined(CONFIG_MMC_MSM_SDC5_SUPPORT)
 		{msm8x60_charm_sdc_configs, ARRAY_SIZE(msm8x60_charm_sdc_configs)},
 #endif
-                {msm8x60_mdp_vsync_configs, ARRAY_SIZE(msm8x60_mdp_vsync_configs)},
 		{NULL, 0},
 };
 
