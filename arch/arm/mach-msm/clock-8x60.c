@@ -3076,7 +3076,6 @@ static struct clk_freq_tbl clk_tbl_pcm[] = {
 	F_PCM( 8192000, pll4, 2, 1,  33),
 	F_PCM(12288000, pll4, 4, 1,  11),
 	F_PCM(24580000, pll4, 2, 1,  11),
-	F_PCM(27000000, pxo,  1, 0,   0),
 	F_END
 };
 
