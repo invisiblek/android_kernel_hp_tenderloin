@@ -1981,7 +1981,7 @@ static struct platform_device msm_charger_device = {
 
 static struct platform_device rpm_regulator_device __devinitdata = {
 	.name	= "rpm-regulator",
-	.id	= 1,
+	.id	= -1,
 	.dev	= {
 		.platform_data = &pyramid_rpm_regulator_pdata,
 	},
@@ -2486,7 +2486,6 @@ static struct platform_device *pyramid_devices[] __initdata = {
 #ifdef CONFIG_SENSORS_MSM_ADC
 	&msm_adc_device,
 #endif
-	&rpm_regulator_device,
 
 #if defined(CONFIG_CRYPTO_DEV_QCRYPTO) || \
 		defined(CONFIG_CRYPTO_DEV_QCRYPTO_MODULE)
