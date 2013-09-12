@@ -141,6 +141,7 @@ int __init pyramid_init_keypad(void);
 void __init pyramid_init_fb(void);
 void __init pyramid_init_pmic(void);
 int __init pyramid_wifi_init(void);
+void __init pyramid_gpio_mpp_init(void);
 void pyramid_init_gpiomux(void);
 void __init msm8x60_allocate_fb_region(void);
 void msm8x60_mdp_writeback(struct memtype_reserve *reserve_table);

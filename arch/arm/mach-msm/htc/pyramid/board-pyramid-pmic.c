@@ -28,6 +28,23 @@ struct pm8xxx_mpp_init_info {
 	struct pm8xxx_mpp_config_data	config;
 };
 
+#define PM8XXX_GPIO_INIT(_gpio, _dir, _buf, _val, _pull, _vin, _out_strength, \
+			_func, _inv, _disable) \
+{ \
+	.gpio	= _gpio, \
+	.config	= { \
+		.direction	= _dir, \
+		.output_buffer	= _buf, \
+		.output_value	= _val, \
+		.pull		= _pull, \
+		.vin_sel	= _vin, \
+		.out_strength	= _out_strength, \
+		.function	= _func, \
+		.inv_int_pol	= _inv, \
+		.disable_pin	= _disable, \
+	} \
+}
+
 #define PM8058_MPP_INIT(_mpp, _type, _level, _control) \
 { \
 	.mpp	= PM8058_MPP_PM_TO_SYS(_mpp), \
@@ -307,144 +324,66 @@ static struct pm8xxx_mpp_init_info pm8058_mpps[] = {
 	PM8XXX_MPP_INIT(11, D_BI_DIR, PM8058_MPP_DIG_LEVEL_S3, BI_PULLUP_10KOHM),
 };
 
-static int pm8058_gpio_mpp_init(void)
+void __init pyramid_gpio_mpp_init(void)
 {
-	int i;
-	int rc;
-	struct pm8058_gpio_cfg {
+        int i, rc;
+	struct pm8xxx_gpio_init {
 		int                gpio;
-		struct pm_gpio	   cfg;
+		struct pm_gpio	   config;
 	};
 
-	struct pm8058_gpio_cfg gpio_cfgs[] = {
-		{
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_SDC3_DET),
-			{
-				.direction      = PM_GPIO_DIR_IN,
-				.pull           = PM_GPIO_PULL_UP_30,
-				.vin_sel        = 2,
-				.function       = PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol    = 0,
-			},
-		},
-#ifdef CONFIG_MSM8X60_AUDIO 
-		{ /* Audio Microphone Selector */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_MIC_SEL),    /* 26 */
-			{
-				.direction      = PM_GPIO_DIR_OUT,
-				.output_value   = 0,
-				.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
-				.pull           = PM_GPIO_PULL_NO,
-				.out_strength   = PM_GPIO_STRENGTH_HIGH,
-				.function       = PM_GPIO_FUNC_NORMAL,
-				.vin_sel        = 6,    /* LDO5 2.85 V */
-				.inv_int_pol    = 0,
-			}
-		},
-		{ /* TPA2051 Power */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_HP_EN),
-			{
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 0,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_NO,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_NORMAL,
-				.vin_sel	= 6,	/* LDO5 2.85 V */
-				.inv_int_pol	= 0,
-			}
-		},
-		{ /* Timpani Reset */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_QTR_RESET),
-			{
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 1,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_DN,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_NORMAL,
-				.vin_sel	= 2,
-				.inv_int_pol	= 0,
-			}
-		},
+	struct pm8xxx_gpio_init gpio_cfgs[] = {
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_SDC3_DET),
+                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_30, 2, 0,
+                           PM_GPIO_FUNC_NORMAL, 0, 0),
+#ifdef CONFIG_MSM8X60_AUDIO
+          /* Audio Microphone Selector */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_MIC_SEL),    /* 26 */
+                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,
+                           6, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
+          /* TPA2051 Power */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_HP_EN),
+                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,
+                           6, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
+          /* Timpani Reset */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_QTR_RESET),
+                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_DN,
+                           2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
 #endif 
-                {
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_PLS_INT),
-			{
-				.direction		= PM_GPIO_DIR_IN,
-				.pull			= PM_GPIO_PULL_UP_1P5,
-				.vin_sel		= PM8058_GPIO_VIN_L5,
-				.function		= PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol	= 0,
-			},
-		},
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_PLS_INT),
+                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
+                           PM8058_GPIO_VIN_L5, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
 #ifdef CONFIG_LEDS_PM8058
-		{ /* Green LED */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_GREEN_LED),
-			{
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 1,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_NO,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_2,
-				.vin_sel	= PM8058_GPIO_VIN_L5,
-				.inv_int_pol	= 0,
-			}
-		},
-		{ /* AMBER */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_AMBER_LED),
-			{
-				.direction	= PM_GPIO_DIR_OUT,
-				.output_value	= 1,
-				.output_buffer	= PM_GPIO_OUT_BUF_CMOS,
-				.pull		= PM_GPIO_PULL_NO,
-				.out_strength	= PM_GPIO_STRENGTH_HIGH,
-				.function	= PM_GPIO_FUNC_2,
-				.vin_sel	= PM8058_GPIO_VIN_L5,
-				.inv_int_pol	= 0,
-			}
-		},
+          /* Green LED */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_GREEN_LED),
+                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,
+                           PM8058_GPIO_VIN_L5, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_2, 0, 0),
+          /* AMBER */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AMBER_LED),
+                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,
+                           PM8058_GPIO_VIN_L5, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_2, 0, 0),
 #endif
-		{ /* Volume Up Key */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_VOL_UP),
-			{
-				.direction      = PM_GPIO_DIR_IN,
-				.pull           = PM_GPIO_PULL_UP_31P5,
-				.vin_sel        = PM8058_GPIO_VIN_S3,
-				.function       = PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol    = 0,
-			}
-		},
-		{ /* Volume Down key */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_VOL_DN),
-			{
-				.direction      = PM_GPIO_DIR_IN,
-				.pull           = PM_GPIO_PULL_UP_1P5,
-				.vin_sel        = 2,
-				.function       = PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol    = 0,
-			}
-		},
-		{ /* PMIC ID interrupt */
-			PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_REMO_PRES),
-			{
-				.direction	= PM_GPIO_DIR_IN,
-				.pull		= PM_GPIO_PULL_UP_1P5,
-				.vin_sel	= PM8058_GPIO_VIN_L5,
-				.function	= PM_GPIO_FUNC_NORMAL,
-				.inv_int_pol	= 0,
-			}
-		},
+           /* Volume Up Key */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_VOL_UP),
+                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_31P5,
+                           PM8058_GPIO_VIN_S3, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
+          /* Volume Down key */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_VOL_DN),
+                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
+                           2, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
+           /* PMIC ID interrupt */
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_REMO_PRES),
+                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
+                           PM8058_GPIO_VIN_L5, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
 	};
 
 	for (i = 0; i < ARRAY_SIZE(gpio_cfgs); ++i) {
 		rc = pm8xxx_gpio_config(gpio_cfgs[i].gpio,
-				&gpio_cfgs[i].cfg);
+				&gpio_cfgs[i].config);
 		if (rc < 0) {
-			pr_err("%s pmic gpio config failed\n",
-				__func__);
-			return rc;
+			pr_err("%s pmic gpio config failed (idx=%d)\n",
+                               __func__, i);
+                        break ;
 		}
 	}
 
@@ -453,10 +392,9 @@ static int pm8058_gpio_mpp_init(void)
 					&pm8058_mpps[i].config);
 		if (rc) {
 			pr_err("%s: pm8xxx_mpp_config: rc=%d\n", __func__, rc);
-			return rc;
+			break ;
 		}
 	}
-	return 0;
 }
 
 static struct pm8xxx_vibrator_platform_data pm8058_vib_pdata = {
@@ -725,7 +663,4 @@ void __init pyramid_init_pmic(void)
 	msm_device_ssbi_pmic2.dev.platform_data =
 				&msm8x60_ssbi_pm8901_pdata;
 	pm8901_platform_data.num_regulators = pm8901_regulator_pdata_len;
-
-        pm8058_gpio_mpp_init();
-
 }

@@ -156,33 +156,8 @@ static struct msm_gpiomux_config pyramid_gsbi_configs[] __initdata = {
 	},
 };
 
-static struct gpiomux_setting mdp_vsync_suspend_cfg = {
-	.func = GPIOMUX_FUNC_GPIO,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_DOWN,
-};
-
-static struct gpiomux_setting mdp_vsync_active_cfg = {
-	.func = GPIOMUX_FUNC_1,
-	.drv = GPIOMUX_DRV_2MA,
-	.pull = GPIOMUX_PULL_NONE,
-};
-
-static struct msm_gpiomux_config msm8x60_mdp_vsync_configs[] __initdata = {
-	{
-		.gpio = GPIO_LCD_TE,
-		.settings = {
-			[GPIOMUX_ACTIVE] = &mdp_vsync_active_cfg,
-			[GPIOMUX_SUSPENDED] = &mdp_vsync_suspend_cfg,
-		},
-	}
-};
-
 void __init pyramid_init_gpiomux(void)
 {
-	msm_gpiomux_install(msm8x60_mdp_vsync_configs,
-		ARRAY_SIZE(msm8x60_mdp_vsync_configs));
-
 	msm_gpiomux_install(pyramid_gsbi_configs,
 			ARRAY_SIZE(pyramid_gsbi_configs));
 }

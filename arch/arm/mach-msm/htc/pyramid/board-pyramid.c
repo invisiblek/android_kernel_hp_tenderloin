@@ -916,7 +916,7 @@ static struct platform_device android_usb_device = {
 	},
 };
 
-#ifdef CONFIG_HTC_BATT8x60
+#ifdef CONFIG_HTC_BATT_8x60
 static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.guage_driver = GUAGE_NONE,
 	.gpio_mbat_in = MSM_GPIO_TO_INT(PYRAMID_GPIO_MBAT_IN),
@@ -2492,7 +2492,7 @@ static struct platform_device *pyramid_devices[] __initdata = {
 	&qcrypto_device,
 #endif
 
-#ifdef CONFIG_HTC_BATT8x60
+#ifdef CONFIG_HTC_BATT_8x60
 	&htc_battery_pdev,
 #endif
 #if defined(CONFIG_CRYPTO_DEV_QCEDEV) || \
@@ -4307,6 +4307,7 @@ static void __init pyramid_init(void)
 
         msm8x60_init_gpiomux(pyramid_board_data.gpiomux_cfgs);
 
+        pyramid_init_gpiomux();
 	pyramid_init_pmic();
 
         msm8x60_i2c_init();
@@ -4366,6 +4367,8 @@ static void __init pyramid_init(void)
 
 	platform_add_devices(pyramid_devices,
 			     ARRAY_SIZE(pyramid_devices));
+
+        pyramid_gpio_mpp_init();
 
         pyramid_init_fb();
 
