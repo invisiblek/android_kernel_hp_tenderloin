@@ -76,7 +76,11 @@ obj-$(CONFIG_QFP_FUSE) += qfp_fuse.o
 obj-y += tspdrv/
 obj-$(CONFIG_BU52031NVX) += pm8xxx-cradle.o
 obj-$(CONFIG_SLIMPORT_ANX7808)	+= slimport_anx7808/
+ifeq ($(CONFIG_ARCH_MSM8X60),y)
+obj-$(CONFIG_CABLE_DETECT_8XXX)	+= cable_detect_8x60.o
+else
 obj-$(CONFIG_CABLE_DETECT_8XXX)	+= cable_detect_8xxx.o
+endif
 obj-$(CONFIG_VP_A1028)		+= a1028.o
 obj-$(CONFIG_SENSORS_NFC_PN544)	+= pn544.o
 obj-$(CONFIG_AMP_TFA9887)	+= tfa9887.o

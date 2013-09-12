@@ -592,6 +592,23 @@ int pm8xxx_batt_alarm_unregister_notifier(struct notifier_block *nb)
 EXPORT_SYMBOL(pm8xxx_batt_alarm_unregister_notifier);
 
 #ifdef CONFIG_MACH_HTC
+int pm8xxx_batt_alarm_state_set(int enable_lower_comparator,
+				int enable_upper_comparator)
+{
+	if (enable_lower_comparator)
+		pm8xxx_batt_alarm_enable(PM8XXX_BATT_ALARM_LOWER_COMPARATOR);
+	else
+		pm8xxx_batt_alarm_disable(PM8XXX_BATT_ALARM_LOWER_COMPARATOR);
+
+	if (enable_upper_comparator)
+		pm8xxx_batt_alarm_enable(PM8XXX_BATT_ALARM_UPPER_COMPARATOR);
+	else
+		pm8xxx_batt_alarm_disable(PM8XXX_BATT_ALARM_UPPER_COMPARATOR);
+
+	return 0;
+}
+EXPORT_SYMBOL(pm8xxx_batt_alarm_state_set);
+
 static void (*notify_batt_lower_alarm_func_ptr)(int);
 static int pm8xxx_batt_alarm_internal_notifier_func(
 		struct notifier_block *nfb, unsigned long value, void *data)

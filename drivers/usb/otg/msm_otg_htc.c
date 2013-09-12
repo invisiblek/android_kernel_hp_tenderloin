@@ -1250,8 +1250,11 @@ static int msm_otg_notify_chg_type(struct msm_otg *motg)
 		charger_type = POWER_SUPPLY_TYPE_USB_ACA;
 	else
 		charger_type = POWER_SUPPLY_TYPE_BATTERY;
-
-	return pm8921_set_usb_power_supply_type(charger_type);
+#ifdef CONFIG_MFD_PM8921_CORE
+        return pm8921_set_usb_power_supply_type(charger_type);
+#else
+        return 0;
+#endif
 }
 
 static int msm_otg_notify_power_supply(struct msm_otg *motg, unsigned mA)
