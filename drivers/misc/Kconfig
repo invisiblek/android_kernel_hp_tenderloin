@@ -727,6 +727,18 @@ config AMP_TFA9887
         help
          NXP TFA9887 Speaker AMP Driver implemented by HTC.
 
+config INPUT_ISL29028
+	tristate "ISL29028 proximity and light sensor"
+	help
+	  Say Y here to enable the ISL29028 Short Distance Proximity
+	  Sensor with Ambient Light Sensor.
+
+config INPUT_ISL29029
+	tristate "ISL29029 proximity and light sensor"
+	help
+	 Say Y here to enable the ISL29029 Short Distance Proximity
+	 Sensor with Ambient Light Sensor.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
