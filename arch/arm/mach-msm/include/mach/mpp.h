@@ -57,27 +57,17 @@ int mpp_config_digital_in(unsigned mpp, unsigned config);
 /* PM8058/PM8901 definitions */
 
 /* APIs */
-#ifdef CONFIG_PMIC8058
-int pm8058_mpp_config(unsigned mpp, unsigned type, unsigned level,
-		      unsigned control);
-#else
-static inline int pm8058_mpp_config(unsigned mpp, unsigned type,
-				    unsigned level, unsigned control)
+static inline int pm8xxx_mpp_cfg(unsigned mpp, unsigned type, unsigned level,
+		      unsigned control)
 {
-	return -EINVAL;
+  struct pm8xxx_mpp_config_data cfg = 
+    {
+      .type = type,
+      .level = level,
+      .control = control
+    };
+  return pm8xxx_mpp_config(mpp, &cfg);
 }
-#endif
-
-#ifdef CONFIG_PMIC8901
-int pm8901_mpp_config(unsigned mpp, unsigned type, unsigned level,
-		      unsigned control);
-#else
-static inline int pm8901_mpp_config(unsigned mpp, unsigned type,
-				    unsigned level, unsigned control)
-{
-	return -EINVAL;
-}
-#endif
 
 /* MPP Type: type */
 #define	PM_MPP_TYPE_D_INPUT		0
@@ -176,101 +166,53 @@ static inline int pm8901_mpp_config(unsigned mpp, unsigned type,
 #define	PM_MPP_DTEST_DBUS4		3
 
 /* Helper APIs */
-static inline int pm8058_mpp_config_digital_in(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_digital_in(unsigned mpp, unsigned level,
 					       unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_D_INPUT, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_D_INPUT, level, control);
 }
 
-static inline int pm8058_mpp_config_digital_out(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_digital_out(unsigned mpp, unsigned level,
 						unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_D_OUTPUT, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_D_OUTPUT, level, control);
 }
 
-static inline int pm8058_mpp_config_bi_dir(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_bi_dir(unsigned mpp, unsigned level,
 					   unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_D_BI_DIR, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_D_BI_DIR, level, control);
 }
 
-static inline int pm8058_mpp_config_analog_input(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_analog_input(unsigned mpp, unsigned level,
 						 unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_A_INPUT, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_A_INPUT, level, control);
 }
 
-static inline int pm8058_mpp_config_analog_output(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_analog_output(unsigned mpp, unsigned level,
 						  unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_A_OUTPUT, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_A_OUTPUT, level, control);
 }
 
-static inline int pm8058_mpp_config_current_sink(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_current_sink(unsigned mpp, unsigned level,
 						 unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_SINK, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_SINK, level, control);
 }
 
-static inline int pm8058_mpp_config_dtest_sink(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_dtest_sink(unsigned mpp, unsigned level,
 					       unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_DTEST_SINK, level, control);
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_DTEST_SINK, level, control);
 }
 
-static inline int pm8058_mpp_config_dtest_output(unsigned mpp, unsigned level,
+static inline int pm8xxx_mpp_config_dtest_output(unsigned mpp, unsigned level,
 						 unsigned control)
 {
-	return pm8058_mpp_config(mpp, PM_MPP_TYPE_DTEST_OUTPUT,
+	return pm8xxx_mpp_cfg(mpp, PM_MPP_TYPE_DTEST_OUTPUT,
 				 level, control);
 }
 
-static inline int pm8901_mpp_config_digital_in(unsigned mpp, unsigned level,
-					       unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_D_INPUT, level, control);
-}
-
-static inline int pm8901_mpp_config_digital_out(unsigned mpp, unsigned level,
-						unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_D_OUTPUT, level, control);
-}
-
-static inline int pm8901_mpp_config_bi_dir(unsigned mpp, unsigned level,
-					   unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_D_BI_DIR, level, control);
-}
-
-static inline int pm8901_mpp_config_analog_input(unsigned mpp, unsigned level,
-						 unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_A_INPUT, level, control);
-}
-
-static inline int pm8901_mpp_config_analog_output(unsigned mpp, unsigned level,
-						  unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_A_OUTPUT, level, control);
-}
-
-static inline int pm8901_mpp_config_current_sink(unsigned mpp, unsigned level,
-						 unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_SINK, level, control);
-}
-
-static inline int pm8901_mpp_config_dtest_sink(unsigned mpp, unsigned level,
-					       unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_DTEST_SINK, level, control);
-}
-
-static inline int pm8901_mpp_config_dtest_output(unsigned mpp, unsigned level,
-						 unsigned control)
-{
-	return pm8901_mpp_config(mpp, PM_MPP_TYPE_DTEST_OUTPUT,
-				 level, control);
-}
 #endif
