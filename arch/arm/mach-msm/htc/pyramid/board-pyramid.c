@@ -2857,7 +2857,7 @@ static struct i2c_board_info wm8903_codec_i2c_info[] = {
 };
 #endif
 
-#ifdef CONFIG_MSM8X60_AUDIO 
+#ifdef CONFIG_MSM8X60_AUDIO_1X
 static uint32_t msm_spi_gpio[] = {
 	GPIO_CFG(PYRAMID_SPI_DO,  1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
 	GPIO_CFG(PYRAMID_SPI_DI,  1, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
@@ -3179,7 +3179,7 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 		ARRAY_SIZE(msm_tps_65200_boardinfo),
 	},
 #endif
-#if defined(CONFIG_MSM8X60_AUDIO)
+#if defined(CONFIG_MSM8X60_AUDIO_1X)
 	{
 		I2C_SURF | I2C_FFA | I2C_FLUID | I2C_DRAGON,
 		MSM_GSBI7_QUP_I2C_BUS_ID,
@@ -4406,7 +4406,7 @@ static void __init pyramid_init(void)
 #ifdef CONFIG_SENSORS_MSM_ADC
 
 #endif
-#ifdef CONFIG_MSM8X60_AUDIO
+#ifdef CONFIG_MSM8X60_AUDIO_1X
 	spi_register_board_info(msm_spi_board_info, ARRAY_SIZE(msm_spi_board_info));
 	gpio_tlmm_config(msm_spi_gpio[0], GPIO_CFG_ENABLE);
 	gpio_tlmm_config(msm_spi_gpio[1], GPIO_CFG_ENABLE);

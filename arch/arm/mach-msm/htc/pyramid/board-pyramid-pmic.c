@@ -336,7 +336,7 @@ void __init pyramid_gpio_mpp_init(void)
           PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_SDC3_DET),
                            PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_30, 2, 0,
                            PM_GPIO_FUNC_NORMAL, 0, 0),
-#ifdef CONFIG_MSM8X60_AUDIO
+#ifdef CONFIG_MSM8X60_AUDIO_1X
           /* Audio Microphone Selector */
           PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(PYRAMID_AUD_MIC_SEL),    /* 26 */
                            PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,
