@@ -1,7 +1,7 @@
 /* include/linux/msm_audio.h
  *
  * Copyright (C) 2008 Google, Inc.
- * Copyright (c) 2012 The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2010, Code Aurora Forum. All rights reserved.
  *
  * This software is licensed under the terms of the GNU General Public
  * License version 2, as published by the Free Software Foundation, and
@@ -13,10 +13,6 @@
  * GNU General Public License for more details.
  *
  */
-
-#ifdef CONFIG_MSM8X60_AUDIO_1X
-#include <linux/msm_audio_8X60.h>
-#endif
 
 #ifndef __LINUX_MSM_AUDIO_H
 #define __LINUX_MSM_AUDIO_H
@@ -69,7 +65,7 @@
 #define AUDIO_GET_BITSTREAM_ERROR_INFO _IOR(AUDIO_IOCTL_MAGIC, 42, \
 			       struct msm_audio_bitstream_error_info)
 
-#define AUDIO_SET_SRS_TRUMEDIA_PARAM _IOW(AUDIO_IOCTL_MAGIC, 43, unsigned)
+#define AUDIO_SET_Q6_EFFECT  _IOW(AUDIO_IOCTL_MAGIC, 43, unsigned)
 
 /* Qualcomm extensions */
 #define AUDIO_SET_STREAM_CONFIG   _IOW(AUDIO_IOCTL_MAGIC, 80, \
@@ -97,9 +93,6 @@
 					struct msm_acdb_cmd_device)
 #define AUDIO_GET_ACDB_BLK _IOW(AUDIO_IOCTL_MAGIC, 96,  \
 					struct msm_acdb_cmd_device)
-
-#define AUDIO_REGISTER_ION _IOW(AUDIO_IOCTL_MAGIC, 97, unsigned)
-#define AUDIO_DEREGISTER_ION _IOW(AUDIO_IOCTL_MAGIC, 98, unsigned)
 
 #define	AUDIO_MAX_COMMON_IOCTL_NUM	100
 
@@ -140,13 +133,12 @@
 #define IIR_ENABLE		0x0004
 #define QCONCERT_PLUS_ENABLE	0x0008
 #define MBADRC_ENABLE		0x0010
-#define SRS_ENABLE		0x0020
-#define SRS_DISABLE	0x0040
 
 #define AGC_ENABLE		0x0001
 #define NS_ENABLE		0x0002
 #define TX_IIR_ENABLE		0x0004
 #define FLUENCE_ENABLE		0x0008
+#define STEREO_RECORD_ENABLE	0x0016
 
 #define VOC_REC_UPLINK		0x00
 #define VOC_REC_DOWNLINK	0x01
@@ -177,11 +169,6 @@ struct msm_audio_stats {
 	uint32_t byte_count;
 	uint32_t sample_count;
 	uint32_t unused[2];
-};
-
-struct msm_audio_ion_info {
-	int fd;
-	void *vaddr;
 };
 
 struct msm_audio_pmem_info {

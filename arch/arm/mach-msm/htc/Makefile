@@ -11,7 +11,12 @@ obj-y += htc_awb_cal.o
 obj-y += htc_wifi_nvs.o
 obj-y += htc_sysinfo.o
 obj-y += emmc_partitions.o
+ifeq ($(CONFIG_ARCH_MSM8960),y)
 obj-y += htc_acoustic_8960.o
+endif
+ifeq ($(CONFIG_ARCH_MSM8X60),y)
+obj-y += htc_acoustic_8x60.o
+endif
 obj-y += htc_lpm.o
 
 obj-$(CONFIG_HTC_BATT_CORE) += htc_battery_core.o
