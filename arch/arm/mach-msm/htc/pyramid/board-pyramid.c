@@ -4305,7 +4305,7 @@ static void __init pyramid_init(void)
 
 	msm_clock_init(&msm8x60_clock_init_data);
 
-        msm8x60_init_gpiomux(pyramid_board_data.gpiomux_cfgs);
+        //        msm8x60_init_gpiomux(pyramid_board_data.gpiomux_cfgs);
 
         pyramid_init_gpiomux();
 	pyramid_init_pmic();
