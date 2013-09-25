@@ -47,7 +47,6 @@ struct ecodec_aic3254_state {
 	int enabled;
 	struct clk *rx_mclk;
 	struct clk *rx_sclk;
-	struct wake_lock idlelock;
 	struct wake_lock wakelock;
 };
 static struct ecodec_aic3254_state codec_clk;
@@ -972,14 +971,12 @@ static void spi_aic3254_prevent_sleep(void)
 	struct ecodec_aic3254_state *codec_drv = &codec_clk;
 
 	wake_lock(&codec_drv->wakelock);
-	wake_lock(&codec_drv->idlelock);
 }
 
 static void spi_aic3254_allow_sleep(void)
 {
 	struct ecodec_aic3254_state *codec_drv = &codec_clk;
 
-	wake_unlock(&codec_drv->idlelock);
 	wake_unlock(&codec_drv->wakelock);
 }
 
@@ -1048,7 +1045,6 @@ static void __exit spi_aic3254_exit(void)
 	misc_deregister(&aic3254_misc);
 
 	wake_lock_destroy(&codec_drv->wakelock);
-	wake_lock_destroy(&codec_drv->idlelock);
 
 #if defined(CONFIG_ARCH_MSM7X30)
 	clk_put(codec_drv->rx_mclk);
