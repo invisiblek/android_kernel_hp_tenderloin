@@ -278,31 +278,28 @@ static int mipi_dsi_panel_power(int on)
 	int ret;
 	int rc;
 
-        printk(KERN_ERR  "[DISP] %s +++\n", __func__);
+        printk(KERN_ERR  "[DISP] %s +++ %d %d\n", __func__, mipi_lcd_on, dsi_power_on == true);
 	/* To avoid system crash in shutdown for non-panel case */
 	if (panel_type == PANEL_ID_NONE)
 		return -ENODEV;
 
 	/* If panel is already on (or off), do nothing. */
 	if (!dsi_power_on) {
-		l1_3v = regulator_get(&msm_mipi_dsi1_device.dev, "8901_l1");
+		l1_3v = regulator_get(NULL, "8901_l1");
 		if (IS_ERR_OR_NULL(l1_3v)) {
 			pr_err("[DISP] %s: unable to get 8901_l1\n", __func__);
                         return -ENODEV;
 		}
-		if (system_rev >= 1) {
-			l4_1v8 = regulator_get(&msm_mipi_dsi1_device.dev, "8901_l4");
-			if (IS_ERR_OR_NULL(l4_1v8)) {
-				pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
-                                return -ENODEV;
-			}
-		} else {
-			lvs1_1v8 = regulator_get(&msm_mipi_dsi1_device.dev, "8901_lvs1");
-			if (IS_ERR(lvs1_1v8)) {
-				pr_err("[DISP] %s: unable to get 8901_lvs1\n", __func__);
-                                return -ENODEV;
-			}
-		}
+                l4_1v8 = regulator_get(NULL, "8901_l4");
+                if (IS_ERR_OR_NULL(l4_1v8)) {
+                  pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
+                  return -ENODEV;
+                }
+                lvs1_1v8 = regulator_get(NULL, "8901_lvs1");
+                if (IS_ERR(lvs1_1v8)) {
+                  pr_err("[DISP] %s: unable to get 8901_lvs1\n", __func__);
+                  return -ENODEV;
+                }
 
 		ret = regulator_set_voltage(l1_3v, 3100000, 3100000);
 		if (ret) {
@@ -310,13 +307,11 @@ static int mipi_dsi_panel_power(int on)
                         return -EINVAL;
 		}
 
-		if (system_rev >= 1) {
-			ret = regulator_set_voltage(l4_1v8, 1800000, 1800000);
-			if (ret) {
-				pr_err("[DISP] %s: error setting l4_1v8 voltage\n", __func__);
-                                return -EINVAL;
-			}
-		}
+                ret = regulator_set_voltage(l4_1v8, 1800000, 1800000);
+                if (ret) {
+                  pr_err("[DISP] %s: error setting l4_1v8 voltage\n", __func__);
+                  return -EINVAL;
+                }
 
 		/* LCM Reset */
 		rc = gpio_request(GPIO_LCM_RST_N,
@@ -327,11 +322,11 @@ static int mipi_dsi_panel_power(int on)
 					GPIO_LCM_RST_N);
 			return -EINVAL;
 		}
-
 		dsi_power_on = true;
 	}
 
 	if (on) {
+                if (bPanelPowerOn) return 0;
 		if (regulator_enable(l1_3v)) {
 			pr_err("[DISP] %s: Unable to enable the regulator:"
 					" l1_3v\n", __func__);
@@ -339,23 +334,21 @@ static int mipi_dsi_panel_power(int on)
 		}
 		msleep(5);
 
-		if (system_rev >= 1) {
-			if (regulator_enable(l4_1v8)) {
-				pr_err("[DISP] %s: Unable to enable the regulator:"
-						" l4_1v8\n", __func__);
-				return -ENODEV;
-			}
-		} else {
-
-			if (regulator_enable(lvs1_1v8)) {
-				pr_err("[DISP] %s: Unable to enable the regulator:"
-						" lvs1_1v8\n", __func__);
-				return -ENODEV;
-			}
-		}
+                if (regulator_enable(l4_1v8)) {
+                  pr_err("[DISP] %s: Unable to enable the regulator:"
+                         " l4_1v8\n", __func__);
+                  return -ENODEV;
+                }
+                
+                if (regulator_enable(lvs1_1v8)) {
+                  pr_err("[DISP] %s: Unable to enable the regulator:"
+                         " lvs1_1v8\n", __func__);
+                  return -ENODEV;
+                }
 
                 if (!mipi_lcd_on)
                   {
+                        printk(KERN_ERR "%s: RESET\n", __func__);
 			msleep(10);
 			gpio_set_value(GPIO_LCM_RST_N, 1);
 			msleep(1);
@@ -363,25 +356,22 @@ static int mipi_dsi_panel_power(int on)
 			msleep(1);
 			gpio_set_value(GPIO_LCM_RST_N, 1);
 			msleep(20);
-		}
+                  }
                 bPanelPowerOn = true;
 	} else {
                 if (!bPanelPowerOn) return 0;
 		gpio_set_value(GPIO_LCM_RST_N, 0);
 		msleep(5);
-		if (system_rev >= 1) {
-			if (regulator_disable(l4_1v8)) {
-				pr_err("[DISP] %s: Unable to enable the regulator:"
-						" l4_1v8\n", __func__);
-				return -EINVAL;
-			}
-		} else {
-			if (regulator_disable(lvs1_1v8)) {
-				pr_err("[DISP] %s: Unable to enable the regulator:"
-						" lvs1_1v8\n", __func__);
-				return -EINVAL;
-			}
-		}
+                if (regulator_disable(l4_1v8)) {
+                  pr_err("[DISP] %s: Unable to enable the regulator:"
+                         " l4_1v8\n", __func__);
+                  return -EINVAL;
+                }
+                if (regulator_disable(lvs1_1v8)) {
+                  pr_err("[DISP] %s: Unable to enable the regulator:"
+                         " lvs1_1v8\n", __func__);
+                  return -EINVAL;
+                }
 		msleep(5);
 		if (regulator_disable(l1_3v)) {
 			pr_err("[DISP] %s: Unable to enable the regulator:"
@@ -394,15 +384,9 @@ static int mipi_dsi_panel_power(int on)
 	return 0;
 }
 
-static char mipi_dsi_splash_is_enabled(void)
-{
-	return mdp_pdata.cont_splash_enabled;
-}
-
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
   	.vsync_gpio		= GPIO_LCD_TE,
 	.dsi_power_save = mipi_dsi_panel_power,
-	.splash_is_enabled = mipi_dsi_splash_is_enabled,
 };
 
 static struct platform_device mipi_dsi_pyramid_panel_device = {

@@ -33,6 +33,8 @@
 int mipi_pyramid_device_register(struct msm_panel_info *pinfo,
 					u32 channel, u32 panel);
 
+#define DEFAULT_BRIGHTNESS              83
+
 #define BRI_SETTING_MIN                 30
 #define BRI_SETTING_DEF                 143
 #define BRI_SETTING_MAX                 255

@@ -35,17 +35,30 @@ struct dsi_cmd_desc *mipi_power_on_cmd = NULL;
 struct dsi_cmd_desc *mipi_power_off_cmd = NULL;
 int mipi_power_on_cmd_size = 0;
 int mipi_power_off_cmd_size = 0;
-static struct dcs_cmd_req cmdreq;
 
 static void mipi_pyramid_send_cmd(struct dsi_cmd_desc *cmd, unsigned int len)
 {
+  int ret = -1;
+#if 0
+  struct dcs_cmd_req cmdreq;
+
   cmdreq.cmds = cmd;
   cmdreq.cmds_cnt = len;
   cmdreq.flags = CMD_REQ_COMMIT;
   cmdreq.rlen = 0;
   cmdreq.cb = NULL;
   
-  mipi_dsi_cmdlist_put(&cmdreq);
+  ret = mipi_dsi_cmdlist_put(&cmdreq);
+#else
+  static struct dsi_buf novatek_tx_buf;
+  static struct dsi_buf novatek_rx_buf;
+
+  mipi_dsi_buf_alloc(&novatek_tx_buf, DSI_BUF_SIZE);
+  mipi_dsi_buf_alloc(&novatek_rx_buf, DSI_BUF_SIZE);
+
+  ret =  mipi_dsi_cmds_tx(&novatek_tx_buf, cmd, len);
+#endif
+  printk(KERN_ERR "%s: %p %d %d\n", __func__, cmd, len, ret);
 }
 
 const char NOVATEK_SONY_C3_MIPI_INIT[] = {
@@ -1668,6 +1681,7 @@ static int mipi_pyramid_lcd_on(struct platform_device *pdev)
 {
 	struct msm_fb_data_type *mfd;
 	struct mipi_panel_info *mipi;
+        unsigned int val = 0;
 
         printk(KERN_ERR "%s: ++\n", __func__);
 
@@ -1677,20 +1691,27 @@ static int mipi_pyramid_lcd_on(struct platform_device *pdev)
 	if (mfd->key != MFD_KEY)
 		return -EINVAL;
 
+	mipi  = &mfd->panel_info.mipi;
+
         if (mipi_lcd_on)
           return 0;
 
-        mipi_pyramid_send_cmd(novatek_display_on_cmds, ARRAY_SIZE(novatek_display_on_cmds));
-
-        mipi_pyramid_bkl_ctrl(1);
-
-        mipi_pyramid_bkl_switch(mfd, 1);
-
-	mipi  = &mfd->panel_info.mipi;
-
         mipi_pyramid_send_cmd(mipi_power_on_cmd, mipi_power_on_cmd_size);
 
-        mipi_lcd_on = 1;
+        mipi_pyramid_send_cmd(novatek_display_on_cmds, ARRAY_SIZE(novatek_display_on_cmds));
+
+        mipi_pyramid_send_cmd(novatek_bkl_enable_cmds, ARRAY_SIZE(novatek_bkl_enable_cmds));
+
+        val = mfd->bl_level;
+        if (val == 0) {
+          if (bl_level_prevset != 1) {
+            val = bl_level_prevset;
+            mfd->bl_level = val;
+          } else {
+            val = DEFAULT_BRIGHTNESS;
+            mfd->bl_level = val;
+          }
+        }
 
         printk(KERN_ERR "%s: --\n", __func__);
 	return 0;
@@ -1710,11 +1731,9 @@ static int mipi_pyramid_lcd_off(struct platform_device *pdev)
         if (!mipi_lcd_on)
           return 0;
 
-	if (panel_type != PANEL_ID_NONE) 
-          {
-            mipi_pyramid_send_cmd(mipi_power_off_cmd, mipi_power_off_cmd_size);
-	}
-
+        mfd->bl_level = 0;
+        mipi_dsi_set_backlight(mfd, mfd->bl_level);
+        mipi_pyramid_send_cmd(mipi_power_off_cmd, mipi_power_off_cmd_size);
         mipi_lcd_on = 0;
 
 	return 0;
@@ -1771,10 +1790,8 @@ static unsigned char pyd_auo_shrink_pwm(int br)
 inline void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
 {
 	struct mipi_panel_info *mipi;
-	static int bl_level_old = 0;
-        //	mutex_lock(&mfd->dma->ov_mutex);
 
-        mfd->bl_level = level = 255;
+        mfd->bl_level = level;
         printk(KERN_ERR "%s: %d\n", __func__, level);
 	mipi  = &mfd->panel_info.mipi;
 
@@ -1782,18 +1799,14 @@ inline void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
           led_pwm1[1] = pyd_shp_shrink_pwm(mfd->bl_level);
 	else
           led_pwm1[1] = pyd_auo_shrink_pwm(mfd->bl_level);
-
 	if (mfd->bl_level == 0 ||
 			board_mfg_mode() == 4/* ||
 			(board_mfg_mode() == 5 && !(htc_battery_get_zcharge_mode()%2))*/) {
 		led_pwm1[1] = 0;
 	}
-
         mipi_pyramid_send_cmd(novatek_cmd_backlight_cmds, ARRAY_SIZE(novatek_cmd_backlight_cmds));
 
-	bl_level_prevset = bl_level_old = mfd->bl_level;
-
-	return ;
+	bl_level_prevset = mfd->bl_level;
 }
 
 static void mipi_pyramid_set_backlight(struct msm_fb_data_type *mfd)
