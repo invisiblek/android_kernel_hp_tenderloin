@@ -70,9 +70,6 @@ struct snddev_icodec_drv_state {
 	struct clk *tx_osrclk;
 	struct clk *tx_bitclk;
 
-	struct wake_lock rx_idlelock;
-	struct wake_lock tx_idlelock;
-
 	/* handle to pmic8058 regulator smps4 */
 	struct regulator *snddev_vreg;
 
@@ -246,7 +243,7 @@ static int snddev_icodec_rxclk_enable(struct snddev_icodec_state *icodec,
 				pr_err("ERROR setting RX m clock1\n");
 				goto error_invalid_freq;
 			}
-			clk_enable(drv->rx_osrclk);
+			clk_prepare_enable(drv->rx_osrclk);
 		}
 
 		aic3254_use_mclk_counter++;
@@ -284,8 +281,6 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	union afe_port_config afe_config;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
 
-	wake_lock(&drv->rx_idlelock);
-
 	if (drv->snddev_vreg) {
 		if (!strcmp(icodec->data->name, "headset_stereo_rx"))
 			vreg_mode_vote(drv->snddev_vreg, 1,
@@ -316,7 +311,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 			goto error_invalid_freq;
 		}
 
-		clk_enable(drv->rx_osrclk);
+		clk_prepare_enable(drv->rx_osrclk);
 	}
 
 	drv->rx_bitclk = clk_get(0, "i2s_spkr_bit_clk");
@@ -344,7 +339,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 		pr_err("ERROR setting m clock1\n");
 		goto error_adie;
 	}
-	clk_enable(drv->rx_bitclk);
+	clk_prepare_enable(drv->rx_bitclk);
 
 	if (icodec->data->voltage_on)
 		icodec->data->voltage_on(1);
@@ -414,18 +409,15 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 1;
 
-	wake_unlock(&drv->rx_idlelock);
 	return 0;
 
 error_adie:
-	clk_disable(drv->rx_bitclk);
-	clk_disable(drv->rx_osrclk);
+	clk_disable_unprepare(drv->rx_bitclk);
+	clk_disable_unprepare(drv->rx_osrclk);
 error_invalid_freq:
-
 	pr_err("%s: encounter error\n", __func__);
 	msm_snddev_rx_mclk_free();
 
-	wake_unlock(&drv->rx_idlelock);
 	return -ENODEV;
 }
 
@@ -436,8 +428,6 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	int afe_channel_mode;
 	union afe_port_config afe_config;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;;
-
-	wake_lock(&drv->tx_idlelock);
 
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 1, SNDDEV_HIGH_POWER_MODE);
@@ -466,7 +456,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 		goto error_invalid_freq;
 	}
 
-	clk_enable(drv->tx_osrclk);
+	clk_prepare_enable(drv->tx_osrclk);
 
 	drv->tx_bitclk = clk_get(0, "i2s_mic_bit_clk");
 	if (IS_ERR(drv->tx_bitclk)) {
@@ -490,7 +480,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	} else
 		trc =  clk_set_rate(drv->tx_bitclk, 8);
 
-	clk_enable(drv->tx_bitclk);
+	clk_prepare_enable(drv->tx_bitclk);
 
 	if (support_aic3254) {
 		if (aic3254_ops->aic3254_set_mode) {
@@ -548,11 +538,10 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 1;
 
-	wake_unlock(&drv->tx_idlelock);
 	return 0;
 
 error_invalid_bitclk:
-	clk_disable(drv->tx_osrclk);
+	clk_disable_unprepare(drv->tx_osrclk);
 error_invalid_freq:
 error_invalid_osrclk:
 	if (icodec->data->pamp_on)
@@ -561,7 +550,6 @@ error_invalid_osrclk:
 
 	pr_err("%s: encounter error\n", __func__);
 
-	wake_unlock(&drv->tx_idlelock);
 	return -ENODEV;
 }
 
@@ -570,7 +558,6 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
 	struct snddev_icodec_data *data = icodec->data;
 
-	wake_lock(&drv->rx_idlelock);
 
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 0, SNDDEV_HIGH_POWER_MODE);
@@ -613,7 +600,6 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 0;
 
-	wake_unlock(&drv->rx_idlelock);
 	return 0;
 }
 
@@ -621,8 +607,6 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
 	struct snddev_icodec_data *data = icodec->data;
-
-	wake_lock(&drv->tx_idlelock);
 
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 0, SNDDEV_HIGH_POWER_MODE);
@@ -661,7 +645,6 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 0;
 
-	wake_unlock(&drv->tx_idlelock);
 	return 0;
 }
 
