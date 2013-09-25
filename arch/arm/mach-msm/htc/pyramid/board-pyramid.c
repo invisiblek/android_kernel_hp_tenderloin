@@ -147,24 +147,6 @@ struct pm8xxx_mpp_init_info {
 
 extern int ps_type;
 
-#define AUTORESTART 50000
-#ifdef AUTORESTART
-#include <linux/workqueue.h>
-static void my_work_handler(struct work_struct *w);
-
-static struct workqueue_struct *wq = 0;
-static DECLARE_DELAYED_WORK(my_work, my_work_handler);
-static unsigned long delay;
-
-static void
-my_work_handler(struct work_struct *w)
-{
-  //uint32_t restart_reason = 0x6f656d99;
-  //msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
-  msm_restart(0, "recovery");
-}
-#endif
-
 #define MSM_SHARED_RAM_PHYS 0x40000000
 #define MDM2AP_SYNC 129
 
@@ -4274,12 +4256,6 @@ static void __init pyramid_init(void)
 	uint32_t soc_platform_version;
 	uint32_t raw_speed_bin, speed_bin;
 	struct kobject *properties_kobj;
-
-#ifdef AUTORESTART
-        delay = msecs_to_jiffies(AUTORESTART);
-        wq = create_singlethread_workqueue("my");
-        queue_delayed_work(wq, &my_work, delay);
-#endif
 
 	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
 		pr_err("meminfo_init() failed!\n");
