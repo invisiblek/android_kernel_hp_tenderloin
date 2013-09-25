@@ -223,30 +223,8 @@ static void __init msm8x60_init_pm8058_othc(void)
 
 static void pmic8058_xoadc_mpp_config(void)
 {
-	int rc, i;
-	struct pm8xxx_mpp_init_info xoadc_mpps[] = {
-		PM8058_MPP_INIT(XOADC_MPP_3, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH5,
-							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_5, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH9,
-							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_7, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH6,
-							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_8, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH8,
-							AOUT_CTRL_DISABLE),
-		PM8058_MPP_INIT(XOADC_MPP_10, A_INPUT, PM8XXX_MPP_AIN_AMUX_CH7,
-							AOUT_CTRL_DISABLE),
-		PM8901_MPP_INIT(XOADC_MPP_4, D_OUTPUT, PM8901_MPP_DIG_LEVEL_S4,
-							DOUT_CTRL_LOW),
-	};
-
-	for (i = 0; i < ARRAY_SIZE(xoadc_mpps); i++) {
-		rc = pm8xxx_mpp_config(xoadc_mpps[i].mpp,
-					&xoadc_mpps[i].config);
-		if (rc) {
-			pr_err("%s: Config MPP %d of PM8058 failed\n",
-					__func__, xoadc_mpps[i].mpp);
-		}
-	}
+	/* Do not set mpp to amux in here.
+	   Set the mpp to amux mapping when needed and then reset */
 }
 
 static struct regulator *vreg_ldo18_adc;
