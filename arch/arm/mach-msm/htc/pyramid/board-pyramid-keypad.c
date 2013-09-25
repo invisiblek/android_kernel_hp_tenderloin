@@ -49,10 +49,6 @@ module_param_named(keycaps, keycaps, charp, 0);
 
 static struct gpio_event_direct_entry pyramid_keypad_input_map[] = {
 	{
-		.gpio = PYRAMID_GPIO_KEY_POWER,
-		.code = KEY_POWER,
-	},
-	{
 		.gpio = PM8058_GPIO_PM_TO_SYS(PYRAMID_VOL_UP),
 		.code = KEY_VOLUMEUP,
 	},
