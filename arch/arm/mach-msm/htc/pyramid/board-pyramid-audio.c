@@ -448,7 +448,6 @@ void __init pyramid_audio_init(void)
 
 #ifdef CONFIG_MSM8X60_AUDIO_1X
 	pr_info("%s\n", __func__);
-	printk(KERN_ERR "%s\n", __func__);
 	htc_8x60_register_analog_ops(&ops);
 	htc_8x60_register_icodec_ops(&iops);
 	htc_8x60_register_ecodec_ops(&eops);

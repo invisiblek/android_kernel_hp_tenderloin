@@ -97,7 +97,7 @@
 #include <linux/usb/android.h>
 #include <mach/usbdiag.h>
 #endif
-#include <mach/tpa2051d3.h>
+#include <linux/tpa2051d3.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/machine.h>
 #include <mach/sdio_al.h>
@@ -1601,7 +1601,7 @@ static struct platform_device android_pmem_adsp_device = {
 	.id = 2,
 	.dev = { .platform_data = &android_pmem_adsp_pdata },
 };
-
+#endif
 static struct android_pmem_platform_data android_pmem_audio_pdata = {
 	.name = "pmem_audio",
 	.allocator_type = PMEM_ALLOCATORTYPE_BITMAP,
@@ -1614,7 +1614,6 @@ static struct platform_device android_pmem_audio_device = {
 	.id = 4,
 	.dev = { .platform_data = &android_pmem_audio_pdata },
 };
-#endif 
 
 #define PMEM_BUS_WIDTH(_bw) \
 	{ \
@@ -2466,8 +2465,8 @@ static struct platform_device *pyramid_devices[] __initdata = {
 	&android_pmem_device,
 	&android_pmem_adsp_device,
 	&android_pmem_smipool_device,
-	&android_pmem_audio_device,
 #endif 
+	&android_pmem_audio_device,
 #endif 
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
@@ -2606,18 +2605,16 @@ static void __init size_pmem_devices(void)
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_smipool_pdata.size = MSM_PMEM_SMIPOOL_SIZE;
 	android_pmem_pdata.size = pmem_sf_size;
-	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
 #endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
 #endif /*CONFIG_ANDROID_PMEM*/
 }
 
 #ifdef CONFIG_ANDROID_PMEM
-#ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 static void __init reserve_memory_for(struct android_pmem_platform_data *p)
 {
         msm8x60_reserve_table[p->memory_type].size += p->size;
 }
-#endif 
 #endif 
 
 static void __init reserve_pmem_memory(void)
@@ -2626,8 +2623,8 @@ static void __init reserve_pmem_memory(void)
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	reserve_memory_for(&android_pmem_adsp_pdata);
 	reserve_memory_for(&android_pmem_pdata);
-	reserve_memory_for(&android_pmem_audio_pdata);
 #endif /*CONFIG_MSM_MULTIMEDIA_USE_ION*/
+	reserve_memory_for(&android_pmem_audio_pdata);
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += pmem_kernel_ebi1_size;
 #endif /*CONFIG_ANDROID_PMEM*/
 }
