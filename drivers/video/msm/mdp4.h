@@ -701,7 +701,7 @@ void mdp4_vg_qseed_init(int);
 int mdp4_overlay_blt(struct fb_info *info, struct msmfb_overlay_blt *req);
 
 #ifdef CONFIG_FB_MSM_MIPI_DSI
-int mdp4_dsi_video_pipe_commit(int cndx, int wait);
+int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy);
 int mdp4_dsi_cmd_pipe_commit(int cndx, int wait, u32 *release_busy);
 void mdp4_dsi_cmd_blt_start(struct msm_fb_data_type *mfd);
 void mdp4_dsi_cmd_blt_stop(struct msm_fb_data_type *mfd);
@@ -730,7 +730,7 @@ void mdp4_mddi_overlay_blt(struct msm_fb_data_type *mfd,
 int mdp4_mddi_overlay_blt_start(struct msm_fb_data_type *mfd);
 int mdp4_mddi_overlay_blt_stop(struct msm_fb_data_type *mfd);
 void mdp4_mddi_blt_dmap_busy_wait(struct msm_fb_data_type *mfd);
-static inline int mdp4_dsi_video_pipe_commit(int cndx, int wait)
+static inline int mdp4_dsi_video_pipe_commit(int cndx, int wait, u32 *release_busy)
 {
 	return -ENODEV;
 }
