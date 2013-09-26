@@ -201,6 +201,7 @@ header-y += in.h
 header-y += in6.h
 header-y += in_route.h
 header-y += sock_diag.h
+header-y += spi_aic3254.h
 header-y += inet_diag.h
 header-y += unix_diag.h
 header-y += inotify.h
