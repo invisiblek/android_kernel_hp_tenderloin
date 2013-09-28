@@ -26,8 +26,11 @@
 #include <linux/wait.h>
 #include <linux/sched.h>
 #include <linux/spinlock.h>
+#include <linux/pm_qos.h>
 #include <mach/qdsp6v2_1x/msm_audio_mvs.h>
+
 #include <mach/qdsp6v2_1x/q6voice.h>
+#include <mach/cpuidle.h>
 
 /* Each buffer is 20 ms, queue holds 200 ms of data. */
 #define MVS_MAX_Q_LEN 10
@@ -69,7 +72,7 @@ struct audio_mvs_info_type {
 	spinlock_t dsp_lock;
 
 	struct wake_lock suspend_lock;
-	struct wake_lock idle_lock;
+	struct pm_qos_request pm_qos_req;
 
 	void *memory_chunk;
 };
@@ -564,7 +567,8 @@ static int audio_mvs_start(struct audio_mvs_info_type *audio)
 
 	/* Prevent sleep. */
 	wake_lock(&audio->suspend_lock);
-	wake_lock(&audio->idle_lock);
+	pm_qos_update_request(&audio->pm_qos_req,
+			msm_cpuidle_get_deep_idle_latency());
 
 	rc = voice_set_voc_path_full(1);
 
@@ -598,8 +602,8 @@ static int audio_mvs_stop(struct audio_mvs_info_type *audio)
 	audio->state = AUDIO_MVS_STOPPED;
 
 	/* Allow sleep. */
+	pm_qos_update_request(&audio->pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	wake_unlock(&audio->suspend_lock);
-	wake_unlock(&audio->idle_lock);
 
 	return rc;
 }
@@ -991,6 +995,8 @@ static int __init audio_mvs_init(void)
 	wake_lock_init(&audio_mvs_info.suspend_lock,
 		       WAKE_LOCK_SUSPEND,
 		       "audio_mvs_suspend");
+	pm_qos_add_request(&audio_mvs_info.pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+				PM_QOS_DEFAULT_VALUE);
 
 	rc = misc_register(&audio_mvs_misc);
 

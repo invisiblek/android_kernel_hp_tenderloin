@@ -24,6 +24,8 @@
 #include <linux/slab.h>
 #include <linux/wait.h>
 #include <linux/msm_audio_8X60.h>
+#include <linux/pm_qos.h>
+
 #include <asm/atomic.h>
 #include <mach/debug_mm.h>
 #include <mach/qdsp6v2_1x/audio_dev_ctl.h>
@@ -31,6 +33,7 @@
 #include <mach/qdsp6v2_1x/q6asm.h>
 #include <linux/rtc.h>
 #include <linux/wakelock.h>
+#include <mach/cpuidle.h>
 
 #define MAX_BUF 4
 #define BUFSZ (480 * 8)
@@ -56,6 +59,7 @@ struct pcm {
 	atomic_t in_opened;
 	atomic_t in_stopped;
 	struct wake_lock wakelock;
+	struct pm_qos_request pm_qos_req;
 };
 
 static atomic_t pcm_opened = ATOMIC_INIT(0);
@@ -84,11 +88,14 @@ static void audio_prevent_sleep(struct pcm *audio)
 {
 	pr_debug("%s:\n", __func__);
 	wake_lock(&audio->wakelock);
+	pm_qos_update_request(&audio->pm_qos_req,
+			      msm_cpuidle_get_deep_idle_latency());
 }
 
 static void audio_allow_sleep(struct pcm *audio)
 {
 	pr_debug("%s:\n", __func__);
+	pm_qos_update_request(&audio->pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	wake_unlock(&audio->wakelock);
 }
 
@@ -359,6 +366,8 @@ static int pcm_in_open(struct inode *inode, struct file *file)
 	atomic_set(&pcm->in_count, 0);
 	atomic_set(&pcm->in_opened, 1);
 	wake_lock_init(&pcm->wakelock, WAKE_LOCK_SUSPEND, "audio_pcm_in");
+	pm_qos_add_request(&pcm->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+				PM_QOS_DEFAULT_VALUE);
 
 	pcm->rec_mode = VOC_REC_NONE;
 
@@ -487,7 +496,7 @@ static int pcm_in_release(struct inode *inode, struct file *file)
 
 	audio_allow_sleep(pcm);
 	wake_lock_destroy(&pcm->wakelock);
-
+	pm_qos_remove_request(&pcm->pm_qos_req);
 	kfree(pcm);
 	getnstimeofday(&ts);
 	rtc_time_to_tm(ts.tv_sec, &tm);
