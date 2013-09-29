@@ -19,6 +19,7 @@
 #include <mach/msm_memtypes.h>
 #include <mach/rpm-regulator.h>
 #include <linux/regulator/pmic8901-regulator.h>
+#include <mach/board-msm8660.h>
 
 #define PYRAMID_PROJECT_NAME	"pyramid"
 
@@ -130,7 +131,10 @@
 #define PYRAMID_AUD_REMO_PRES      PMGPIO(37)
 #define PYRAMID_WIFI_BT_SLEEP_CLK  PMGPIO(38)
 
+extern struct regulator_init_data msm_saw_regulator_pdata_s0;
+extern struct regulator_init_data msm_saw_regulator_pdata_s1;
 extern struct rpm_regulator_platform_data pyramid_rpm_regulator_pdata __devinitdata;
+extern struct platform_device msm8x60_8901_mpp_vreg __devinitdata;
 extern struct pm8901_vreg_pdata pm8901_regulator_pdata[];
 extern int pm8901_regulator_pdata_len;
 extern struct platform_device msm_adc_device;
@@ -144,6 +148,20 @@ int __init pyramid_wifi_init(void);
 void __init pyramid_gpio_mpp_init(void);
 void pyramid_init_gpiomux(void);
 void __init msm8x60_allocate_fb_region(void);
+void __init pyramid_pm8901_gpio_mpp_init(void);
 void msm8x60_mdp_writeback(struct memtype_reserve *reserve_table);
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+int hdmi_enable_5v(int on);
+#endif
+#define _GET_REGULATOR(var, name) do {					\
+	if (var == NULL) {						\
+		var = regulator_get(NULL, name);			\
+		if (IS_ERR(var)) {					\
+			pr_err("'%s' regulator not found, rc=%ld\n",	\
+				name, PTR_ERR(var));			\
+			var = NULL;					\
+		}							\
+	}								\
+} while (0)
 
 #endif /* __ARCH_ARM_MACH_MSM_BOARD_PYRAMID_H */

@@ -180,9 +180,11 @@ VREG_CONSUMERS(PM8901_LVS3) = {
 VREG_CONSUMERS(PM8901_MVS0) = {
 	REGULATOR_SUPPLY("8901_mvs0",		NULL),
 };
-VREG_CONSUMERS(PM8901_MPP0) = {
-	REGULATOR_SUPPLY("8901_mpp0",		NULL),
+VREG_CONSUMERS(EXT_5V) = {
+	REGULATOR_SUPPLY("ext_5v",              NULL),
+	REGULATOR_SUPPLY("8901_mpp0",           NULL),
 };
+
 VREG_CONSUMERS(PM8901_USB_OTG) = {
 	REGULATOR_SUPPLY("8901_usb_otg",	NULL),
 };
@@ -303,6 +305,22 @@ VREG_CONSUMERS(PM8901_S4_PC) = {
 		      RPM_VREG_FORCE_MODE_8660_NONE, RPM_VREG_STATE_OFF, \
 		      _sleep_selectable, _always_on)
 
+#define GPIO_VREG(_id, _reg_name, _gpio_label, _gpio, _supply_regulator) \
+	[GPIO_VREG_ID_##_id] = { \
+		.init_data = { \
+			.constraints = { \
+				.valid_ops_mask	= REGULATOR_CHANGE_STATUS, \
+			}, \
+			.num_consumer_supplies	= \
+					ARRAY_SIZE(vreg_consumers_##_id), \
+			.consumer_supplies	= vreg_consumers_##_id, \
+			.supply_regulator	= _supply_regulator, \
+		}, \
+		.regulator_name = _reg_name, \
+		.gpio_label	= _gpio_label, \
+		.gpio		= _gpio, \
+	}
+
 #define SAW_VREG_INIT(_id, _name, _min_uV, _max_uV) \
 	{ \
 		.constraints = { \
@@ -335,20 +353,73 @@ VREG_CONSUMERS(PM8901_S4_PC) = {
 		.id = PM8901_VREG_ID_##_id, \
 	}
 
+#define PM8901_VREG_INIT_MPP(_id, _active_high) \
+	PM8901_VREG_INIT(_id, 0, 0, REGULATOR_MODE_NORMAL, \
+			REGULATOR_CHANGE_STATUS, 0, 0, _active_high)
+
 #define PM8901_VREG_INIT_VS(_id) \
 	PM8901_VREG_INIT(_id, 0, 0, REGULATOR_MODE_NORMAL, \
 			REGULATOR_CHANGE_STATUS, 0, 0)
 
-struct pm8901_vreg_pdata pm8901_vreg_init[] = {
+struct pm8901_vreg_pdata pm8901_regulator_pdata[] = {
 	PM8901_VREG_INIT_VS(USB_OTG),
 	PM8901_VREG_INIT_VS(HDMI_MVS),
 };
+
+int pm8901_regulator_pdata_len __devinitdata =
+         ARRAY_SIZE(pm8901_regulator_pdata);
 
 #define LDO50HMIN	RPM_VREG_8660_LDO_50_HPM_MIN_LOAD
 #define LDO150HMIN	RPM_VREG_8660_LDO_150_HPM_MIN_LOAD
 #define LDO300HMIN	RPM_VREG_8660_LDO_300_HPM_MIN_LOAD
 #define SMPS_HMIN	RPM_VREG_8660_SMPS_HPM_MIN_LOAD
 #define FTS_HMIN	RPM_VREG_8660_FTSMPS_HPM_MIN_LOAD
+#define GPIO_VREG_ID_EXT_5V		0
+
+/* GPIO regulator constraints */
+static struct gpio_regulator_platform_data msm_gpio_regulator_pdata[] = {
+	GPIO_VREG(EXT_5V, "ext_5v", "ext_5v_en",
+					PM8901_MPP_PM_TO_SYS(0), 0),
+};
+
+/* GPIO regulator */
+struct platform_device msm8x60_8901_mpp_vreg __devinitdata = {
+	.name	= GPIO_REGULATOR_DEV_NAME,
+	.id	= PM8901_MPP_PM_TO_SYS(0),
+	.dev	= {
+		.platform_data =
+			&msm_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5V],
+	},
+};
+
+struct pm8xxx_mpp_init_info {
+	unsigned			mpp;
+	struct pm8xxx_mpp_config_data	config;
+};
+
+void __init pyramid_pm8901_gpio_mpp_init(void)
+{
+	int rc;
+
+	struct pm8xxx_mpp_init_info pm8901_vreg_mpp0 = {
+		.mpp	= PM8901_MPP_PM_TO_SYS(0),
+		.config =  {
+			.type	= PM8XXX_MPP_TYPE_D_OUTPUT,
+			.level	= PM8901_MPP_DIG_LEVEL_VPH,
+		},
+	};
+
+	/*
+	 * Set PMIC 8901 MPP0 active_high to 0 for surf and charm_surf. This
+	 * implies that the regulator connected to MPP0 is enabled when
+	 * MPP0 is low.
+	 */
+        msm_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5V].active_low = 0;
+
+	rc = pm8xxx_mpp_config(pm8901_vreg_mpp0.mpp, &pm8901_vreg_mpp0.config);
+	if (rc)
+		pr_err("%s: pm8xxx_mpp_config: rc=%d\n", __func__, rc);
+}
 
 /* SAW regulator constraints */
 struct regulator_init_data msm_saw_regulator_pdata_s0 =

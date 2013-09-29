@@ -231,17 +231,6 @@ static struct resource hdmi_msm_resources[] = {
 	},
 };
 
-#ifdef CONFIG_FB_MSM_HDMI_MHL
-static mhl_driving_params ville_driving_params[] = {
-	{.format = HDMI_VFRMT_640x480p60_4_3,	.reg_a3=0xEC, .reg_a6=0x0C},
-	{.format = HDMI_VFRMT_720x480p60_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
-	{.format = HDMI_VFRMT_1280x720p60_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
-	{.format = HDMI_VFRMT_720x576p50_16_9,	.reg_a3=0xEC, .reg_a6=0x0C},
-	{.format = HDMI_VFRMT_1920x1080p24_16_9, .reg_a3=0xEC, .reg_a6=0x0C},
-	{.format = HDMI_VFRMT_1920x1080p30_16_9, .reg_a3=0xEC, .reg_a6=0x0C},
-};
-#endif
-
 static int hdmi_core_power(int on, int show);
 static int hdmi_cec_power(int on);
 static int hdmi_gpio_config(int on);
@@ -252,12 +241,7 @@ static struct msm_hdmi_platform_data hdmi_msm_data = {
 	.enable_5v = hdmi_enable_5v,
 	.core_power = hdmi_core_power,
 	.cec_power = hdmi_cec_power,
-//	.panel_power = hdmi_panel_power,
 	.gpio_config = hdmi_gpio_config,
-#ifdef CONFIG_FB_MSM_HDMI_MHL
-	.driving_params =  ville_driving_params,
-	.driving_params_count = ARRAY_SIZE(ville_driving_params),
-#endif
 };
 
 static struct platform_device hdmi_msm_device = {
@@ -436,6 +420,146 @@ static struct lcdc_platform_data dtv_pdata = {
 //	.lcdc_power_save = hdmi_panel_power,
 #endif
 };
+
+#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
+int hdmi_enable_5v(int on)
+{
+	static struct regulator *reg_8901_hdmi_mvs;	/* HDMI_5V */
+	static struct regulator *reg_8901_mpp0;		/* External 5V */
+	static int prev_on;
+	int rc;
+
+	if (on == prev_on)
+		return 0;
+
+	if (!reg_8901_hdmi_mvs)
+          {
+		_GET_REGULATOR(reg_8901_hdmi_mvs, "8901_hdmi_mvs");
+                return -1;
+          }
+	if (!reg_8901_mpp0)
+          {
+		_GET_REGULATOR(reg_8901_mpp0, "8901_mpp0");
+                return -1;
+          }
+
+	if (on) {
+		rc = regulator_enable(reg_8901_mpp0);
+		if (rc) {
+			pr_err("'%s' regulator enable failed, rc=%d\n",
+				"reg_8901_mpp0", rc);
+			return rc;
+		}
+		rc = regulator_enable(reg_8901_hdmi_mvs);
+		if (rc) {
+			pr_err("'%s' regulator enable failed, rc=%d\n",
+				"8901_hdmi_mvs", rc);
+			return rc;
+		}
+		pr_info("%s(on): success\n", __func__);
+	} else {
+		rc = regulator_disable(reg_8901_hdmi_mvs);
+		if (rc)
+			pr_warning("'%s' regulator disable failed, rc=%d\n",
+				"8901_hdmi_mvs", rc);
+		rc = regulator_disable(reg_8901_mpp0);
+		if (rc)
+			pr_warning("'%s' regulator disable failed, rc=%d\n",
+				"reg_8901_mpp0", rc);
+		pr_info("%s(off): success\n", __func__);
+	}
+
+	prev_on = on;
+
+	return 0;
+}
+
+static int hdmi_core_power(int on, int show)
+{
+	static struct regulator *reg_8058_l16;		/* VDD_HDMI */
+	static int prev_on;
+	int rc;
+
+	if (on == prev_on)
+		return 0;
+
+	if (!reg_8058_l16)
+		_GET_REGULATOR(reg_8058_l16, "8058_l16");
+
+	if (on) {
+		rc = regulator_set_voltage(reg_8058_l16, 1800000, 1800000);
+		if (!rc)
+			rc = regulator_enable(reg_8058_l16);
+		if (rc) {
+			pr_err("'%s' regulator enable failed, rc=%d\n",
+				"8058_l16", rc);
+			return rc;
+		}
+
+		pr_info("%s(on): success\n", __func__);
+	} else {
+		rc = regulator_disable(reg_8058_l16);
+		if (rc)
+			pr_warning("'%s' regulator disable failed, rc=%d\n",
+				"8058_l16", rc);
+		pr_info("%s(off): success\n", __func__);
+	}
+
+	prev_on = on;
+
+	return 0;
+}
+
+static int hdmi_gpio_config(int on)
+{
+  return 0;
+}
+
+static int hdmi_cec_power(int on)
+{
+	static struct regulator *reg_8901_l3;		/* HDMI_CEC */
+	static int prev_on;
+	int rc;
+
+	if (on == prev_on)
+		return 0;
+
+	if (!reg_8901_l3)
+		_GET_REGULATOR(reg_8901_l3, "8901_l3");
+
+	if (on) {
+		rc = regulator_set_voltage(reg_8901_l3, 3300000, 3300000);
+		if (!rc)
+			rc = regulator_enable(reg_8901_l3);
+		if (rc) {
+			pr_err("'%s' regulator enable failed, rc=%d\n",
+				"8901_l3", rc);
+			return rc;
+		}
+		rc = gpio_request(169, "HDMI_CEC_VAR");
+		if (rc) {
+			pr_err("'%s'(%d) gpio_request failed, rc=%d\n",
+				"HDMI_CEC_VAR", 169, rc);
+			goto error;
+		}
+		pr_info("%s(on): success\n", __func__);
+	} else {
+		gpio_free(169);
+		rc = regulator_disable(reg_8901_l3);
+		if (rc)
+			pr_warning("'%s' regulator disable failed, rc=%d\n",
+				"8901_l3", rc);
+		pr_info("%s(off): success\n", __func__);
+	}
+
+	prev_on = on;
+
+	return 0;
+error:
+	regulator_disable(reg_8901_l3);
+	return rc;
+}
+#endif
 
 static void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
 {
