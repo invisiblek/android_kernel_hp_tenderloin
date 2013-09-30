@@ -735,7 +735,9 @@ static int sii9234_probe(struct i2c_client *client,
 	INIT_DELAYED_WORK(&pInfo->detect_charger_work, detect_charger_handler);
 #endif
 	irq_jiffies = jiffies;
+#ifndef CONFIG_ARCH_MSM8X60
 	pInfo->irq = gpio_to_irq(pInfo->irq);
+#endif
 	ret = request_irq(pInfo->irq, sii9234_irq_handler, IRQF_TRIGGER_LOW, "mhl_sii9234_evt", pInfo);
 	if (ret < 0) {
 		PR_DISP_DEBUG("%s: request_irq(%d) failed for gpio %d (%d)\n",
