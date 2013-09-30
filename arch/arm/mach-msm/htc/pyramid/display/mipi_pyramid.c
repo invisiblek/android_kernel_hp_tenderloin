@@ -38,27 +38,13 @@ int mipi_power_off_cmd_size = 0;
 
 static void mipi_pyramid_send_cmd(struct dsi_cmd_desc *cmd, unsigned int len)
 {
-  int ret = -1;
-#if 0
-  struct dcs_cmd_req cmdreq;
-
-  cmdreq.cmds = cmd;
-  cmdreq.cmds_cnt = len;
-  cmdreq.flags = CMD_REQ_COMMIT;
-  cmdreq.rlen = 0;
-  cmdreq.cb = NULL;
-  
-  ret = mipi_dsi_cmdlist_put(&cmdreq);
-#else
   static struct dsi_buf novatek_tx_buf;
   static struct dsi_buf novatek_rx_buf;
 
   mipi_dsi_buf_alloc(&novatek_tx_buf, DSI_BUF_SIZE);
   mipi_dsi_buf_alloc(&novatek_rx_buf, DSI_BUF_SIZE);
 
-  ret =  mipi_dsi_cmds_tx(&novatek_tx_buf, cmd, len);
-#endif
-  printk(KERN_ERR "%s: %p %d %d\n", __func__, cmd, len, ret);
+  mipi_dsi_cmds_tx(&novatek_tx_buf, cmd, len);
 }
 
 const char NOVATEK_SONY_C3_MIPI_INIT[] = {
@@ -138,7 +124,6 @@ static char led_pwm1[] =
 };
 
 static unsigned char bkl_enable_cmds[] = {0x53, 0x24};/* DTYPE_DCS_WRITE1 */ /* bkl on and no dim */
-static unsigned char bkl_disable_cmds[] = {0x53, 0x00};/* DTYPE_DCS_WRITE1 */ /* bkl off */
 
 static char sw_reset[2] = {0x01, 0x00}; /* DTYPE_DCS_WRITE */
 static char enter_sleep[2] = {0x10, 0x00}; /* DTYPE_DCS_WRITE */
@@ -1567,11 +1552,6 @@ static struct dsi_cmd_desc novatek_bkl_enable_cmds[] = {
 		sizeof(bkl_enable_cmds), bkl_enable_cmds},
 };
 
-static struct dsi_cmd_desc novatek_bkl_disable_cmds[] = {
-	{DTYPE_DCS_WRITE1, 1, 0, 0, 0,
-		sizeof(bkl_disable_cmds), bkl_disable_cmds},
-};
-
 /* -----------------------------------------------------------------------------
  *                         Common Routine Implementation
  * -----------------------------------------------------------------------------
@@ -1646,36 +1626,6 @@ void mipi_pyramid_panel_type_detect(void)
 }
 
 int mipi_lcd_on = 1;
-
-static void mipi_pyramid_bkl_switch(struct msm_fb_data_type *mfd, bool on)
-{
-	unsigned int val = 0;
-
-	if (on) {
-		val = mfd->bl_level;
-		if (val == 0) {
-			if (bl_level_prevset != 1) {
-				val = bl_level_prevset;
-				mfd->bl_level = val;
-			} else {
-                                val = 83; // DEFAULT_BRIGHTNESS
-				mfd->bl_level = val;
-			}
-		}
-		mipi_dsi_set_backlight(mfd, mfd->bl_level);
-	} else {
-		mfd->bl_level = 0;
-		mipi_dsi_set_backlight(mfd, mfd->bl_level);
-	}
-}
-
-static void mipi_pyramid_bkl_ctrl(bool on)
-{
-	if (on)
-          mipi_pyramid_send_cmd(novatek_bkl_enable_cmds, ARRAY_SIZE(novatek_bkl_enable_cmds));
-        else 
-          mipi_pyramid_send_cmd(novatek_bkl_disable_cmds, ARRAY_SIZE(novatek_bkl_disable_cmds));
-}
 
 static int mipi_pyramid_lcd_on(struct platform_device *pdev)
 {
