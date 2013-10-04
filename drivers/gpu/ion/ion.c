@@ -706,7 +706,10 @@ int ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
 
 			if (iommu_map->flags & ION_IOMMU_UNMAP_DELAYED)
 				kref_get(&iommu_map->ref);
-		}
+		} else {
+                    ret = -EINVAL;
+                    goto out;
+                }
 	} else {
 		if (iommu_map->flags != iommu_flags) {
 			pr_err("%s: handle %p is already mapped with iommu flags %lx, trying to map with flags %lx\n",
