@@ -755,6 +755,11 @@ config USER_PINS
 	---help---
 		Select Y if you want to expose some gpio pins through sysfs.
 
+config KERNEL_LOG
+	bool "Kernel ram log"
+	---help---
+		Select Y for support for keeping kernel logs in physical memory
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
