@@ -85,7 +85,9 @@
 #define MPU_GET_CONFIG_COMPASS      (0x29)
 #define MPU_GET_CONFIG_PRESSURE     (0x2a)
 
+#ifdef CONFIG_MACH_HTC
 #define HTC_READ_CAL_DATA
+#endif
 #ifdef HTC_READ_CAL_DATA
 #define MPU_READ_CAL_DATA           (0xef)
 extern unsigned char gyro_gsensor_kvalue[37];
