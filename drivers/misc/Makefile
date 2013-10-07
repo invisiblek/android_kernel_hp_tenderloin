@@ -87,3 +87,4 @@ obj-$(CONFIG_AMP_TFA9887)	+= tfa9887.o
 obj-$(CONFIG_AMP_RT5501)        += rt5501.o
 obj-$(CONFIG_INPUT_ISL29028)	+= isl29028.o
 obj-$(CONFIG_INPUT_ISL29029)	+= isl29029.o
+obj-$(CONFIG_KERNEL_LOG)	+= klog.o

@@ -739,6 +739,11 @@ config INPUT_ISL29029
 	 Say Y here to enable the ISL29029 Short Distance Proximity
 	 Sensor with Ambient Light Sensor.
 
+config KERNEL_LOG
+	bool "Kernel ram log"
+	---help---
+		Select Y for support for keeping kernel logs in physical memory
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
