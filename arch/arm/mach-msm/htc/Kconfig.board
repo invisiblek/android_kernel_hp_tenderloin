@@ -27,4 +27,5 @@ source "arch/arm/mach-msm/htc/m4ul/Kconfig"
 source "arch/arm/mach-msm/htc/pyramid/Kconfig"
 
 config MACH_HTC_DUMMY
-	bool "NONE (No device)"
+       depends on MACH_HTC
+       bool "NONE (No device)"
