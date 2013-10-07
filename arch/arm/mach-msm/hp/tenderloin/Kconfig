@@ -1,0 +1,6 @@
+config MACH_TENDERLOIN
+	depends on ARCH_MSM8X60
+	select MACH_HP
+	bool "HP Tenderloin"
+	help
+	  Support for the HTC TENDERLOIN device.

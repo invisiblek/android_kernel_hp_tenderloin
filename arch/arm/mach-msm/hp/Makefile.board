@@ -2,3 +2,6 @@
 # Makefile for the HP boards
 #
 
+# TENDERLOIN
+obj-$(CONFIG_MACH_TENDERLOIN) += tenderloin/
+

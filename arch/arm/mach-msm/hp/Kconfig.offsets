@@ -1,1 +1,4 @@
-# Placeholder
+config PHYS_OFFSET
+	hex
+	default "0x40200000" if MACH_TENDERLOIN
+	default "0x10000000"
