@@ -14,6 +14,10 @@
 #ifndef __ARCH_ARM_MACH_MSM_MPP_H
 #define __ARCH_ARM_MACH_MSM_MPP_H
 
+#ifdef CONFIG_GPIO_PM8XXX_MPP
+#include <linux/mfd/pm8xxx/mpp.h>
+#endif
+
 #ifdef CONFIG_PMIC8058
 #define	MPPS		12
 #else
