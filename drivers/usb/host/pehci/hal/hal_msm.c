@@ -33,7 +33,6 @@
 #include <linux/sched.h>
 #include <linux/completion.h>
 #include <linux/slab.h>
-#include <linux/smp_lock.h>
 #include <linux/errno.h>
 #include <linux/init.h>
 #include <linux/timer.h>
