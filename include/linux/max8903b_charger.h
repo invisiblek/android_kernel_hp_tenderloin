@@ -1,3 +1,10 @@
+#ifndef __MAX8903B_CHARGER_H__
+#define __MAX8903B_CHARGER_H__
+
+#define MAX8903B_CONNECTED_PS_AC	(1U << 1)
+#define MAX8903B_CONNECTED_PS_USB	(1U << 2)
+#define MAX8903B_CONNECTED_PS_DOCK	(1U << 3)
+#define MAX8903B_DOCK_DRAW_MA		1400
 
 enum max8903b_current {
 	CHARGE_DISABLE,
@@ -32,4 +39,6 @@ struct max8903b_platform_data {
 
 void max8903b_set_charge_ma (unsigned ma);
 void max8903b_disable_charge (void);
+
+#endif /* !__MAX8903B_CHARGER_H__ */
 
