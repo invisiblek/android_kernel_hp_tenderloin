@@ -89,3 +89,4 @@ obj-$(CONFIG_INPUT_ISL29028)	+= isl29028.o
 obj-$(CONFIG_INPUT_ISL29029)	+= isl29029.o
 obj-$(CONFIG_KERNEL_LOG)	+= klog.o
 obj-$(CONFIG_HSUART)		+= hsuart.o hsuart_tty.o
+obj-$(CONFIG_NDUID)		+= nduid.o

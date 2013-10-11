@@ -750,6 +750,12 @@ config HSUART
 	---help---
 	  Generic HSUART engine, which calls platform specific code to facilitate High speed UART driver".
 
+config NDUID
+	bool "Nova Device ID"
+	default n
+	---help---
+	This option exports the Nova Device ID to /proc/nduid.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
