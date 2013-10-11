@@ -397,7 +397,11 @@ static int msm_fb_probe(struct platform_device *pdev)
 				pdev->resource[0].end -
 				pdev->resource[0].start + 1;
 			fbram_phys = (char *)pdev->resource[0].start;
-			fbram = __va(fbram_phys);
+#ifdef CONFIG_MACH_TENDERLOIN
+                        fbram = ioremap((unsigned long)fbram_phys, fbram_size);
+#else
+                        fbram = __va(fbram_phys);
+#endif
 
 			if (!fbram) {
 				printk(KERN_ERR "fbram ioremap failed!\n");
