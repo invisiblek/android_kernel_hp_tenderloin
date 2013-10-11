@@ -744,6 +744,12 @@ config HRES_COUNTER
 	---help---
 	  Select Y if you want to enable High resolution counter.
 
+config NDUID
+	bool "Nova Device ID"
+	default n
+	---help---
+	This option exports the Nova Device ID to /proc/nduid.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
