@@ -2670,4 +2670,11 @@ config MSM_USE_USER_ACCESSIBLE_TIMERS
 	  Enables MSM-specific user accessible timers via a shared
 	  memory page containing the cycle counter.
 
+config MSM_UARTDM
+	tristate "MSM UARTDM (High Speed) Driver"
+	depends on ARCH_MSM
+	default y
+	help
+	  Provides access to the high speed uart ports.
+
 endif
