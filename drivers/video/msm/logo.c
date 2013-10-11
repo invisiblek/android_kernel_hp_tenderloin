@@ -42,7 +42,13 @@ int load_565rle_image(char *filename, bool bf_supported)
 	struct fb_info *info;
 	int fd, count, err = 0;
 	unsigned max;
-	unsigned short *data, *bits, *ptr;
+	unsigned short *data, *ptr;
+#ifdef CONFIG_MACH_TENDERLOIN
+        unsigned int *bits;
+	unsigned short compressed;
+#else
+        unsigned short *bits;
+#endif
 
 	info = registered_fb[0];
 	if (!info) {
@@ -58,6 +64,7 @@ int load_565rle_image(char *filename, bool bf_supported)
 		return -ENOENT;
 	}
 	count = sys_lseek(fd, (off_t)0, 2);
+        printk(KERN_ERR "%s: count=%d\n", __func__, count);
 	if (count <= 0) {
 		err = -EIO;
 		goto err_logo_close_file;
@@ -84,16 +91,27 @@ int load_565rle_image(char *filename, bool bf_supported)
 	}
 	if (info->screen_base) {
 		bits = (unsigned short *)(info->screen_base);
+#ifdef CONFIG_MACH_TENDERLOIN
+                while (count > 1) {
+                  compressed = *ptr;
+                  *bits = (from565_r(compressed) << 16) |
+                    (from565_g(compressed) << 8) | from565_b(compressed);
+                  bits += 1;
+                  ptr += 1;
+                  count -= 2;
+                }
+#else
 		while (count > 3) {
-			unsigned n = ptr[0];
-			if (n > max)
-				break;
-			memset16(bits, ptr[1], n << 1);
-			bits += n;
-			max -= n;
-			ptr += 2;
-			count -= 4;
+                  unsigned n = ptr[0];
+                  if (n > max)
+                    break;
+                  memset16(bits, ptr[1], n << 1);
+                  bits += n;
+                  max -= n;
+                  ptr += 2;
+                  count -= 4;
 		}
+#endif
 	}
 
 err_logo_free_data:
