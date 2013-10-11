@@ -1026,4 +1026,15 @@ config TOUCHSCREEN_SYNAPTICS_3K
 	help
 	  This enables support for Synaptics RMI4 over I2C based touchscreens.
 
+config TOUCHSCREEN_CY8CTMA395
+      tristate "Cypress TMA395 capacitive touchscreen controller"
+      default n
+      help
+	Say Y here if you have a CY8CTMA395 based touchscreen controller
+
+	If unsure, say N.
+
+	To comile this driver as a module, choose M here: the module
+	will be called cy8ctma395
+
 endif

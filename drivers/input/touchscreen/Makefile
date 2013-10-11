@@ -89,3 +89,4 @@ obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_DSX_FW_UPDATE) 	+= synaptics_fw_update.o
 obj-$(CONFIG_TOUCHSCREEN_ATMEL_224E)	+= atmel_224e.o
 obj-$(CONFIG_TOUCHSCREEN_CYPRESS_CS)	+= cy8c_cs.o
 obj-$(CONFIG_TOUCHSCREEN_SYNAPTICS_3K)	+= synaptics_3200.o rmi_dev.o
+obj-$(CONFIG_TOUCHSCREEN_CY8CTMA395)    += cy8ctma395.o
