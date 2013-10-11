@@ -295,23 +295,30 @@ static int pm8058_pwm_start(struct pwm_device *pwm, int start, int ramp_start)
 }
 
 static void pm8058_pwm_calc_period(unsigned int period_us,
-				   struct pm8058_pwm_period *period)
+				   struct pm8058_pwm_period *period,
+				   int enforce_9bit)
 {
 	int	n, m, clk, div;
 	int	best_m, best_div, best_clk;
 	int	last_err, cur_err, better_err, better_m;
 	unsigned int	tmp_p, last_p, min_err, period_n;
 
-	/* PWM Period / N : handle underflow or overflow */
-	if (period_us < (PM_PWM_PERIOD_MAX / NSEC_PER_USEC))
-		period_n = (period_us * NSEC_PER_USEC) >> 6;
-	else
-		period_n = (period_us >> 6) * NSEC_PER_USEC;
-	if (period_n >= MAX_MPT) {
+	if(enforce_9bit) { // To support more than 64 duty cycle precision.
+		period_n = (period_us * NSEC_PER_USEC) >> 9;
 		n = 9;
-		period_n >>= 3;
-	} else
-		n = 6;
+	} else {
+		/* PWM Period / N : handle underflow or overflow */
+		if (period_us < (PM_PWM_PERIOD_MAX / NSEC_PER_USEC))
+			period_n = (period_us * NSEC_PER_USEC) >> 6;
+		else
+			period_n = (period_us >> 6) * NSEC_PER_USEC;
+		if (period_n >= MAX_MPT) {
+			n = 9;
+			period_n >>= 3;
+		} else {
+			n = 6;
+		}
+	}
 
 	min_err = MAX_MPT;
 	best_m = 0;
@@ -648,7 +655,7 @@ int pwm_config(struct pwm_device *pwm, int duty_us, int period_us)
 	}
 
 	if (pwm->pwm_period != period_us) {
-		pm8058_pwm_calc_period(period_us, &pwm->period);
+                pm8058_pwm_calc_period(period_us, &pwm->period, 0);
 		pm8058_pwm_save_period(pwm);
 		pwm->pwm_period = period_us;
 	}
@@ -670,6 +677,61 @@ out_unlock:
 	return rc;
 }
 EXPORT_SYMBOL(pwm_config);
+
+/*
+ * pwm_config2 - change a PWM device configuration
+ *
+ * @pwm: the PWM device
+ * @bl_level: backlight level.
+ * @bl_max_leve: backlight max level.
+ * @period_us: period in micro second
+ */
+int pwm_config2(struct pwm_device *pwm, unsigned duty_numerator, unsigned duty_denominator, unsigned period_us)
+{
+	int				rc;
+	unsigned int max_pwm_value;
+
+	if (pwm == NULL || IS_ERR(pwm) ||
+		duty_numerator > duty_denominator ||
+		(unsigned)period_us > PM_PWM_PERIOD_MAX ||
+		(unsigned)period_us < PM_PWM_PERIOD_MIN)
+		return -EINVAL;
+	if (pwm->chip == NULL)
+		return -ENODEV;
+
+	mutex_lock(&pwm->chip->pwm_mutex);
+
+	if (!pwm->in_use) {
+		rc = -EINVAL;
+		goto out_unlock;
+	}
+
+	if (pwm->pwm_period != period_us) {
+                pm8058_pwm_calc_period(period_us, &pwm->period, 1);
+		pm8058_pwm_save_period(pwm);
+		pwm->pwm_period = period_us;
+	}
+
+        max_pwm_value = (1 << pwm->period.pwm_size) - 1;
+
+        pwm->pwm_value = (duty_numerator*max_pwm_value)/duty_denominator;
+
+	pm8058_pwm_save_pwm_value(pwm);
+	pm8058_pwm_save(&pwm->pwm_ctl[1],
+			PM8058_PWM_BYPASS_LUT, PM8058_PWM_BYPASS_LUT);
+
+	pm8058_pwm_bank_sel(pwm);
+	rc = pm8058_pwm_write(pwm, 1, 6);
+
+	pr_debug("%s: %u/%u period=%u usec: pwm_value=%d (of %d)\n", __func__,
+		 (unsigned)duty_numerator, (unsigned)duty_denominator, (unsigned)period_us,
+		 pwm->pwm_value, max_pwm_value);
+
+out_unlock:
+	mutex_unlock(&pwm->chip->pwm_mutex);
+	return rc;
+}
+EXPORT_SYMBOL(pwm_config2);
 
 /*
  * pwm_enable - start a PWM output toggling
@@ -864,7 +926,7 @@ int pm8058_pwm_lut_config(struct pwm_device *pwm, int period_us,
 	}
 
 	if (pwm->pwm_period != period_us) {
-		pm8058_pwm_calc_period(period_us, &pwm->period);
+                pm8058_pwm_calc_period(period_us, &pwm->period, 0);
 		pm8058_pwm_save_period(pwm);
 		pwm->pwm_period = period_us;
 	}
