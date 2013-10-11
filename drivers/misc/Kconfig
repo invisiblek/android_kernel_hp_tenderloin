@@ -750,6 +750,11 @@ config NDUID
 	---help---
 	This option exports the Nova Device ID to /proc/nduid.
 
+config USER_PINS
+	tristate "Sysfs GPIO pins control"
+	---help---
+		Select Y if you want to expose some gpio pins through sysfs.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

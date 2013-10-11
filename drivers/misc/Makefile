@@ -85,4 +85,4 @@ obj-$(CONFIG_AMP_RT5501)	+= rt5501.o
 obj-$(CONFIG_A6)		+= a6/
 obj-$(CONFIG_HRES_COUNTER)	+= hres_counter.o
 obj-$(CONFIG_NDUID)		+= nduid.o
-
+obj-$(CONFIG_USER_PINS)		+= user-pins.o
