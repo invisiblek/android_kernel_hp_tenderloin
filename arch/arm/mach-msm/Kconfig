@@ -2668,4 +2668,11 @@ config MSM_CPU_PWRCTL
 	  stand alone power collapse operation. Selecting this option
 	  ensures that they are always off.
 
+config MSM_UARTDM
+	tristate "MSM UARTDM (High Speed) Driver"
+	depends on ARCH_MSM
+	default y
+	help
+	  Provides access to the high speed uart ports.
+
 endif
