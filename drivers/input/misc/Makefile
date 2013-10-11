@@ -69,3 +69,5 @@ obj-$(CONFIG_SENSORS_BMA250)		+= bma250.o
 obj-$(CONFIG_INPUT_CAPELLA_CM3629)	+= cm3629.o
 obj-$(CONFIG_SENSORS_R3GD20)		+= r3gd20.o
 obj-y 					+= mpu3050/
+obj-$(CONFIG_INPUT_LSM303DLH)		+= lsm303dlh_mag_sysfs.o lsm303dlh_acc_sysfs.o
+obj-$(CONFIG_INPUT_ISL29023)		+= isl29023.o
