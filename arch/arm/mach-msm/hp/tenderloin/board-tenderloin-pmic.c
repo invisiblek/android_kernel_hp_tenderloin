@@ -311,48 +311,107 @@ void __init tenderloin_gpio_mpp_init(void)
 	};
 
 	struct pm8xxx_gpio_init gpio_cfgs[] = {
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_SDC3_DET),
-                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_30, 2, 0,
-                           PM_GPIO_FUNC_NORMAL, 0, 0),
-#ifdef CONFIG_MSM8X60_AUDIO_1X
-          /* Audio Microphone Selector */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_AUD_MIC_SEL),    /* 26 */
-                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,
-                           6, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
-          /* TPA2051 Power */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_AUD_HP_EN),
-                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 0, PM_GPIO_PULL_NO,
-                           6, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
-          /* Timpani Reset */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_AUD_QTR_RESET),
-                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_DN,
-                           2, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_NORMAL, 0, 0),
-#endif 
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_PLS_INT),
-                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
-                           PM8058_GPIO_VIN_L5, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
-#ifdef CONFIG_LEDS_PM8058
-          /* Green LED */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_GREEN_LED),
-                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,
-                           PM8058_GPIO_VIN_L5, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_2, 0, 0),
-          /* AMBER */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_AMBER_LED),
-                           PM_GPIO_DIR_OUT, PM_GPIO_OUT_BUF_CMOS, 1, PM_GPIO_PULL_NO,
-                           PM8058_GPIO_VIN_L5, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_2, 0, 0),
-#endif
-           /* Volume Up Key */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_VOL_UP),
-                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_31P5,
-                           PM8058_GPIO_VIN_S3, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
-          /* Volume Down key */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_VOL_DN),
-                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
-                           2, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
-           /* PMIC ID interrupt */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(TENDERLOIN_AUD_REMO_PRES),
-                           PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
-                           PM8058_GPIO_VIN_L5, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
+		{
+            /*LCD BL PWM, PMIC GPIO24 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(23),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM_GPIO_VIN_VPH,
+				.function       = PM_GPIO_FUNC_2,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*LCD BL ENABLE, PMIC GPIO25 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(24),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM_GPIO_VIN_VPH,
+				.function       = PM_GPIO_FUNC_NORMAL,
+				.inv_int_pol    = 0,
+				.output_value	= 1,
+			},
+		},
+		{
+            /*UIM CLK, PMIC GPIO29 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(28),
+			{
+				.direction      = PM_GPIO_DIR_IN,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_1,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*UIM CLK, PMIC GPIO30 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(29),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_1,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*UIM Reset, PMIC GPIO32 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(31),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_NORMAL,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*Proximity reset, PMIC GPIO36 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(35),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_NORMAL,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*USB ID, PMIC GPIO37 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(36),
+			{
+				.direction      = PM_GPIO_DIR_IN,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_NORMAL,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*SSBI PMIC CLK, PMIC GPIO39 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(38),
+			{
+				.direction      = PM_GPIO_DIR_OUT,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_1,
+				.inv_int_pol    = 0,
+			},
+		},
+		{
+            /*Proximity interrupt, PMIC GPIO40 in schematic*/
+                        PM8058_GPIO_PM_TO_SYS(39),
+			{
+				.direction      = PM_GPIO_DIR_IN,
+				.pull           = PM_GPIO_PULL_NO,
+				.vin_sel        = PM8058_GPIO_VIN_S3,
+				.function       = PM_GPIO_FUNC_NORMAL,
+				.inv_int_pol    = 0,
+			},
+		},
+
 	};
 
 	for (i = 0; i < ARRAY_SIZE(gpio_cfgs); ++i) {
@@ -403,7 +462,7 @@ static int pm8058_pwm_config(struct pwm_device *pwm, int ch, int on)
 		.output_buffer  = PM_GPIO_OUT_BUF_CMOS,
 		.output_value   = 0,
 		.pull           = PM_GPIO_PULL_NO,
-		.vin_sel        = PM8058_GPIO_VIN_VPH,
+		.vin_sel        = PM_GPIO_VIN_VPH,
 		.out_strength   = PM_GPIO_STRENGTH_HIGH,
 		.function       = PM_GPIO_FUNC_2,
 	};
@@ -449,10 +508,10 @@ static int pm8058_pwm_config(struct pwm_device *pwm, int ch, int on)
 			mode = PM_PWM_CONF_NONE;
 			max_mA = 0;
 		}
-		rc = pm8058_pwm_config_led(pwm, id, mode, max_mA);
-		if (rc)
-			pr_err("%s: pm8058_pwm_config_led(ch=%d): rc=%d\n",
-			       __func__, ch, rc);
+                //		rc = pm8058_pwm_config_led(pwm, id, mode, max_mA);
+                //		if (rc)
+                //			pr_err("%s: pm8058_pwm_config_led(ch=%d): rc=%d\n",
+                //			       __func__, ch, rc);
 	}
 	return rc;
 
@@ -509,7 +568,7 @@ static struct pm8058_platform_data pm8058_platform_data = {
 	.othc0_pdata		= &othc_config_pdata_0,
 	.othc1_pdata		= &othc_config_pdata_1,
 	.othc2_pdata		= &othc_config_pdata_2,
-	.pwm_pdata		= &pm8058_pwm_data,
+        .pwm_pdata		= &pm8058_pwm_data,
 	.misc_pdata		= &pm8058_misc_pdata,
 #ifdef CONFIG_SENSORS_MSM_ADC
         .xoadc_pdata		= &pm8058_xoadc_pdata,
