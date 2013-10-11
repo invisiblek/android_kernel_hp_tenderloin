@@ -1,6 +1,6 @@
 config MACH_HP
 	bool
-	select FB_MSM_MIPI_DSI
+	select FB_MSM_LCDC
 
 menu "HP Board Selection"
 source "arch/arm/mach-msm/hp/Kconfig.board"
