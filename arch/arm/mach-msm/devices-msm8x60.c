@@ -95,6 +95,8 @@
 #define MSM_UART3DM_PHYS    (MSM_GSBI3_PHYS + 0x40000)
 #define INT_UART3DM_IRQ     GSBI3_UARTDM_IRQ
 #define TCSR_BASE_PHYS      0x16b00000
+#define MSM_GSBI10_UARTDM_PHYS	(MSM_GSBI10_PHYS + 0x40000)
+#define MSM_GSBI11_UARTDM_PHYS  (MSM_GSBI11_PHYS + 0x40000)
 
 /* PRNG device */
 #define MSM_PRNG_PHYS		0x16C00000
@@ -291,6 +293,56 @@ struct platform_device msm_device_uart_dm1 = {
 	.resource = msm_uart1_dm_resources,
 	.dev            = {
 		.dma_mask = &msm_uart_dm1_dma_mask,
+		.coherent_dma_mask = DMA_BIT_MASK(32),
+	},
+};
+
+static struct resource msm_uart_dm2_resources[] = {
+	{
+		.start = MSM_GSBI10_UARTDM_PHYS,
+		.end   = MSM_GSBI10_UARTDM_PHYS + PAGE_SIZE - 1,
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = GSBI10_UARTDM_IRQ,
+		.end   = GSBI10_UARTDM_IRQ,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		.start = MSM_GSBI10_PHYS,
+		.end   = MSM_GSBI10_PHYS + 4 - 1,
+		.name  = "gsbi_resource",
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = TCSR_BASE_PHYS,
+		.end   = TCSR_BASE_PHYS + 0x80 - 1,
+		.name  = "tcsr_resource",
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = DMOV_HSUART2_TX_CHAN,
+		.end   = DMOV_HSUART2_RX_CHAN,
+		.name  = "uartdm_channels",
+		.flags = IORESOURCE_DMA,
+	},
+	{
+		.start = DMOV_HSUART2_TX_CRCI,
+		.end   = DMOV_HSUART2_RX_CRCI,
+		.name  = "uartdm_crci",
+		.flags = IORESOURCE_DMA,
+	},
+};
+
+static u64 msm_uart_dm2_dma_mask = DMA_BIT_MASK(32);
+
+struct platform_device msm_device_uart_dm2 = {
+	.name = "msm_uartdm",
+	.id = 1,
+	.num_resources = ARRAY_SIZE(msm_uart_dm2_resources),
+	.resource = msm_uart_dm2_resources,
+	.dev = {
+		.dma_mask = &msm_uart_dm2_dma_mask,
 		.coherent_dma_mask = DMA_BIT_MASK(32),
 	},
 };
