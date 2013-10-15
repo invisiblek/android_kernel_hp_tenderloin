@@ -46,7 +46,7 @@
 /*
  * global switch to enable debug msgs in the module
  */
-static int	_dbg_lvl_ = 0xffffffff;
+static int	_dbg_lvl_ = 0x1;
 #define HSUART_DEBUG_LEVEL_ERR		(0x1)
 #define HSUART_DEBUG_LEVEL_INFO		(0x2)
 #define HSUART_DEBUG_LEVEL_DEBUG	(0x4)
@@ -54,7 +54,7 @@ static int	_dbg_lvl_ = 0xffffffff;
 #define HSUART_DEBUG_LEVEL_EXIT		(0x10)
 
 
-#define HSUART_DEBUG_ENABLE			1
+#define HSUART_DEBUG_ENABLE			0
 #define HSUART_FUNC_LOG_ENABLE		0
 #if HSUART_DEBUG_ENABLE
 #define HSUART_DEBUG(args...)	{if (_dbg_lvl_ & HSUART_DEBUG_LEVEL_DEBUG) \

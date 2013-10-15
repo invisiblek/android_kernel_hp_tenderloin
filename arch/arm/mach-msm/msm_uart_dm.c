@@ -1086,9 +1086,9 @@ msm_uartdm_port_open(	struct generic_uart_config* i_p_config,
 	 * Enable the UARTDM clock.
 	 */
 	clk_set_rate(p_port->p_clk, p_port->clk_rate);
-	clk_enable(p_port->p_clk);
+	clk_prepare_enable(p_port->p_clk);
 	if (p_port->p_pclk)
-		clk_enable(p_port->p_pclk);
+		clk_prepare_enable(p_port->p_pclk);
 
 	if (i_p_config->p_board_config_gsbi_cb)
 		i_p_config->p_board_config_gsbi_cb();
@@ -1203,9 +1203,9 @@ msm_uartdm_port_close(struct generic_uart_port* io_p_port)
 
 		p_item->used = 0;
 
-		clk_disable(io_p_port->p_clk);
+		clk_disable_unprepare(io_p_port->p_clk);
 		if (io_p_port->p_pclk) {
-			clk_disable(io_p_port->p_pclk);
+			clk_disable_unprepare(io_p_port->p_pclk);
 		}
 	}
 
@@ -1242,9 +1242,9 @@ int msm_uartdm_port_suspend(struct generic_uart_port* io_p_port)
 
 		__msm_uartdm_port_disable(io_p_port);
 
-		clk_disable(io_p_port->p_clk);
+		clk_disable_unprepare(io_p_port->p_clk);
 		if (io_p_port->p_pclk) {
-			clk_disable(io_p_port->p_pclk);
+			clk_disable_unprepare(io_p_port->p_pclk);
 		}
 
 		spin_unlock_irqrestore(&(io_p_port->lock), irq_flags);
@@ -1392,9 +1392,9 @@ int msm_uartdm_port_resume(struct generic_uart_port* io_p_port)
 	 * Enable the UARTDM clock.
 	 */
 
-	clk_enable(io_p_port->p_clk);
+	clk_prepare_enable(io_p_port->p_clk);
 	if (io_p_port->p_pclk)
-		clk_enable(io_p_port->p_pclk);
+		clk_prepare_enable(io_p_port->p_pclk);
 
 	ret = __msm_uartdm_port_init(io_p_port);
 

@@ -2110,8 +2110,7 @@ Done:
 }
 
 static int 
-hsuart_ioctl(struct tty_struct *tty, struct file *file,
-			 unsigned int cmd, unsigned long args)
+hsuart_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long args)
 {
 	int 				ret = -ENOIOCTLCMD;;
 	struct dev_ctxt* 		p_contxt;
@@ -2263,11 +2262,10 @@ hsuart_open(struct tty_struct *tty, struct file *f)
 	return ret;
 }
 
-static int 
+static void 
 hsuart_close(struct tty_struct *tty, struct file *f)
 {
 	struct dev_ctxt*	p_contxt;
-	int			ret = 0;
 
 	HSUART_ENTER();
 
@@ -2279,7 +2277,7 @@ hsuart_close(struct tty_struct *tty, struct file *f)
                          (int)p_contxt->is_initilized );
 
 	if ( 0 != p_contxt->is_initilized ) {
-		ret = hsuart_uart_port_release(p_contxt);
+		hsuart_uart_port_release(p_contxt);
 		p_contxt->is_initilized = 0;
 	}
 
@@ -2288,7 +2286,7 @@ hsuart_close(struct tty_struct *tty, struct file *f)
 
 	HSUART_EXIT();
 	
-	return ret;
+	return ;
 }
 
 static int hsuart_write_room(struct tty_struct *tty)
