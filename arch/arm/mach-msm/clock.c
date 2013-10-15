@@ -561,7 +561,7 @@ int __init msm_clock_init(struct clock_init_data *data)
 void __init msm_clock_fixup(const char **clock_names, unsigned len)
 {
   unsigned i, n;
-
+#if 0
   for (i = 0; i < len; ++i)
     {
       for (n = 0; n < clk_init_data->size; n++) {
@@ -571,6 +571,7 @@ void __init msm_clock_fixup(const char **clock_names, unsigned len)
             clk->flags |= CLKFLAG_SKIP_AUTO_OFF;
       }
     }
+#endif
 }
 
 static int __init clock_late_init(void)

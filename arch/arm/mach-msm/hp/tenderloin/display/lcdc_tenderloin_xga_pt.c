@@ -1,6 +1,8 @@
 #include "../../../../drivers/video/msm/msm_fb.h"
 #include "lcdc_tenderloin.h"
 
+int lcdc_tenderloin_device_register(struct msm_panel_info *pinfo);
+
 static struct msm_panel_info pinfo;
 
 static int __init lcdc_tenderloin_panel_init(void)
@@ -38,4 +40,5 @@ static int __init lcdc_tenderloin_panel_init(void)
 	return ret;
 }
 
-late_initcall(lcdc_tenderloin_panel_init);
+//late_initcall(lcdc_tenderloin_panel_init);
+device_initcall_sync(lcdc_tenderloin_panel_init);

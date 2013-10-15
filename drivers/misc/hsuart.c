@@ -32,6 +32,7 @@
 #include <linux/list.h>
 #include <linux/wait.h>
 #include <linux/poll.h>
+#include <linux/sched.h>
 
 #include <linux/time.h>
 #include <linux/hrtimer.h>
@@ -2035,7 +2036,7 @@ Done:
 
 }
 
-static int 
+static long 
 hsuart_ioctl(struct file *file, 
               unsigned int cmd, unsigned long args)
 {

@@ -52,6 +52,7 @@
 #include <linux/gpio.h>
 #include <linux/interrupt.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #include <linux/i2c/lsm303dlh.h>
 

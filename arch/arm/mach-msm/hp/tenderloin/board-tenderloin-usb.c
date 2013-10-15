@@ -3,6 +3,7 @@
 #include <mach/mpp.h>
 #include <mach/msm_hsusb.h>
 #include <mach/socinfo.h>
+#include <linux/mfd/pmic8058.h>
 #include "devices.h"
 #include "devices-msm8x60.h"
 #include "board-tenderloin.h"
@@ -112,11 +113,10 @@ static struct platform_device isp1763_device = {
 */
 static int isp1763_modem_gpio_init(int on)
 {
+#if 0
 	int rc;
 	static int gpio_requested=0;
 
-        return 0;
-#if 0
 	int gpio_pwr_3g_en = pin_table[TENDERLOIN_GPIO_3G_3V3_EN];
 
 	if (!gpio_requested)
@@ -166,8 +166,8 @@ static int isp1763_modem_gpio_init(int on)
 		gpio_set_value(GPIO_3G_DISABLE_N, 1);
 	}
 
-	return 0;
 #endif
+	return 0;
 }
 
 static struct platform_device *isp1763_pdev=NULL;
@@ -290,7 +290,7 @@ static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
 
 	if (init) {
 		notify_vbus_state_func_ptr = callback;
-		ret = pm8901_mpp_config_digital_out(1,
+		ret = pm8xxx_mpp_config_digital_out(1,
 			PM8901_MPP_DIG_LEVEL_L5, 1);
 		if (ret) {
 			pr_err("%s: MPP2 configuration failed\n", __func__);
@@ -301,7 +301,7 @@ static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
 			(IRQF_TRIGGER_RISING|IRQF_TRIGGER_FALLING),
 						"msm_otg_id", NULL);
 		if (ret) {
-			pm8901_mpp_config_digital_out(1,
+			pm8xxx_mpp_config_digital_out(1,
 					PM8901_MPP_DIG_LEVEL_L5, 0);
 			pr_err("%s:pmic_usb_id interrupt registration failed",
 					__func__);
@@ -311,7 +311,7 @@ static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
 		free_irq(PMICID_INT, 0);
 		cancel_delayed_work_sync(&pmic_id_det);
 		notify_vbus_state_func_ptr = NULL;
-		ret = pm8901_mpp_config_digital_out(1,
+		ret = pm8xxx_mpp_config_digital_out(1,
 			PM8901_MPP_DIG_LEVEL_L5, 0);
 		if (ret) {
 			pr_err("%s:MPP2 configuration failed\n", __func__);

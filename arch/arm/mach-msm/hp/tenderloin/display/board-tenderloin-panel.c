@@ -23,6 +23,7 @@
 #include <mach/panel_id.h>
 #include <mach/msm_memtypes.h>
 #include <linux/bootmem.h>
+#include <mach/msm_gpiomux.h>
 #ifdef CONFIG_FB_MSM_HDMI_MHL
 #include <video/msm_hdmi_modes.h>
 #endif
@@ -506,7 +507,7 @@ int lcdc_lg_panel_power(int on)
 
 		/* BACKLIGHT */
 		rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
-                printk(KERN_ERR "%s: get BACKLIGHT(%d)\n", __func__, GPIO_BACKLIGHT_EN, rc);
+                printk(KERN_ERR "%s: get BACKLIGHT(%d)=%d\n", __func__, GPIO_BACKLIGHT_EN, rc);
 		if (rc) {
 			pr_err("%s: BACKLIGHT gpio %d request"
 						"failed\n", __func__,
@@ -928,7 +929,7 @@ void __init tenderloin_init_fb(void)
 	platform_device_register(&lcdc_tenderloin_panel_device);
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("lcdc", &lcdc_pdata);
-	msm_fb_register_device("mipi_dsi", 0);
+        //	msm_fb_register_device("mipi_dsi", 0);
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
         //	platform_device_register(&hdmi_msm_device);
 #endif

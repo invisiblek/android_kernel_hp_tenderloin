@@ -6,6 +6,7 @@
 #include <linux/ihex.h>
 #include <linux/platform_device.h>
 #include <linux/slab.h>
+#include <linux/module.h>
 
 #define BLOCK_LEN			256
 #define ECC_LEN				32

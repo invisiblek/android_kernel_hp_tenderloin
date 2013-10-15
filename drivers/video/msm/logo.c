@@ -28,6 +28,12 @@
 #define fb_height(fb)	((fb)->var.yres)
 #define fb_size(fb)	((fb)->var.xres * (fb)->var.yres * 2)
 
+#ifdef CONFIG_MACH_TENDERLOIN
+#define from565_r(x) ((((x) >> 11) & 0x1f) * 255 / 31)
+#define from565_g(x) ((((x) >> 5) & 0x3f) * 255 / 63)
+#define from565_b(x) (((x) & 0x1f) * 255 / 31)
+#endif
+
 static void memset16(void *_ptr, unsigned short val, unsigned count)
 {
 	unsigned short *ptr = _ptr;

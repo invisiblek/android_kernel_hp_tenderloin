@@ -371,7 +371,11 @@ obj-$(CONFIG_MSM_SHOW_RESUME_IRQ) += msm_show_resume_irq.o
 obj-$(CONFIG_BT_MSM_PINTEST)  += btpintest.o
 obj-$(CONFIG_MSM_FAKE_BATTERY) += fish_battery.o
 obj-$(CONFIG_MSM_RPC_VIBRATOR) += msm_vibrator.o
+ifdef CONFIG_MACH_HTC
 obj-$(CONFIG_MSM_NATIVE_RESTART) += restart.o
+else
+obj-$(CONFIG_MSM_NATIVE_RESTART) += restart_stock.o
+endif
 obj-$(CONFIG_MSM_MODEM_RESTART) += restart_7k.o
 
 obj-$(CONFIG_MSM_PROC_COMM_REGULATOR) += proccomm-regulator.o

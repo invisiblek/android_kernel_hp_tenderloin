@@ -33,6 +33,7 @@
 #include <linux/mutex.h>
 #include <linux/input-polldev.h>
 #include <linux/delay.h>
+#include <linux/module.h>
 
 #include <linux/slab.h>
 #include <linux/mm.h>

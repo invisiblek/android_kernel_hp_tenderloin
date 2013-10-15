@@ -8,6 +8,7 @@
 #ifdef CONFIG_HSUART
 #include <linux/hsuart.h>
 #endif
+#include <mach/msm_gpiomux.h>
 #include <mach/gpiomux.h>
 #include "devices.h"
 #include "devices-msm8x60.h"

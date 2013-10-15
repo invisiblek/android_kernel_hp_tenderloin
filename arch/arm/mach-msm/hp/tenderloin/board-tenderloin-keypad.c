@@ -21,6 +21,7 @@
 #include <asm/mach-types.h>
 #include <linux/gpio.h>
 #include <mach/gpio.h>
+#include <linux/moduleparam.h>
 
 #include "board-tenderloin.h"
 

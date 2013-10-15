@@ -1723,18 +1723,6 @@ __msm_uartdm_reset(struct generic_uart_port* i_p_port)
 	MSM_UARTDM_EXIT();
 }
 
-static void
-msm_uartdm_reset(struct generic_uart_port* i_p_port)
-{
-	unsigned long 		irq_flags;
-
-	spin_lock_irqsave(&(i_p_port->lock), irq_flags);
-
-	__msm_uartdm_reset(i_p_port);
-
-	spin_unlock_irqrestore(&(i_p_port->lock), irq_flags);
-}
-
 void
 msm_uartdm_config_write_size(struct generic_uart_port* i_p_port, int num_bytes)
 {
@@ -1808,7 +1796,7 @@ msm_uartdm_rx_dm_flush(struct generic_uart_port* i_p_port)
 {
 	MSM_UARTDM_ENTER();
 
-	msm_dmov_flush(i_p_port->dma_rx_channel);
+	msm_dmov_flush(i_p_port->dma_rx_channel, 1);
 
 	MSM_UARTDM_EXIT();
 }

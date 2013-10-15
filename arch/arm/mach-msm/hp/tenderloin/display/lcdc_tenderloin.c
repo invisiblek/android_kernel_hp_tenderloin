@@ -54,6 +54,9 @@ static int lcdc_tenderloin_panel_off(struct platform_device *pdev)
 	return 0;
 }
 
+#ifdef CONFIG_PMIC8058_PWM
+int pwm_config2(struct pwm_device *pwm, unsigned duty_numerator, unsigned duty_denominator, unsigned period_us);
+#endif
 
 static void lcdc_tenderloin_panel_set_backlight(struct msm_fb_data_type *mfd)
 {

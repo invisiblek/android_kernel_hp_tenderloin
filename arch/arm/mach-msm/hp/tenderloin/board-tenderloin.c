@@ -43,6 +43,7 @@
 #include <linux/i2c/bq27520.h>
 #include <linux/i2c/lsm303dlh.h>
 #include <linux/isl29023.h>
+#include <linux/reboot.h>
 
 #ifdef CONFIG_MFD_WM8994
 #include <linux/mfd/wm8994/core.h>
@@ -135,7 +136,7 @@
 #include <mach/cpuidle.h>
 #include <linux/mpu.h>
 #include "pm.h"
-#include "mpm.h"
+#include <mach/mpm.h>
 #include "spm.h"
 #include "rpm_log.h"
 #include "smd_private.h"
@@ -150,7 +151,7 @@
 #include <mach/board_htc.h>
 #include "acpuclock.h"
 
-#include <linux/ion.h>
+#include <linux/msm_ion.h>
 #include <mach/ion.h>
 #include <mach/msm_rtb.h>
 
@@ -168,7 +169,8 @@ my_work_handler(struct work_struct *w)
 {
   //uint32_t restart_reason = 0x6f656d99;
   //msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
-  arch_reset(0, "");
+  //arch_reset(0, "");
+  msm_restart(0, "");
 }
 #endif
 
@@ -759,23 +761,6 @@ static struct msm_pm_platform_data msm_pm_data[MSM_PM_SLEEP_MODE_NR * 2] = {
 	},
 };
 
-static struct msm_cpuidle_state msm_cstates[] __initdata = {
-	{0, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{0, 1, "C1", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{0, 2, "C2", "POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE},
-
-	{1, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{1, 1, "C1", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-};
-
 static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
 	{
 		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT,
@@ -830,6 +815,33 @@ static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
 		MSM_RPMRS_LIMITS(OFF, HSFS_OPEN, RET_HIGH, RET_LOW),
 		false,
 		7800, 0, 76350000, 9800,
+	},
+};
+
+static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
+	.levels = &msm_rpmrs_levels[0],
+	.num_levels = ARRAY_SIZE(msm_rpmrs_levels),
+	.vdd_mem_levels  = {
+		[MSM_RPMRS_VDD_MEM_RET_LOW]     = 500,
+		[MSM_RPMRS_VDD_MEM_RET_HIGH]    = 750,
+		[MSM_RPMRS_VDD_MEM_ACTIVE]      = 1000,
+		[MSM_RPMRS_VDD_MEM_MAX]         = 1325,
+	},
+	.vdd_dig_levels = {
+		[MSM_RPMRS_VDD_DIG_RET_LOW]     = 500,
+		[MSM_RPMRS_VDD_DIG_RET_HIGH]    = 750,
+		[MSM_RPMRS_VDD_DIG_ACTIVE]      = 1000,
+		[MSM_RPMRS_VDD_DIG_MAX]         = 1250,
+	},
+	.vdd_mask = 0xFFF,
+	.rpmrs_target_id = {
+		[MSM_RPMRS_ID_PXO_CLK]          = MSM_RPM_ID_PXO_CLK,
+		[MSM_RPMRS_ID_L2_CACHE_CTL]     = MSM_RPM_ID_APPS_L2_CACHE_CTL,
+		[MSM_RPMRS_ID_VDD_DIG_0]        = MSM_RPM_ID_SMPS1_0,
+		[MSM_RPMRS_ID_VDD_DIG_1]        = MSM_RPM_ID_SMPS1_1,
+		[MSM_RPMRS_ID_VDD_MEM_0]        = MSM_RPM_ID_SMPS0_0,
+		[MSM_RPMRS_ID_VDD_MEM_1]        = MSM_RPM_ID_SMPS0_1,
+		[MSM_RPMRS_ID_RPM_CTL]          = MSM_RPM_ID_TRIGGER_SET_FROM,
 	},
 };
 
@@ -1998,9 +2010,7 @@ static struct ion_co_heap_pdata co_ion_pdata = {
  * to each other.
  * Don't swap the order unless you know what you are doing!
  */
-static struct ion_platform_data ion_pdata = {
-	.nr = MSM_ION_HEAP_NUM,
-	.heaps = {
+struct ion_platform_heap msm8x60_heaps [] = {
 		{
 			.id	= ION_SYSTEM_HEAP_ID,
 			.type	= ION_HEAP_TYPE_SYSTEM,
@@ -2072,7 +2082,11 @@ static struct ion_platform_data ion_pdata = {
 			.extra_data = (void *)&co_ion_pdata,
 		},
 #endif
-	}
+};
+
+static struct ion_platform_data ion_pdata = {
+	.nr = MSM_ION_HEAP_NUM,
+	.heaps = msm8x60_heaps,
 };
 
 static struct platform_device ion_dev = {
@@ -2085,6 +2099,7 @@ static struct platform_device ion_dev = {
 static struct platform_device *tenderloin_devices[] __initdata = {
 
 	&rpm_regulator_device,
+	&msm8x60_device_acpuclk,
 	&msm_device_smd,
         &msm_device_uart_dm12,
 	&msm_device_otg,
@@ -2164,7 +2179,7 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #endif
 	&msm_tsens_device,
         //        &cable_detect_device,
-	&msm_rpm_device,
+	&msm8660_rpm_device,
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
 #endif
@@ -2667,21 +2682,21 @@ static struct mpu3050_platform_data mpu3050_data = {
 	},
 };
 
-static struct i2c_board_info __initdata lsm303dlh_acc_i2c_board_info[] = {
+static struct i2c_board_info lsm303dlh_acc_i2c_board_info[] = {
     {
         I2C_BOARD_INFO ( "lsm303dlh_acc_sysfs", 0x18),
         .platform_data = &lsm303dlh_acc_pdata,
     },
 };
 
-static struct i2c_board_info __initdata lsm303dlh_mag_i2c_board_info[] = {
+static struct i2c_board_info lsm303dlh_mag_i2c_board_info[] = {
     {
         I2C_BOARD_INFO ( "lsm303dlh_mag_sysfs", 0x1e),
         .platform_data = &lsm303dlh_mag_pdata,
     },
 };
 
-static struct i2c_board_info __initdata mpu3050_i2c_board_info[] = {
+static struct i2c_board_info mpu3050_i2c_board_info[] = {
 	{
 		I2C_BOARD_INFO("mpu3050", 0x68),
 		.irq = MSM_GPIO_TO_INT(TENDERLOIN_GYRO_INT),
@@ -2689,7 +2704,7 @@ static struct i2c_board_info __initdata mpu3050_i2c_board_info[] = {
 	},
 };
 
-static struct i2c_board_info __initdata isl29023_i2c_board_info[] = {
+static struct i2c_board_info isl29023_i2c_board_info[] = {
     {
         I2C_BOARD_INFO ( "isl29023", 0x44),
         .irq = MSM_GPIO_TO_INT(TENDERLOIN_LS_INT),
@@ -2854,26 +2869,26 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
     {
         I2C_SURF | I2C_FFA,
         MSM_GSBI3_QUP_I2C_BUS_ID,
-        &lsm303dlh_acc_i2c_board_info,
+        lsm303dlh_acc_i2c_board_info,
         ARRAY_SIZE(lsm303dlh_acc_i2c_board_info),
     },
     {
         I2C_SURF | I2C_FFA,
         MSM_GSBI3_QUP_I2C_BUS_ID,
-        &lsm303dlh_mag_i2c_board_info,
+        lsm303dlh_mag_i2c_board_info,
         ARRAY_SIZE(lsm303dlh_mag_i2c_board_info),
     },
 #endif
     {
         I2C_SURF | I2C_FFA,
         MSM_GSBI3_QUP_I2C_BUS_ID,
-        &mpu3050_i2c_board_info,
+        mpu3050_i2c_board_info,
         ARRAY_SIZE(mpu3050_i2c_board_info),
     },
     {
         I2C_SURF | I2C_FFA,
         MSM_GSBI3_QUP_I2C_BUS_ID,
-        &isl29023_i2c_board_info,
+        isl29023_i2c_board_info,
         ARRAY_SIZE(isl29023_i2c_board_info),
     },
 #ifndef CONFIG_MSM_SSBI
@@ -2970,7 +2985,7 @@ static int configure_uart_gpios(int on)
 static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
 	.inject_rx_on_wakeup = 1,
 	.rx_to_inject = 0xFD,
-	.gpio_config = configure_uart_gpios,
+        //	.gpio_config = configure_uart_gpios,
 };
 #endif
 
@@ -3887,17 +3902,6 @@ static void __init msm8x60_init_mmc(void)
 #endif
 }
 
-#define _GET_REGULATOR(var, name) do {					\
-	if (var == NULL) {						\
-		var = regulator_get(NULL, name);			\
-		if (IS_ERR(var)) {					\
-			pr_err("'%s' regulator not found, rc=%ld\n",	\
-				name, PTR_ERR(var));			\
-			var = NULL;					\
-		}							\
-	}								\
-} while (0)
-
 static void __init reserve_mdp_memory(void)
 {
   msm8x60_mdp_writeback(msm8x60_reserve_table);
@@ -3927,23 +3931,6 @@ static void __init msm8x60_gfx_init(void)
 	platform_device_register(&msm_kgsl_2d1);
 }
 
-#ifdef CONFIG_MSM_RPM
-static struct msm_rpm_platform_data msm_rpm_data = {
-	.reg_base_addrs = {
-		[MSM_RPM_PAGE_STATUS] = MSM_RPM_BASE,
-		[MSM_RPM_PAGE_CTRL] = MSM_RPM_BASE + 0x400,
-		[MSM_RPM_PAGE_REQ] = MSM_RPM_BASE + 0x600,
-		[MSM_RPM_PAGE_ACK] = MSM_RPM_BASE + 0xa00,
-	},
-
-	.irq_ack = RPM_SCSS_CPU0_GP_HIGH_IRQ,
-	.irq_err = RPM_SCSS_CPU0_GP_LOW_IRQ,
-	.irq_vmpm = RPM_SCSS_CPU0_GP_MEDIUM_IRQ,
-	.msm_apps_ipc_rpm_reg = MSM_GCC_BASE + 0x008,
-	.msm_apps_ipc_rpm_val = 4,
-};
-#endif
-
 static int board_reboot_call(struct notifier_block *this, unsigned long code, void *_cmd)
 {
 	if(code == SYS_RESTART) {
@@ -3967,7 +3954,7 @@ void board_register_reboot_notifier(void)
 	}
 }
 
-static char *fixup_clocks[] = {
+static const char *fixup_clocks[] = {
   { "pixel_lcdc_clk" },
   { "pixel_mdp_clk" },
   { "mdp_clk" },
@@ -3990,10 +3977,10 @@ static void __init tenderloin_init(void)
         wq = create_singlethread_workqueue("my");
         queue_delayed_work(wq, &my_work, delay);
 #endif
+	platform_device_register(&msm_gpio_device);
 
-	BUG_ON(msm_rpm_init(&msm_rpm_data));
-	BUG_ON(msm_rpmrs_levels_init(msm_rpmrs_levels,
-				ARRAY_SIZE(msm_rpmrs_levels)));
+	BUG_ON(msm_rpm_init(&msm8660_rpm_data));
+	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
 
 	regulator_suppress_info_printing();
 
@@ -4039,8 +4026,6 @@ static void __init tenderloin_init(void)
 
 	platform_add_devices(early_devices, ARRAY_SIZE(early_devices));
 
-        acpuclk_init(&acpuclk_8x60_soc_data);
-
 	msm8x60_init_uart12dm();
 	msm8x60_init_mmc();
 
@@ -4054,8 +4039,8 @@ static void __init tenderloin_init(void)
 #endif
 
 	if (SOCINFO_VERSION_MAJOR(socinfo_get_version()) != 1)
-		platform_add_devices(msm_footswitch_devices,
-				     msm_num_footswitch_devices);
+		platform_add_devices(msm8660_footswitch,
+				     msm8660_num_footswitch);
 
 	platform_add_devices(tenderloin_devices,
 			     ARRAY_SIZE(tenderloin_devices));
@@ -4084,10 +4069,6 @@ static void __init tenderloin_init(void)
 
 	register_i2c_devices();
 
-	msm_pm_set_platform_data(msm_pm_data, ARRAY_SIZE(msm_pm_data));
-	msm_pm_set_rpm_wakeup_irq(RPM_SCSS_CPU0_WAKE_UP_IRQ);
-	msm_cpuidle_set_states(msm_cstates, ARRAY_SIZE(msm_cstates),
-				msm_pm_data);
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 
 #ifdef CONFIG_SENSORS_MSM_ADC
@@ -4118,5 +4099,6 @@ MACHINE_START(TENDERLOIN, "tenderloin")
 	.init_machine = tenderloin_init,
 	.timer = &msm_timer,
 	.init_early = msm8x60_allocate_memory_regions,
+	.restart = msm_restart,
 MACHINE_END
 

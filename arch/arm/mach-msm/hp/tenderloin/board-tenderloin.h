@@ -384,6 +384,9 @@ void tenderloin_lcdc_steadycfg(void);
 void __init msm8x60_allocate_fb_region(void);
 void __init tenderloin_init_ts(void);
 void msm8x60_mdp_writeback(struct memtype_reserve *reserve_table);
+void __init tenderloin_usb_i2c_init(void);
+void __init tenderloin_usb_init(void);
+void msm8x60_gpiomux_lcdc_steadycfg(void);
 
 static inline u8 boardtype_is_3g(void)
 {
