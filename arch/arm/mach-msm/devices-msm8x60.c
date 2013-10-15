@@ -296,6 +296,17 @@ struct platform_device msm_device_uart_dm1 = {
 		.coherent_dma_mask = DMA_BIT_MASK(32),
 	},
 };
+#ifdef CONFIG_MACH_TENDERLOIN
+#undef DMOV_HSUART2_TX_CRCI
+#undef DMOV_HSUART2_RX_CRCI
+
+#define ADM3_0_B_GSBI10_OUT_CRCI	9
+#define ADM3_0_B_GSBI10_IN_CRCI		10
+
+#define DMOV_HSUART2_TX_CRCI   ((1 << 4) + ADM3_0_B_GSBI10_OUT_CRCI)
+
+#define DMOV_HSUART2_RX_CRCI   ((1 << 4) + ADM3_0_B_GSBI10_IN_CRCI)
+#endif
 
 static struct resource msm_uart_dm2_resources[] = {
 	{
