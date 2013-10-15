@@ -1326,7 +1326,7 @@ static struct msm_i2c_platform_data msm_gsbi10_qup_i2c_pdata = {
 	.src_clk_rate = 24000000,
 	.use_gsbi_shared_mode = 1,
 	.msm_i2c_config_gpio = gsbi_qup_i2c_gpio_config,
-        //        .msm_i2c_config_gsbi = board_gsbi10_init,
+        .share_uart_flag = 1,
 };
 #endif
 
@@ -1582,7 +1582,7 @@ static void __init msm8x60_allocate_memory_regions(void)
 
 static DEFINE_MUTEX(gsbi_init_lock);
 
-static int board_gsbi_init(int gsbi, int *inited, u32 prot)
+int board_gsbi_init(int gsbi, int *inited, u32 prot)
 {
 	int rc;
 	u32 gsbi_phys;

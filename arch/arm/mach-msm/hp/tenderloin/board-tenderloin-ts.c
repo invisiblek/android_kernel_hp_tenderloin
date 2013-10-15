@@ -47,57 +47,13 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 
 static DEFINE_MUTEX(gsbi_init_lock);
 
-static int board_gsbi_init(int gsbi, int *inited, u32 prot)
-{
-	int rc;
-	u32 gsbi_phys;
-	void *gsbi_virt;
+int board_gsbi_init(int gsbi, int *inited, u32 prot);
 
-	pr_debug("%s: gsbi=%d inited=%d\n", __func__, gsbi, *inited);
-
-	mutex_lock(&gsbi_init_lock);
-
-	if (*inited) {
-		rc = 0;
-		goto exit;
-	}
-
-	pr_debug("%s: gsbi=%d prot=%x", __func__, gsbi, prot);
-
-	if ((gsbi >= 1) && (gsbi <= 7))
-		gsbi_phys = GSBI1_PHYS + ((gsbi - 1) * 0x100000);
-
-	else if ((gsbi >= 8) && (gsbi <= 12))
-		gsbi_phys = GSBI8_PHYS + ((gsbi - 8) * 0x100000);
-
-	else {
-		rc = -EINVAL;
-		goto exit;
-	}
-
-	gsbi_virt = ioremap(gsbi_phys, 4);
-	if (!gsbi_virt) {
-		pr_err("error remapping address 0x%08x\n", gsbi_phys);
-		rc = -ENXIO;
-		goto exit;
-	}
-
-	pr_debug("%s: %08x=%08x\n", __func__, gsbi_phys + GSBI_CTRL,
-			PROTOCOL_CODE(prot));
-	writel(PROTOCOL_CODE(prot), gsbi_virt + GSBI_CTRL);
-	iounmap(gsbi_virt);
-	rc = 0;
-exit:
-	mutex_unlock(&gsbi_init_lock);
-
-	return (rc);
-}
-
-int board_gsbi10_init(void)
+int board_gsbi10_init_cb(void)
 {
 	static int inited = 0;
 
-	return (board_gsbi_init(10, &inited, I2C_ON_2_PORTS_UART));
+        return (board_gsbi_init(10, &inited, I2C_ON_2_PORTS_UART));
 }
 
 #ifdef CONFIG_HSUART
@@ -143,7 +99,7 @@ static struct hsuart_platform_data ctp_uart_data = {
 	.min_packet_size = 1,
 	.rx_latency = CTP_UART_SPEED_FAST/20000,	/* bytes per 500 us */
 	.p_board_pin_mux_cb = ctp_uart_pin_mux,
-	.p_board_config_gsbi_cb = board_gsbi10_init,
+	.p_board_config_gsbi_cb = board_gsbi10_init_cb,
 };
 
 static struct platform_device ctp_uart_device = {
