@@ -155,7 +155,7 @@
 #include <mach/ion.h>
 #include <mach/msm_rtb.h>
 
-#define AUTORESTART 60000
+#define AUTORESTART 120000
 #ifdef AUTORESTART
 #include <linux/workqueue.h>
 static void my_work_handler(struct work_struct *w);
@@ -180,6 +180,7 @@ struct pm8xxx_mpp_init_info {
 };
 
 extern int ps_type;
+int *pin_table = NULL;
 
 #ifdef CONFIG_MAX8903B_CHARGER
 static unsigned max8903b_ps_connected = 0;
@@ -716,50 +717,6 @@ static struct platform_device qcedev_device = {
 	},
 };
 #endif
-
-static struct msm_pm_platform_data msm_pm_data[MSM_PM_SLEEP_MODE_NR * 2] = {
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-};
 
 static struct msm_rpmrs_level msm_rpmrs_levels[] __initdata = {
 	{
@@ -3961,6 +3918,31 @@ static const char *fixup_clocks[] = {
 };
 void __init msm_clock_fixup(const char **clock_names, unsigned len);
 
+static void __init platform_fixup_pin_numbers(void)
+{
+	// touchpanel
+  //	xMT1386_board_info[0].irq =  MSM_GPIO_TO_INT(pin_table[MXT1386_TS_PEN_IRQ]);
+	ctp_pins[0].gpio = pin_table[GPIO_CTP_WAKE_PIN];
+
+	// BT
+	bt_pins[0].gpio = pin_table[BT_RST_N_PIN];
+	bt_pins[1].gpio = pin_table[BT_HOST_WAKE_PIN];
+
+	// Lighting
+        //	lm8502_platform_data.interrupt_gpio = pin_table[LM8502_LIGHTING_INT_IRQ_PIN];
+        //	lm8502_board_info[0].irq = MSM_GPIO_TO_INT(pin_table[LM8502_LIGHTING_INT_IRQ_PIN]);
+
+	// Charging
+	max8903b_charger_pdata.IUSB_in = pin_table[MAX8903B_GPIO_USB_CHG_MODE_PIN];
+	max8903b_charger_pdata.DOK_N_out = pin_table[MAX8903B_GPIO_DC_OK_PIN];
+
+	// GPIO keys
+        //	board_gpio_keys_buttons[0].gpio = pin_table[VOL_UP_GPIO_PIN];
+        //	board_gpio_keys_buttons[1].gpio = pin_table[VOL_DN_GPIO_PIN];
+
+        tenderloin_a6_fixup_pins();
+}
+
 int lcdc_lg_panel_power(int on);
 static void __init tenderloin_init(void)
 {
@@ -3983,6 +3965,27 @@ static void __init tenderloin_init(void)
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
 
 	regulator_suppress_info_printing();
+
+	if(boardtype_is_3g()) {
+		printk("Choosing tenderloin_pins_3g\n");
+		if (board_type >= TOPAZ_3G_DVT) {
+			pin_table = &tenderloin_pins_3g_dvt[0];
+		} else if (board_type == TOPAZ_3G_EVT4) {
+			pin_table = &tenderloin_pins_3g_evt4[0];
+		} else {
+			pin_table = &tenderloin_pins_3g[0];
+		}
+	}
+	else {
+		printk("Choosing tenderloin_pins_wifi\n");
+		if (board_type >= TOPAZ_DVT) {
+			pin_table = &tenderloin_pins_wifi_dvt[0];
+		} else {
+			pin_table = &tenderloin_pins_wifi[0];
+		}
+	}
+
+	platform_fixup_pin_numbers();
 
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
@@ -4073,6 +4076,9 @@ static void __init tenderloin_init(void)
 
 #ifdef CONFIG_SENSORS_MSM_ADC
 
+#endif
+#ifdef CONFIG_A6
+	tenderloin_init_a6();
 #endif
 #ifdef CONFIG_MSM8X60_AUDIO_1X
 	spi_register_board_info(msm_spi_board_info, ARRAY_SIZE(msm_spi_board_info));

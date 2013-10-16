@@ -80,7 +80,7 @@
 #define JACK_DET_GPIO		67
 //#endif
 
-#ifdef CONFIG_MAX8903B_CHARGER
+#if defined(CONFIG_MAX8903B_CHARGER) || defined(CONFIG_CHARGER_MAX8903)
 /* max8903b control GPIOs */
 #define MAX8903B_GPIO_DC_CHG_MODE	42
 #define MAX8903B_GPIO_USB_CHG_MODE	133
@@ -189,6 +189,8 @@
 
 /*System force boot dis pin*/
 #define GPIO_FORCE_BOOT_DIS		154
+
+extern int *pin_table;
 
 enum tenderloin_pins {
 	MXT1386_TS_PEN_IRQ = 0,
@@ -387,6 +389,8 @@ void msm8x60_mdp_writeback(struct memtype_reserve *reserve_table);
 void __init tenderloin_usb_i2c_init(void);
 void __init tenderloin_usb_init(void);
 void msm8x60_gpiomux_lcdc_steadycfg(void);
+void __init tenderloin_init_a6(void);
+void __init tenderloin_a6_fixup_pins(void);
 
 static inline u8 boardtype_is_3g(void)
 {

@@ -4,6 +4,9 @@
 #include <mach/msm_hsusb.h>
 #include <mach/socinfo.h>
 #include <linux/mfd/pmic8058.h>
+#ifdef CONFIG_A6
+#include <linux/a6.h>
+#endif
 #include "devices.h"
 #include "devices-msm8x60.h"
 #include "board-tenderloin.h"
