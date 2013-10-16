@@ -328,6 +328,11 @@ static int msm_mpm_set_irq_type(struct irq_data *d, unsigned int flow_type)
 /******************************************************************************
  * Public functions
  *****************************************************************************/
+int msm_mpm_is_app_irq_wakeup_capable(unsigned int irq)
+{
+	return msm_mpm_get_irq_a2m(irq);
+}
+
 int msm_mpm_enable_pin(unsigned int pin, unsigned int enable)
 {
 	uint32_t index = MSM_MPM_IRQ_INDEX(pin);
