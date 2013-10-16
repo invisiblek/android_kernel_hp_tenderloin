@@ -58,9 +58,9 @@ static int	_dbg_lvl_ = 0x1;
 #define HSUART_FUNC_LOG_ENABLE		0
 #if HSUART_DEBUG_ENABLE
 #define HSUART_DEBUG(args...)	{if (_dbg_lvl_ & HSUART_DEBUG_LEVEL_DEBUG) \
-					printk(KERN_ERR args);}
+					printk(KERN_DEBUG args);}
 #define HSUART_INFO(args...)	{if (_dbg_lvl_ & HSUART_DEBUG_LEVEL_INFO) \
-					printk(KERN_ERR args);}
+					printk(KERN_INFO args);}
 #define HSUART_ERR(args...)	{if (_dbg_lvl_ & HSUART_DEBUG_LEVEL_ERR)  \
 					printk(KERN_ERR args);}
 #else
@@ -2130,7 +2130,6 @@ hsuart_ioctl(struct file *file,
 		
 	}
 Done:	 
-        printk(KERN_ERR "%s: ret=%d\n", __func__, ret);
 	return ret;
 }
 

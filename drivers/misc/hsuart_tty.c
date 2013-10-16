@@ -373,7 +373,6 @@ hsuart_rx_avail(struct rxtx_lists* io_p_lists)
 
 	HSUART_ENTER();
 
-        printk(KERN_ERR "%s: %p %p\n", __func__, io_p_lists, (io_p_lists != NULL ? &(io_p_lists->lock) : 0x0));
 	spin_lock_irqsave(&(io_p_lists->lock), flags);
 
 	if (NULL != io_p_lists) {	
