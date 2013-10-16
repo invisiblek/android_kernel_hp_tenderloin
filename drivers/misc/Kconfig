@@ -761,6 +761,11 @@ config USER_PINS
 	---help---
 		Select Y if you want to expose some gpio pins through sysfs.
 
+config HRES_COUNTER
+	tristate "High resolution counter"
+	---help---
+	  Select Y if you want to enable High resolution counter.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -770,5 +775,6 @@ source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
 source "drivers/misc/slimport_anx7808/Kconfig"
+source "drivers/misc/a6/Kconfig"
 
 endmenu
