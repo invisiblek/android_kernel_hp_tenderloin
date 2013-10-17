@@ -766,6 +766,16 @@ config HRES_COUNTER
 	---help---
 	  Select Y if you want to enable High resolution counter.
 
+config MDMGPIO
+	tristate "modem gpio control"
+	depends on SYSFS
+	default n
+	help
+	  If you say yes here you get support for modem gpio control.
+
+	  This driver can also be built as a module, choose M here: the
+	  module will be called mdmgpio.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

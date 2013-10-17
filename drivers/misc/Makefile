@@ -93,3 +93,4 @@ obj-$(CONFIG_NDUID)		+= nduid.o
 obj-$(CONFIG_USER_PINS)		+= user-pins.o
 obj-$(CONFIG_HRES_COUNTER)	+= hres_counter.o
 obj-$(CONFIG_A6)		+= a6/
+obj-$(CONFIG_MDMGPIO)		+= mdmgpio.o
