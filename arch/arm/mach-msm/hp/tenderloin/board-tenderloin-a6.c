@@ -42,27 +42,6 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 			msm_gpiomux_put(gpios[i]);
 	return ret;
 }
-/* helper function to manipulate group of gpios (gpio)*/
-static int configure_gpios(int on, int gpios[], int cnt)
-{
-	int ret = 0;
-	int i;
-
-	for (i = 0; i < cnt; i++) {
-		//printk(KERN_ERR "%s:pin(%d):%s\n", __func__, gpios[i], on?"request":"free");
-		if (on) {
-			ret = gpio_request(gpios[i], NULL);
-			if (unlikely(ret))
-				break;
-		} else {
-			gpio_free(gpios[i]);
-		}
-	}
-	if (ret)
-		for (; i >= 0; i--)
-			gpio_free(gpios[i]);
-	return ret;
-}
 
 #ifdef CONFIG_A6
 /* The following #defines facilitate selective inclusion of a specific a6 wakeup strategy:

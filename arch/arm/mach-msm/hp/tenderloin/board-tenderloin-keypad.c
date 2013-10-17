@@ -96,6 +96,9 @@ int __init tenderloin_init_keypad(void)
 {
 	printk(KERN_DEBUG "%s\n", __func__);
 
+        tenderloin_keypad_input_map[0].gpio = pin_table[VOL_UP_GPIO_PIN];
+        tenderloin_keypad_input_map[1].gpio = pin_table[VOL_DN_GPIO_PIN];
+
 	if (platform_device_register(&tenderloin_reset_keys_device))
 		printk(KERN_WARNING "%s: register reset key fail\n", __func__);
 

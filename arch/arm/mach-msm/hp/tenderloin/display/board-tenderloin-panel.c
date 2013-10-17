@@ -421,233 +421,6 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 	return ret;
 }
 
-#if 1
-static struct regulator *votg_l10 = NULL;
-static struct regulator *votg_vdd5v = NULL;
-
-DEFINE_SPINLOCK(lg_panel_pwr_lock);
-DEFINE_MUTEX(lg_panel_pwr_sem);
-int lcdc_lg_panel_power(int on)
-{
-	int rc;
-	unsigned long flags;
-	static int isPowerOn = 0;
-        static int first = 1;
-
-        printk(KERN_ERR "%s: ++\n", __func__);
-	mutex_lock(&lg_panel_pwr_sem);
-        printk(KERN_ERR "%s: ++ 1\n", __func__);
-	/* VDD_LVDS_3.3V*/
-	if(!votg_l10)
-		_GET_REGULATOR(votg_l10, "8058_l10");
-
-	/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-	if (board_type < TOPAZ_EVT1) {
-		/* VDD_BACKLIGHT_5.0V*/
-		if(!votg_vdd5v)
-			_GET_REGULATOR(votg_vdd5v, "vdd50_boost");
-	}
-
-	if (on) {
-		/* VDD_LVDS_3.3V ENABLE*/
-		rc = regulator_set_voltage(votg_l10, 3050000, 3050000);
-		if(rc) {
-			pr_err("%s: Unable to set regulator voltage:"
-					" votg_l10\n", __func__);
-			mutex_unlock(&lg_panel_pwr_sem);
-			return rc;
-		}
-
-		if (0 == isPowerOn) {
-			printk(KERN_ERR "%s: l10 ENABLE\n", __FUNCTION__);
-			rc = regulator_enable(votg_l10);
-			if(rc) {
-				pr_err("%s: Unable to enable the regulator:"
-						" votg_l10\n", __func__);
-				mutex_unlock(&lg_panel_pwr_sem);
-				return rc;
-			}
-
-			/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-			if (board_type < TOPAZ_EVT1) {
-				/* VDD_BACKLIGHT_5.0V ENABLE*/
-				rc = regulator_enable(votg_vdd5v);
-				if(rc) {
-					pr_err("%s: Unable to enable the regulator:"
-							" votg_vdd5v\n", __func__);
-					mutex_unlock(&lg_panel_pwr_sem);
-					return rc;
-				}
-			}
-
-			isPowerOn = 1;
-		}
-
-		/* LVDS_SHDN_N*/
-		rc = gpio_request(GPIO_LVDS_SHDN_N,"LVDS_SHDN_N");
-		if (rc) {
-			pr_err("%s: LVDS gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LVDS_SHDN_N);
-			mutex_unlock(&lg_panel_pwr_sem);
-			return rc;
-		}
-
-		/* LCD_PWR_EN */
-		rc = gpio_request(GPIO_LCD_PWR_EN, "LCD_PWR_EN");
-		if (rc) {
-			pr_err("%s: LCD Power gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LCD_PWR_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			mutex_unlock(&lg_panel_pwr_sem);
-			return rc;
-		}
-
-		/* BACKLIGHT */
-		rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
-                printk(KERN_ERR "%s: get BACKLIGHT(%d)=%d\n", __func__, GPIO_BACKLIGHT_EN, rc);
-		if (rc) {
-			pr_err("%s: BACKLIGHT gpio %d request"
-						"failed\n", __func__,
-						 GPIO_BACKLIGHT_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			gpio_free(GPIO_LCD_PWR_EN);
-			mutex_unlock(&lg_panel_pwr_sem);
-			return rc;
-		}
-
-		spin_lock_irqsave(&lg_panel_pwr_lock, flags);
-		gpio_set_value(GPIO_LCD_PWR_EN, 1);
-		udelay(500);
-		gpio_set_value(GPIO_LVDS_SHDN_N, 1);
-		spin_unlock_irqrestore(&lg_panel_pwr_lock, flags);
-		msleep(200);
-		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
-	} else {
-		if (1 == isPowerOn) {
-			printk(KERN_ERR "%s: l10 DISABLE\n", __FUNCTION__);
-			rc = regulator_disable(votg_l10);
-			if (rc) {
-				pr_err("%s: Unable to disable votg_l10\n",__func__);
-				mutex_unlock(&lg_panel_pwr_sem);
-				return rc;
-			}
-
-			/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-			if (board_type < TOPAZ_EVT1) {
-				rc = regulator_disable(votg_vdd5v);
-				if (rc) {
-					pr_err("%s: Unable to disable votg_vdd5v\n",__func__);
-					mutex_unlock(&lg_panel_pwr_sem);
-					return rc;
-				}
-			}
-
-			isPowerOn = 0;
-		}
-
-		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
-
-		// msleep(200);
-		spin_lock_irqsave(&lg_panel_pwr_lock, flags);
-		gpio_set_value(GPIO_LVDS_SHDN_N, 0);
-		gpio_set_value(GPIO_LCD_PWR_EN, 0);
-		spin_unlock_irqrestore(&lg_panel_pwr_lock, flags);
-		// msleep(400);
-		gpio_free(GPIO_LVDS_SHDN_N);
-		gpio_free(GPIO_LCD_PWR_EN);
-		gpio_free(GPIO_BACKLIGHT_EN);
-	}
-
-	/* configure lcdc gpios */
-        configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
-
-	mutex_unlock(&lg_panel_pwr_sem);
-        printk(KERN_ERR "%s: --\n", __func__);
-	return 0;
-}
-#undef _GET_REGULATOR
-
-/*
-   There are currently special actions that need to associate with
-   the first panel power off and power on after boot because of
-   complications with bootie powering on the display and vreg-sharing
-   with TP.
-
-   TODO: Once the gpio mux and vreg ref-count mechanisms
-         are established, this function should probably
-         be cleaned up or eliminated.
-*/
-
-static int lcdc_panel_power(int on)
-{
-	int rc = 0;
-	int flag_on = !!on;
-	static int lcdc_power_save_on = 1;
-	static int lcdc_steadycfg = 0;
-
-	if (lcdc_power_save_on == flag_on)
-		return 0;
-
-	lcdc_power_save_on = flag_on;
-
-	/*
-	 * Right BEFORE the first display power off after boot
-	 * the GPIOs will be requested (so that they can be
-	 * freed).
-	 *
-	 * (TODO: These gpios should have been requested earlier
-	 *        during init. However, one of the GPIOs is on
-	 *        the PMIC, and it cannot be requested properly)
-         */
-
-	if (!lcdc_power_save_on && !lcdc_steadycfg) {
-
-		rc = gpio_request(GPIO_LVDS_SHDN_N,"LVDS_SHDN_N");
-		if (rc) {
-			pr_err("%s: LVDS gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LVDS_SHDN_N);
-			return rc;
-		}
-
-		/* LCD_PWR_EN */
-		rc = gpio_request(GPIO_LCD_PWR_EN, "LCD_PWR_EN");
-		if (rc) {
-			pr_err("%s: LCD Power gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LCD_PWR_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			return rc;
-		}
-
-		/* BACKLIGHT */
-		rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
-		if(rc) {
-			pr_err("%s: BACKLIGHT gpio %d request"
-						"failed\n", __func__,
-						GPIO_BACKLIGHT_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			gpio_free(GPIO_LCD_PWR_EN);
-			return rc;
-		}
-	}
-
-	rc = lcdc_lg_panel_power(on);
-
-	/*
-	 * Right AFTER the first display power on after boot,
-	 * apply steady configuration.
-         */
-	if (lcdc_power_save_on && !lcdc_steadycfg) {
-		msm8x60_gpiomux_lcdc_steadycfg();
-		lcdc_steadycfg = 1;
-	}
-
-	return rc;
-}
-#else
 int lcdc_lg_panel_power(int on)
 {
   return 0;
@@ -659,10 +432,9 @@ static int lcdc_panel_power(int on)
 {
 	static bool bPanelPowerOn = false;
         static struct regulator *votg_l10, *votg_vdd5v;
-        return 0;
 	int rc = 0;
-	int flag_on = !!on;
-	static int lcdc_steadycfg = 0;
+        //	int flag_on = !!on;
+        //	static int lcdc_steadycfg = 0;
 
         printk(KERN_ERR "[DISP] %s: ++ %d\n", __func__, on);
 
@@ -791,7 +563,7 @@ static int lcdc_panel_power(int on)
           }
 
 	/* configure lcdc gpios */
-        //	configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
+        configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
 #if 0
 	/*
 	 * Right BEFORE the first display power off after boot
@@ -850,7 +622,6 @@ static int lcdc_panel_power(int on)
 #endif
         return 0;
 }
-#endif
 
 static struct lcdc_platform_data lcdc_pdata = {
 	.lcdc_power_save   = lcdc_panel_power,

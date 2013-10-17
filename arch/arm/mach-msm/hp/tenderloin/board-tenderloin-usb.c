@@ -7,6 +7,9 @@
 #ifdef CONFIG_A6
 #include <linux/a6.h>
 #endif
+#ifdef CONFIG_MDMGPIO
+#include <linux/mdmgpio.h>
+#endif
 #include "devices.h"
 #include "devices-msm8x60.h"
 #include "board-tenderloin.h"
@@ -107,7 +110,6 @@ static struct platform_device isp1763_device = {
 		.platform_data = &isp1763_pdata
 	}
 };
-
 
 /*
   This function only is charge of modem gpio initialize in board level, and should not
@@ -238,8 +240,40 @@ out_free_resources:
 	mutex_unlock(&poweron_lock);
 	return ret;
 }
+#endif /* CONFIG_USB_PEHCI_HCD */
+#ifdef CONFIG_MDMGPIO
+static int set_gpio_value(int gpionum, int value)
+{
+	gpio_set_value_cansleep(gpionum, value);
+	return 0;
+}
 
+static int get_gpio_value(int gpionum)
+{
+	int value;
+	value = gpio_get_value_cansleep(gpionum);
+	return value;
+}
+
+static struct mdmgpio_platform_data mdmgpio_pdata = {
+	.uim_cd_gpio = GPIO_3G_UIM_CD_N,
+	.mdm_disable_gpio = GPIO_3G_DISABLE_N,
+	.set_gpio_value = set_gpio_value,
+	.get_gpio_value = get_gpio_value,
+#ifdef CONFIG_USB_PEHCI_HCD
+	.mdm_poweron    = isp1763_modem_poweron,
+	.mdm_poweron_status= isp1763_modem_poweron_status,
 #endif
+};
+
+struct platform_device mdmgpio_device = {
+	.name = "mdmgpio",
+	.id = -1,
+	.dev = {
+		.platform_data = &mdmgpio_pdata,
+	},
+};
+#endif /* CONFIG_MDMGPIO */
 
 #if defined(CONFIG_USB_GADGET_MSM_72K) || defined(CONFIG_USB_EHCI_MSM_72K)
 static struct regulator *ldo6_3p3;
@@ -608,14 +642,17 @@ void board_register_reboot_notifier(void);
 
 void __init tenderloin_usb_init(void)
 {
+#ifdef CONFIG_MDMGPIO
+        platform_device_register(&mdmgpio_device);
+#endif
+#ifdef CONFIG_USB_EHCI_MSM_72K
+        msm_add_host(0, &msm_usb_host_pdata);
+#endif
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 	if (boardtype_is_3g()) {
                 board_register_reboot_notifier();
 		msm8x60_cfg_isp1763();
 		isp1763_modem_poweron(1);
 	}
-#endif
-#ifdef CONFIG_USB_EHCI_MSM_72K
-        msm_add_host(0, &msm_usb_host_pdata);
 #endif
 }
