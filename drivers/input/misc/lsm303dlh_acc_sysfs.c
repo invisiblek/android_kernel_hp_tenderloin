@@ -408,7 +408,6 @@ static void lsm303dlh_acc_irq1_work_func(struct work_struct *work)
 	;
 	/*  */
 	printk(KERN_INFO "%s: IRQ1 triggered\n", LSM303DLH_ACC_DEV_NAME);
-exit:
 	enable_irq(acc->irq1);
 }
 
@@ -423,7 +422,6 @@ static void lsm303dlh_acc_irq2_work_func(struct work_struct *work)
 	/*  */
 
 	printk(KERN_INFO "%s: IRQ2 triggered\n", LSM303DLH_ACC_DEV_NAME);
-exit:
 	enable_irq(acc->irq2);
 }
 

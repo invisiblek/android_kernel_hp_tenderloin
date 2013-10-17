@@ -974,9 +974,11 @@ static int lsm303dlh_mag_remove(struct i2c_client *client)
 static int lsm303dlh_mag_suspend(struct device *dev)
 {
 	#ifdef CONFIG_SUSPEND
+#if 0
 	struct i2c_client *client = to_i2c_client(dev);
 	struct lsm303dlh_data *gyro = i2c_get_clientdata(client);
-	#if DEBUG
+#endif
+	#ifdef DEBUG
 	pr_info(KERN_INFO "lsm303dlh_suspend\n");
 	#endif
 	/* TO DO */
@@ -987,9 +989,11 @@ static int lsm303dlh_mag_suspend(struct device *dev)
 static int lsm303dlh_mag_resume(struct device *dev)
 {
 	#ifdef CONFIG_SUSPEND
+#if 0
 	struct i2c_client *client = to_i2c_client(dev);
 	struct lsm303dlh_data *mag = i2c_get_clientdata(client);
-	#if DEBUG
+#endif
+	#ifdef DEBUG
 	pr_info(KERN_INFO "lsm303dlh_resume\n");
 	#endif
 	/* TO DO */

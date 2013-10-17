@@ -408,6 +408,7 @@ int32_t pm8058_xoadc_select_chan_and_start_conv(uint32_t adc_instance,
 }
 EXPORT_SYMBOL(pm8058_xoadc_select_chan_and_start_conv);
 
+#if 0
 static int32_t pm8058_xoadc_dequeue_slot_request(uint32_t adc_instance,
 				struct adc_conv_slot **slot)
 {
@@ -433,6 +434,7 @@ static int32_t pm8058_xoadc_dequeue_slot_request(uint32_t adc_instance,
 
 	return 0;
 }
+#endif
 
 int32_t pm8058_xoadc_read_adc_code(uint32_t adc_instance, int32_t *data)
 {

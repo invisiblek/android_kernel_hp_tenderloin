@@ -1508,8 +1508,8 @@ hsuart_read(struct dev_ctxt* p_contxt, const unsigned char *buf, int count)
 
 //			printk("Going to read, fullness %d, count %d, copied %d\n", p_buffer->fullness, count ,copied_cnt);
 			ret = hsuart_copy_buf_to_user(
-						p_buffer, 
-						buf + copied_cnt, 
+						p_buffer,
+						(unsigned char *)buf + copied_cnt,
 						bytes_to_copy);
 			if (0 <= ret) {
 				BUG_ON(ret != bytes_to_copy);
@@ -1597,7 +1597,9 @@ hsuart_copy_user_to_buf(struct buffer_item* io_p_buffer, const char* i_p_buf, in
 	int			ret		= 0;
 	int			ret_cnt		= 0;
 	int			err		= 0;
+#if 0
 	int i;
+#endif
 
 	HSUART_DEBUG("%s: %s called, io_p_buffer 0x%x, i_p_buf 0x%x, count %d\n", 
 			DRIVER_NAME, 
@@ -1653,15 +1655,15 @@ hsuart_copy_user_to_buf(struct buffer_item* io_p_buffer, const char* i_p_buf, in
 	 */
 	else {
 		int length1 = p_buffer->size - p_buffer->write_index;
-		err = memcpy(
+		err = (memcpy(
 			&(p_buffer->p_vaddr[p_buffer->write_index]), 
 			i_p_buf, 
-			length1)==1;
+			length1)!=&(p_buffer->p_vaddr[p_buffer->write_index]));
 		if (!err) {
-			err = memcpy(
+                        err = (memcpy(
 				p_buffer->p_vaddr,
 				i_p_buf + length1,
-				count - length1)==0;
+				count - length1)!=p_buffer->p_vaddr);
 			if (err) {
 				HSUART_ERR("%s:%s, copy from user failed p_vaddr0x%x, write_index0x%x, i_p_buf0x%x, count%d\n",
 					DRIVER_NAME, 
@@ -1810,44 +1812,6 @@ hsuart_write_done:
 
 	HSUART_EXIT();
 	return ret;
-}
-
-static unsigned int 
-hsuart_poll(struct file* file, struct poll_table_struct* wait)
-{
-	unsigned long		flags;
-	unsigned int		mask = 0;
-	struct dev_ctxt*	p_context;
-	int			rx_rdy;
-	int			tx_rdy;
-
-	HSUART_ENTER();
-//	p_context = container_of(file->f_op, struct dev_ctxt, fops);
-	p_context = file->private_data;
-
-	poll_wait(file, &(p_context->got_tx_buffer), wait);
-	poll_wait(file, &(p_context->got_rx_buffer), wait);
-
-//FIXME: context lock is useless... need to use lists lock
-	spin_lock_irqsave(&(p_context->lock), flags);
-	tx_rdy = hsuart_vacant_tx_buf_exist(&(p_context->tx_lists)); 
-	if(tx_rdy > 0) {
-		mask |= POLLOUT | POLLWRNORM;
-	}
-	rx_rdy = hsuart_rx_data_exist(&(p_context->rx_lists)); 
-	if(rx_rdy > 0) {
-		mask |= POLLIN  | POLLRDNORM;
-	}
-
-	HSUART_DEBUG("%s, tx_rdy %d, rx_rdy %d\n",__FUNCTION__, tx_rdy, rx_rdy);
-//	HSUART_ERR("%s, tx_rdy %d, rx_rdy %d\n",__FUNCTION__, tx_rdy, rx_rdy);
-
-	spin_unlock_irqrestore(&(p_context->lock), flags);
-
-	HSUART_EXIT();
-
-	return mask;
-
 }
 
 static void 
@@ -2111,7 +2075,7 @@ Done:
 static int 
 hsuart_ioctl(struct tty_struct *tty, unsigned int cmd, unsigned long args)
 {
-	int 				ret = -ENOIOCTLCMD;;
+	int 				ret = -ENOIOCTLCMD;
 	struct dev_ctxt* 		p_contxt;
 	void *				usr_ptr   = (void*) (args);
 	int   				usr_bytes = _IOC_SIZE(cmd);
@@ -2307,7 +2271,9 @@ void hsuart_tty_flip(void)
 	int bytes;
 	char *ptr = rcv_buf;
 	struct tty_struct *tty = p_contxt->tty;
+#if 0
 	int i=0;
+#endif
 
 	bytes = hsuart_rx_avail(&(p_contxt->rx_lists));
 	if(bytes<=0)
@@ -2323,19 +2289,6 @@ void hsuart_tty_flip(void)
 	tty_insert_flip_string(tty, ptr, bytes);
 	tty_flip_buffer_push(tty);
 }
-
-#if 0
-static struct file_operations hsuart_fops = {
-	.llseek  = no_llseek,
-	.read    = hsuart_read,
-	.write   = hsuart_write,
-//	.fsync   = hsuart_fsync,
-	.poll    = hsuart_poll,
-	.ioctl   = hsuart_ioctl,
-	.open    = hsuart_open,
-	.release = hsuart_close,
-};
-#endif
 
 static struct tty_operations uart_tty_ops = {
 	.open = hsuart_open,

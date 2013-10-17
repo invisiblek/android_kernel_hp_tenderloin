@@ -14,6 +14,7 @@
 #include <linux/errno.h> 
 #include <linux/clk.h>
 #include <linux/slab.h>
+#include <linux/tty.h>
 #include <linux/hres_counter.h>
 #include <linux/sysrq.h>
 #include <linux/platform_device.h>
@@ -353,7 +354,7 @@ static DEVICE_ATTR( channels, S_IRUGO | S_IWUSR, channels_show, channels_store);
 
 
 static void 
-hres_sysrq_show_evlog(int key, struct tty_struct *tty)
+hres_sysrq_show_evlog(int key)
 {
 	hres_evlog_print();
 }
@@ -384,7 +385,7 @@ static struct sysrq_key_op sysrq_show_log_op = {
 };
 
 static void 
-hres_sysrq_reset_evlog(int key, struct tty_struct *tty)
+hres_sysrq_reset_evlog(int key)
 {
 	hres_evlog_reset();
 }

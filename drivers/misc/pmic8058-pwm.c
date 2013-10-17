@@ -723,7 +723,7 @@ int pwm_config2(struct pwm_device *pwm, unsigned duty_numerator, unsigned duty_d
 	pm8058_pwm_bank_sel(pwm);
 	rc = pm8058_pwm_write(pwm, 1, 6);
 
-	pr_debug("%s: %u/%u period=%u usec: pwm_value=%d (of %d)\n",
+	pr_debug("%s: %u/%u period=%u usec: pwm_value=%d (of %d)\n", __func__,
 		 (unsigned)duty_numerator, (unsigned)duty_denominator, (unsigned)period_us,
 		 pwm->pwm_value, max_pwm_value);
 

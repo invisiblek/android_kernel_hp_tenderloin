@@ -32,8 +32,7 @@
 #define from565_r(x) ((((x) >> 11) & 0x1f) * 255 / 31)
 #define from565_g(x) ((((x) >> 5) & 0x3f) * 255 / 63)
 #define from565_b(x) (((x) & 0x1f) * 255 / 31)
-#endif
-
+#else
 static void memset16(void *_ptr, unsigned short val, unsigned count)
 {
 	unsigned short *ptr = _ptr;
@@ -41,6 +40,7 @@ static void memset16(void *_ptr, unsigned short val, unsigned count)
 	while (count--)
 		*ptr++ = val;
 }
+#endif
 
 /* 565RLE image format: [count(2 bytes), rle(2 bytes)] */
 int load_565rle_image(char *filename, bool bf_supported)
@@ -96,8 +96,8 @@ int load_565rle_image(char *filename, bool bf_supported)
 		goto err_logo_free_data;
 	}
 	if (info->screen_base) {
-		bits = (unsigned short *)(info->screen_base);
 #ifdef CONFIG_MACH_TENDERLOIN
+                bits = (unsigned int *)(info->screen_base);
                 while (count > 1) {
                   compressed = *ptr;
                   *bits = (from565_r(compressed) << 16) |
@@ -107,6 +107,7 @@ int load_565rle_image(char *filename, bool bf_supported)
                   count -= 2;
                 }
 #else
+		bits = (unsigned short *)(info->screen_base);
 		while (count > 3) {
                   unsigned n = ptr[0];
                   if (n > max)

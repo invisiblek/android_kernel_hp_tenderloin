@@ -103,14 +103,15 @@ static int max8903b_current_setup(enum max8903b_current value)
 	return rc;
 }
 
-
-static void max8903b_hw_init()
+#if 0
+static void max8903b_hw_init(void)
 {
 	gpio_set_value(pdevice_resource->DCM_in, pdevice_resource->DCM_in_polarity ? 1 : 0); /* usb mode */
 	gpio_set_value(pdevice_resource->IUSB_in, pdevice_resource->IUSB_in_polarity ? 0 : 1); /* usb 500mA */
 	gpio_set_value(pdevice_resource->USUS_in, pdevice_resource->USUS_in_polarity ? 1 : 0);
 	gpio_set_value(pdevice_resource->CEN_N_in, pdevice_resource->CEN_N_in_polarity ? 1 : 0);  /* charger enable */
 }
+#endif
 
 /* /sys/power/charger/status */
 /*
