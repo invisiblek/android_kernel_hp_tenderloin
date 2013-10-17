@@ -558,22 +558,6 @@ int __init msm_clock_init(struct clock_init_data *data)
 	return 0;
 }
 
-void __init msm_clock_fixup(const char **clock_names, unsigned len)
-{
-  unsigned i, n;
-#if 0
-  for (i = 0; i < len; ++i)
-    {
-      for (n = 0; n < clk_init_data->size; n++) {
-        struct clk *clk = clk_init_data->table[n].clk;
-        if (clk->dbg_name != NULL)
-          if (!strcmp(clk->dbg_name, clock_names[i]))
-            clk->flags |= CLKFLAG_SKIP_AUTO_OFF;
-      }
-    }
-#endif
-}
-
 static int __init clock_late_init(void)
 {
 	struct handoff_clk *h, *h_temp;
