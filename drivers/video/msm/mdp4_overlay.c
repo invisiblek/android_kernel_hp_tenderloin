@@ -788,6 +788,11 @@ void mdp4_overlay_rgb_setup(struct mdp4_overlay_pipe *pipe)
 	uint32 offset = 0;
 	int pnum;
 
+#ifdef CONFIG_MACH_TENDERLOIN
+	pipe->op_mode |= MDP4_OP_FLIP_LR;
+	pipe->op_mode |= MDP4_OP_FLIP_UD;
+#endif
+
 	pnum = pipe->pipe_num - OVERLAY_PIPE_RGB1; /* start from 0 */
 	rgb_base = MDP_BASE + MDP4_RGB_BASE;
 	rgb_base += (MDP4_RGB_OFF * pnum);
