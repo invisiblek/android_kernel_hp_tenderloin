@@ -130,13 +130,14 @@ EXPORT_SYMBOL(set_restart_to_ramdump);
 
 int htc_restart_handler_init(void)
 {
-	reboot_params = (void *)MSM_REBOOT_REASON_BASE;
-	reboot_params->radio_flag = get_radio_flag();
-	set_restart_reason(RESTART_REASON_RAMDUMP);
-	set_restart_msg("Unknown");
+#ifdef CONFIG_ARCH_MSM7X30
+        reboot_params = (void *)MSM_REBOOT_REASON_BASE;
+        reboot_params->radio_flag = get_radio_flag();
+        set_restart_reason(RESTART_REASON_RAMDUMP);
+        set_restart_msg("Unknown");
 
 	atomic_notifier_chain_register(&panic_notifier_list, &panic_blk);
-
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(htc_restart_handler_init);
