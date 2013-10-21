@@ -547,10 +547,16 @@ EXPORT_SYMBOL(get_tamper_sf);
 #define MSM_RAM_CONSOLE_BASE   0x8F900000
 #elif defined(CONFIG_ARCH_MSM8X60)
 #define MSM_RAM_CONSOLE_BASE   0x40300000
+#elif defined(CONFIG_ARCH_MSM7X30)
+#define MSM_RAM_CONSOLE_BASE   0x00500000
 #else
 #define MSM_RAM_CONSOLE_BASE   0x88900000
 #endif
+#ifdef CONFIG_ARCH_MSM7X30
+#define MSM_RAM_CONSOLE_SIZE	0x00100000
+#else
 #define MSM_RAM_CONSOLE_SIZE   (SZ_1M - SZ_128K) /* 128K for debug info */
+#endif
 
 static struct resource ram_console_resources[] = {
 	{
