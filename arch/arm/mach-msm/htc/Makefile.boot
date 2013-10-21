@@ -13,3 +13,7 @@ ifeq ($(CONFIG_MACH_M4_UL),y)
 else
    zreladdr-$(CONFIG_ARCH_MSM8930)	:= 0x80408000
 endif
+
+   zreladdr-$(CONFIG_MACH_VISION)       := 0x04008000
+params_phys-$(CONFIG_MACH_VISION)       := 0x04000100
+initrd_phys-$(CONFIG_MACH_VISION)       := 0x05000000

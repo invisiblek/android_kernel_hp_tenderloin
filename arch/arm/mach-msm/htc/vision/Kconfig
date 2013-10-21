@@ -1,0 +1,9 @@
+config MACH_VISION
+	depends on ARCH_MSM7X30
+	select MACH_HTC
+	select FB_MSM_LCDC
+        select REMOVE_EBI1_FIXED_CLK
+        select MSM_NATIVE_RESTART
+	bool "HTC Vision"
+	help
+	  Support for the HTC VISION device.
