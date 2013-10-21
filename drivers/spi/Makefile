@@ -45,6 +45,9 @@ obj-$(CONFIG_SPI_PL022)			+= spi-pl022.o
 obj-$(CONFIG_SPI_PPC4xx)		+= spi-ppc4xx.o
 obj-$(CONFIG_SPI_PXA2XX)		+= spi-pxa2xx.o
 obj-$(CONFIG_SPI_PXA2XX_PCI)		+= spi-pxa2xx-pci.o
+ifeq ($(CONFIG_ARCH_MSM7X30),y)
+obj-$(CONFIG_SPI_QSD)			+= spi_qsdold.o
+endif
 obj-$(CONFIG_SPI_QSD)			+= spi_qsd.o
 obj-$(CONFIG_SPI_QUP)			+= spi_qsd.o
 obj-$(CONFIG_SPI_RSPI)			+= spi-rspi.o
