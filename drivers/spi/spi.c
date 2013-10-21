@@ -1506,6 +1506,35 @@ int spi_write_and_read(struct spi_device *spi,
 }
 EXPORT_SYMBOL_GPL(spi_write_and_read);
 
+static DEFINE_MUTEX(spi_lock);
+int
+spi_read_write_lock(struct spi_device *spidev, struct spi_msg *msg, char *buf, int size, int func)
+{
+	int err =  -EINVAL;
+	mutex_lock(&spi_lock);
+	switch (func) {
+		case 0:
+			if (!buf)
+				break;
+			err = spi_read(spidev, buf, size);
+			break;
+		case 1:
+			if (!msg)
+				break;
+			err = spi_write(spidev, msg->buffer, (msg->len + 1)*size);
+			break;
+/*
+		case 2:
+			if (!msg)
+				break;
+			err = spi_Duplex(spidev, msg->data, buf, size);
+			break;
+*/
+	}
+	mutex_unlock(&spi_lock);
+	return err;
+}
+
 /*-------------------------------------------------------------------------*/
 
 static int __init spi_init(void)
