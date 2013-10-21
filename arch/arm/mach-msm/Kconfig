@@ -2675,4 +2675,10 @@ config MSM_UARTDM
 	help
 	  Provides access to the high speed uart ports.
 
+config REMOVE_EBI1_FIXED_CLK
+	bool "remove ebi1 fixed clk"
+	default n
+	help
+		use for 2x Radio
+
 endif

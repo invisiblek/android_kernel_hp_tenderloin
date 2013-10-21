@@ -2332,7 +2332,12 @@ static struct branch_clk lpa_core_clk = {
 static DEFINE_CLK_PCOM(adsp_clk, ADSP_CLK, 0);
 static DEFINE_CLK_PCOM(codec_ssbi_clk,	CODEC_SSBI_CLK, 0);
 static DEFINE_CLK_PCOM(ebi1_clk, EBI1_CLK, CLKFLAG_MIN);
+#ifdef CONFIG_REMOVE_EBI1_FIXED_CLK
+static DEFINE_CLK_PCOM(ebi1_fixed_clk, EBI1_CLK, CLKFLAG_MIN);
+#else
 static DEFINE_CLK_PCOM(ebi1_fixed_clk, EBI1_FIXED_CLK, CLKFLAG_MIN);
+#endif
+
 static DEFINE_CLK_PCOM(ecodec_clk, ECODEC_CLK, 0);
 static DEFINE_CLK_PCOM(gp_clk, GP_CLK, 0);
 static DEFINE_CLK_PCOM(uart3_clk, UART3_CLK, 0);
