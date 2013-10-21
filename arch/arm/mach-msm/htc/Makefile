@@ -18,6 +18,7 @@ ifeq ($(CONFIG_ARCH_MSM8X60),y)
 obj-y += htc_acoustic_8x60.o
 endif
 obj-y += htc_lpm.o
+obj-$(CONFIG_ARCH_MSM7X30) += drv_callback.o
 
 obj-$(CONFIG_HTC_BATT_CORE) += htc_battery_core.o
 obj-$(CONFIG_HTC_BATT_8x60) += htc_battery_8x60.o
@@ -31,4 +32,5 @@ obj-$(CONFIG_HTC_HEADSET_ONE_WIRE) += htc_headset_one_wire.o
 ifeq ($(CONFIG_MACH_HTC),y)
 obj-$(CONFIG_ARCH_MSM8930) += ../devices-8930.o
 endif
+obj-$(CONFIG_MICROP_COMMON) += atmega_microp_common.o
 CFLAGS_devices_htc.o += -Idrivers/staging/android

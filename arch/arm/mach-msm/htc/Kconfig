@@ -58,4 +58,9 @@ config HTC_HEADSET_ONE_WIRE
 	help
 	  Provides support for HTC 1-wire headset detection.
 
+config MICROP_COMMON
+	tristate "MICROP COMMON Driver"
+	depends on I2C
+	help
+	  HTC Microp-P support.
 endmenu
