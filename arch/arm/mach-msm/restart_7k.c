@@ -14,11 +14,14 @@
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/kernel.h>
+#include <linux/delay.h>
 #include <linux/init.h>
 #include <linux/reboot.h>
 #include <linux/pm.h>
+#include <mach/system.h>
 #include <asm/system_misc.h>
 #include <mach/proc_comm.h>
+#include <linux/rmt_storage_client.h>
 
 #include "devices-msm7x2xa.h"
 #include "smd_rpcrouter.h"
@@ -52,6 +55,23 @@ static void msm_pm_restart(char str, const char *cmd)
 	setup_mm_for_reboot();
 
 	msm_proc_comm(PCOM_RESET_CHIP, &restart_reason, 0);
+
+#if defined(CONFIG_MSM_RMT_STORAGE_SERVER) || defined(CONFIG_MSM_RMT_STORAGE_CLIENT)
+	printk(KERN_INFO "from %s\r\n", __func__);
+	wait_rmt_final_call_back(10);
+	printk(KERN_INFO "back %s\r\n", __func__);
+	/* wait 2 seconds to let radio reset device after the final EFS sync*/
+	mdelay(2000);
+#else
+	/* In case Radio is dead, reset device after notify Radio 10 seconds */
+	mdelay(10000);
+#endif
+
+	/* hard reboot if possible */
+	if (msm_hw_reset_hook) {
+		printk(KERN_INFO "%s : Do HW_RESET by APP not by RADIO\r\n", __func__);
+		msm_hw_reset_hook();
+	}
 
 	for (;;)
 		;
