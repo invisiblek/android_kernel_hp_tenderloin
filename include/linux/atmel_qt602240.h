@@ -480,7 +480,11 @@ struct atmel_i2c_platform_data {
 	uint8_t GCAF_level[5];
 	struct atmel_mferr mferr_config;
 	struct atmel_mferr cfm_calb;
+#ifndef CONFIG_TOUCHSCREEN_ATMEL
 	struct atmel_mferr cable_config;
+#else
+	int8_t cable_config[6];
+#endif
 	uint8_t noiseLine_config[8];
 	uint8_t workaround;
 #if defined(CONFIG_TOUCH_KEY_FILTER)
