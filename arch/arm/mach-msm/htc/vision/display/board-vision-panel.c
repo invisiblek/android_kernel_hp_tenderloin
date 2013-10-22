@@ -24,6 +24,8 @@
 #include <mach/msm_memtypes.h>
 #include <linux/bootmem.h>
 #include <mach/msm_gpiomux.h>
+#include <mach/proc_comm.h>
+#include <mach/vreg.h>
 
 #include "../devices.h"
 #include "../board-vision.h"
@@ -31,16 +33,117 @@
 #include <linux/fb.h>
 #endif
 
+struct vreg *vreg_ldo19, *vreg_ldo20;
+struct vreg *vreg_ldo12;
+
+static void config_gpio_table(uint32_t *table, int len)
+{
+	int n, rc;
+	for (n = 0; n < len; n++) {
+		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
+		if (rc) {
+			pr_err("[GPIO] %s: gpio_tlmm_config(%#x)=%d\n",
+					__func__, table[n], rc);
+			break;
+		}
+	}
+}
+
+inline int is_samsung_panel(void)
+{
+  return (panel_type == SAMSUNG_PANEL || panel_type == SAMSUNG_PANELII)? 1 : 0;
+}
+
+static inline int is_sony_panel(void)
+{
+  return (panel_type == SONY_PANEL_SPI)? 1 : 0;
+}
+
+#define LCM_GPIO_CFG(gpio, func)                                        \
+  GPIO_CFG(gpio, func, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA)
+static uint32_t display_on_gpio_table[] = {
+  LCM_GPIO_CFG(VISION_LCD_PCLK, 1),
+  LCM_GPIO_CFG(VISION_LCD_DE, 1),
+  LCM_GPIO_CFG(VISION_LCD_VSYNC, 1),
+  LCM_GPIO_CFG(VISION_LCD_HSYNC, 1),
+  LCM_GPIO_CFG(VISION_LCD_G2, 1),
+  LCM_GPIO_CFG(VISION_LCD_G3, 1),
+  LCM_GPIO_CFG(VISION_LCD_G4, 1),
+  LCM_GPIO_CFG(VISION_LCD_G5, 1),
+  LCM_GPIO_CFG(VISION_LCD_G6, 1),
+  LCM_GPIO_CFG(VISION_LCD_G7, 1),
+  LCM_GPIO_CFG(VISION_LCD_B3, 1),
+  LCM_GPIO_CFG(VISION_LCD_B4, 1),
+  LCM_GPIO_CFG(VISION_LCD_B5, 1),
+  LCM_GPIO_CFG(VISION_LCD_B6, 1),
+  LCM_GPIO_CFG(VISION_LCD_B7, 1),
+  LCM_GPIO_CFG(VISION_LCD_R3, 1),
+  LCM_GPIO_CFG(VISION_LCD_R4, 1),
+  LCM_GPIO_CFG(VISION_LCD_R5, 1),
+  LCM_GPIO_CFG(VISION_LCD_R6, 1),
+  LCM_GPIO_CFG(VISION_LCD_R7, 1),
+};
+
+static uint32_t display_off_gpio_table[] = {
+  LCM_GPIO_CFG(VISION_LCD_PCLK, 0),
+  LCM_GPIO_CFG(VISION_LCD_DE, 0),
+  LCM_GPIO_CFG(VISION_LCD_VSYNC, 0),
+  LCM_GPIO_CFG(VISION_LCD_HSYNC, 0),
+  LCM_GPIO_CFG(VISION_LCD_G2, 0),
+  LCM_GPIO_CFG(VISION_LCD_G3, 0),
+  LCM_GPIO_CFG(VISION_LCD_G4, 0),
+  LCM_GPIO_CFG(VISION_LCD_G5, 0),
+  LCM_GPIO_CFG(VISION_LCD_G6, 0),
+  LCM_GPIO_CFG(VISION_LCD_G7, 0),
+  LCM_GPIO_CFG(VISION_LCD_B0, 0),
+  LCM_GPIO_CFG(VISION_LCD_B3, 0),
+  LCM_GPIO_CFG(VISION_LCD_B4, 0),
+  LCM_GPIO_CFG(VISION_LCD_B5, 0),
+  LCM_GPIO_CFG(VISION_LCD_B6, 0),
+  LCM_GPIO_CFG(VISION_LCD_B7, 0),
+  LCM_GPIO_CFG(VISION_LCD_R0, 0),
+  LCM_GPIO_CFG(VISION_LCD_R3, 0),
+  LCM_GPIO_CFG(VISION_LCD_R4, 0),
+  LCM_GPIO_CFG(VISION_LCD_R5, 0),
+  LCM_GPIO_CFG(VISION_LCD_R6, 0),
+  LCM_GPIO_CFG(VISION_LCD_R7, 0),
+};
+
+static uint32_t display_gpio_table[] = {
+  VISION_LCD_PCLK,
+  VISION_LCD_DE,
+  VISION_LCD_VSYNC,
+  VISION_LCD_HSYNC,
+  VISION_LCD_G2,
+  VISION_LCD_G3,
+  VISION_LCD_G4,
+  VISION_LCD_G5,
+  VISION_LCD_G6,
+  VISION_LCD_G7,
+  VISION_LCD_B0,
+  VISION_LCD_B3,
+  VISION_LCD_B4,
+  VISION_LCD_B5,
+  VISION_LCD_B6,
+  VISION_LCD_B7,
+  VISION_LCD_R0,
+  VISION_LCD_R3,
+  VISION_LCD_R4,
+  VISION_LCD_R5,
+  VISION_LCD_R6,
+  VISION_LCD_R7,
+};
+
 #ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE (1024 * 768 * 4 * 3) /* 4 bpp x 3 pages */
+#define MSM_FB_PRIM_BUF_SIZE (800 * 480 * 4 * 3) /* 4 bpp x 3 pages */
 #else
-#define MSM_FB_PRIM_BUF_SIZE (1024 * 768 * 4 * 2) /* 4 bpp x 2 pages */
+#define MSM_FB_PRIM_BUF_SIZE (800 * 480 * 4 * 2) /* 4 bpp x 2 pages */
 #endif
 
 #define MSM_FB_EXT_BUF_SIZE     0
 
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1024 * 768 * 3 * 2), 4096)
+#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((800 * 480 * 3 * 2), 4096)
 #else
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
 #endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
@@ -311,18 +414,16 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 
 static struct msm_panel_common_pdata mdp_pdata = {
   //        .gpio = MDP_VSYNC_GPIO,
-        .gpio = 2,
-        .mdp_max_clk = 200000000,
-#ifdef CONFIG_MSM_BUS_SCALING
-	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
-#endif
-	.mdp_rev = MDP_REV_41,
+        .gpio = 30,
+	.hw_revision_addr = 0xac001270,
+        //        .mdp_max_clk = 200000000,
+	.mdp_max_clk = 192000000,
+	.mdp_rev = MDP_REV_40,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
         .mem_hid = BIT(ION_CP_WB_HEAP_ID),
 #else
-	.mem_hid = MEMTYPE_EBI1,
+        .mem_hid = MEMTYPE_EBI0,
 #endif
-	.cont_splash_enabled = 0x01,
 };
 
 void __init msm7x30_mdp_writeback(struct memtype_reserve* reserve_table)
@@ -337,84 +438,207 @@ void __init msm7x30_mdp_writeback(struct memtype_reserve* reserve_table)
 #endif
 }
 
-
-static int lcd_panel_gpios[] = {
-	0, /* lcdc_pclk */
-	1, /* lcdc_hsync*/
-	2, /* lcdc_vsync*/
-	3, /* lcdc_den */
-	4, /* lcdc_red7 */
-	5, /* lcdc_red6 */
-	6, /* lcdc_red5 */
-	7, /* lcdc_red4 */
-	8, /* lcdc_red3 */
-	9, /* lcdc_red2 */
-	10, /* lcdc_red1 */
-	11, /* lcdc_red0 */
-	12, /* lcdc_grn7 */
-	13, /* lcdc_grn6 */
-	14, /* lcdc_grn5 */
-	15, /* lcdc_grn4 */
-	16, /* lcdc_grn3 */
-	17, /* lcdc_grn2 */
-	18, /* lcdc_grn1 */
-	19, /* lcdc_grn0 */
-	20, /* lcdc_blu7 */
-	21, /* lcdc_blu6 */
-	22, /* lcdc_blu5 */
-	23, /* lcdc_blu4 */
-	24, /* lcdc_blu3 */
-	25, /* lcdc_blu2 */
-	26, /* lcdc_blu1 */
-	27, /* lcdc_blu0 */
-	//70, /* TOUCH reset */
-};
-
-static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
-{
-	int ret = 0;
-	int i;
-
-	for (i = 0; i < cnt; i++) {
-		//printk(KERN_ERR "%s:pin(%d):%s\n", __func__, gpios[i], on?"on":"off");
-		if (on) {
-			ret = msm_gpiomux_get(gpios[i]);
-			if (unlikely(ret))
-				break;
-		} else {
-			ret = msm_gpiomux_put(gpios[i]);
-			if (unlikely(ret))
-				return ret;
-		}
-	}
-	if (ret)
-		for (; i >= 0; i--)
-			msm_gpiomux_put(gpios[i]);
-	return ret;
-}
-
-int lcdc_lg_panel_power(int on)
-{
-  return 0;
-}
-
+extern int lcdc_lcd_on;
 static bool lcdc_power_on;
 
 static int lcdc_panel_power(int on)
 {
-	static bool bPanelPowerOn = false;
-        static struct regulator *votg_l10, *votg_vdd5v;
-	int rc = 0;
-        //	int flag_on = !!on;
-        //	static int lcdc_steadycfg = 0;
+  static struct vreg *vreg_ldo19, *vreg_ldo20, *vreg_ldo12;
+  static bool bPanelPowerOn = false;
+  int rc;
+  
+  printk(KERN_ERR "%s: ++\n", __func__);
+  
+  if (panel_type == PANEL_ID_NONE)
+    return -ENODEV;
+  
+  if (!lcdc_power_on) 
+    {
+      vreg_ldo12 = vreg_get(NULL, "gp9");
+      if (IS_ERR_OR_NULL(vreg_ldo12)) {
+        pr_err("%s: gp9 vreg get failed (%ld)\n",
+               __func__, PTR_ERR(vreg_ldo12));
+        return -ENODEV;
+      }
+      
+      vreg_ldo19 = vreg_get(NULL, "wlan2");
+      if (IS_ERR_OR_NULL(vreg_ldo19)) {
+        pr_err("%s: wlan2 vreg get failed (%ld)\n",
+               __func__, PTR_ERR(vreg_ldo19));
+        return -ENODEV;
+      }
+      
+      vreg_ldo20 = vreg_get(NULL, "gp13");
+      if (IS_ERR_OR_NULL(vreg_ldo20)) {
+        pr_err("%s: gp13 vreg get failed (%ld)\n",
+               __func__, PTR_ERR(vreg_ldo20));
+        return -ENODEV;
+      }
+      
+      rc = vreg_set_level(vreg_ldo12, 2850);
+      if (rc) {
+        pr_err("%s: vreg LDO12(gp9) set level failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      
+      rc = vreg_set_level(vreg_ldo19, 1800);
+      if (rc) {
+        pr_err("%s: vreg LDO19 set level failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      
+      if (is_samsung_panel())
+        rc = vreg_set_level(vreg_ldo20, 2850);
+      else
+        rc = vreg_set_level(vreg_ldo20, 2600);
+      if (rc) {
+        pr_err("%s: vreg LDO20 set level failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      rc = gpio_request(VISION_LCD_RSTz, "LCM_RST_N");
+      if (rc) {
+        printk(KERN_ERR "%s:LCM gpio %d request failed, rc=%d\n", __func__,  VISION_LCD_RSTz, rc);
+        return -EINVAL;
+      }
+      if (system_rev <= 1)
+        {
+          rc = gpio_request(VISION_EL_EN, "EL_EN");
+          if (rc) {
+            printk(KERN_ERR "%s: EL_EN gpio %d request failed, rc=%d\n", __func__,  VISION_EL_EN, rc);
+            return -EINVAL;
+          }
+        }
+      lcdc_power_on = true;
+    }
+  
+  if (on) 
+    {
+      printk(KERN_ERR "%s: on\n", __func__);
+      if (bPanelPowerOn) return 0;
+      /* turn on L19 for OJ. Note: must before L12 */
+      rc = vreg_enable(vreg_ldo19);
+      if (rc) {
+        pr_err("%s: LDO19 vreg enable failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      msleep(5);
+      rc = vreg_enable(vreg_ldo12);
+      if (rc) {
+        pr_err("%s: LDO12 vreg enable failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      msleep(5);
+      rc = vreg_enable(vreg_ldo20);
+      if (rc) {
+        pr_err("%s: LDO20 vreg enable failed (%d)\n",
+               __func__, rc);
+        return -EINVAL;
+      }
+      if (!lcdc_lcd_on) 
+        {
+          msleep(10);
+          gpio_set_value(VISION_LCD_RSTz, 1);
+          msleep(10);
+          gpio_set_value(VISION_LCD_RSTz, 0);
+          msleep(500);
+          gpio_set_value(VISION_LCD_RSTz, 1);
+          msleep(10);
+          /* XA, XB board has HW panel issue, need to set EL_EN pin */
+          if(system_rev <= 1)
+            gpio_set_value(VISION_EL_EN, 1);
+        }
+      usleep(60);
+      bPanelPowerOn = true;
+    }
+  else 
+    {
+      if (!bPanelPowerOn) return 0;
+      msleep(10);
+      if(system_rev <= 1)
+        gpio_set_value(VISION_EL_EN, 0);
+      gpio_set_value(VISION_LCD_RSTz, 0);
+      msleep(120);
+      
+      rc = vreg_disable(vreg_ldo12);
+      if (rc)
+        {
+          pr_err("%s: LDO12, 19, 20 vreg disable failed (%d)\n",
+                 __func__, rc);
+          return -ENODEV;
+        }
+      msleep(5);
+      rc = vreg_disable(vreg_ldo19);
+      if (rc)
+        {
+          pr_err("%s: LDO12, 19, 20 vreg disable failed (%d)\n",
+                 __func__, rc);
+          return -ENODEV;
+        }
+      msleep(5);
+      rc = vreg_disable(vreg_ldo20);
+      if (rc)
+        {
+          pr_err("%s: LDO12, 19, 20 vreg disable failed (%d)\n",
+                 __func__, rc);
+          return -ENODEV;
+        }
+      msleep(5);
+      bPanelPowerOn = false;
+    }
+  return 0;
+}
 
-        printk(KERN_ERR "[DISP] %s: ++ %d\n", __func__, on);
+static int panel_gpio_switch(int on)
+{
+  uint32_t pin, id;
 
+  config_gpio_table(
+                    !!on ? display_on_gpio_table : display_off_gpio_table,
+                    ARRAY_SIZE(display_on_gpio_table));
+
+  if (!on) {
+    for (pin = 0; pin < ARRAY_SIZE(display_gpio_table); pin++) {
+      gpio_set_value(display_gpio_table[pin], 0);
+    }
+    id = GPIO_CFG(VISION_LCD_R6, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA);
+    msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &id, 0);
+    id = GPIO_CFG(VISION_LCD_R7, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_4MA);
+    msm_proc_comm(PCOM_RPC_GPIO_TLMM_CONFIG_EX, &id, 0);
+    gpio_set_value(VISION_LCD_R6, 0);
+    gpio_set_value(VISION_LCD_R7, 0);
+  }
+  return 0;
+}
+
+/* a hacky interface to control the panel power */
+static int lcdc_config_gpios(int on)
+{
+        int rc;
+	printk(KERN_INFO "%s: power goes to %d\n", __func__, on);
+
+        rc = lcdc_panel_power(on);
+        if (rc)
+          {
+            printk(KERN_ERR "%s: panel_power failed!\n", __func__);
+            return rc;
+          }
+        rc = panel_gpio_switch(on);
+	if (rc)
+          {
+            printk(KERN_ERR "%s: panel_gpio_switch failed!\n", __func__);
+            return rc;
+          }
         return 0;
 }
 
 static struct lcdc_platform_data lcdc_pdata = {
-	.lcdc_power_save   = lcdc_panel_power,
+  //	.lcdc_power_save   = lcdc_panel_power,
+	.lcdc_power_save   = lcdc_config_gpios,
 };
 
 static struct platform_device lcdc_vision_panel_device = {
@@ -481,6 +705,8 @@ void __init msm7x30_set_display_params(char *prim_panel, char *ext_panel)
 
 void __init vision_fb_init(void)
 {
+  printk(KERN_ERR "%s: Sony=%d Samsung=%d Other=%d\n", __func__, is_sony_panel(), panel_type == SAMSUNG_PANEL, panel_type != SAMSUNG_PANEL && !is_sony_panel());
+
 	msm7x30_set_display_params("lcdc_vision", "hdmi_msm");
 	platform_device_register(&msm_fb_device);
 	platform_device_register(&lcdc_vision_panel_device);

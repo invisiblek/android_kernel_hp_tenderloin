@@ -15,6 +15,7 @@
 #define __ARCH_ARM_MACH_MSM_BOARD_VISION_H
 
 #include <mach/board.h>
+#include <mach/msm_memtypes.h>
 
 extern int panel_type;
 
@@ -59,12 +60,13 @@ extern struct platform_device msm_device_mddi0;
 
 //#define MSM_FB_SIZE	0x500000
 
+#if 0
 #ifdef CONFIG_ION_MSM
 #define MSM_ION_AUDIO_SIZE  (MSM_PMEM_AUDIO_SIZE + PMEM_KERNEL_EBI0_SIZE)
 #define MSM_ION_SF_SIZE     MSM_PMEM_SF_SIZE
 #define MSM_ION_HEAP_NUM    4
 #endif
-
+#endif
 #define VISION_GPIO_WIFI_IRQ             147
 #define VISION_GPIO_WIFI_SHUTDOWN_N       39
 
@@ -206,5 +208,6 @@ void __init vision_fb_init(void);
 void __init vision_microp_init(void);
 #endif
 void __init msm7x30_allocate_fb_region(void);
+void __init msm7x30_mdp_writeback(struct memtype_reserve* reserve_table);
 
 #endif /* __ARCH_ARM_MACH_MSM_BOARD_VISION_H */

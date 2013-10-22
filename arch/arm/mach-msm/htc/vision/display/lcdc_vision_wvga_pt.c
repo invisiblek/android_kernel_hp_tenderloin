@@ -12,6 +12,7 @@ static int __init lcdc_vision_panel_init(void)
         printk(KERN_ERR "%s: +++++++++++++++++++++++\n", __func__);
 	pinfo.xres = 480;
 	pinfo.yres = 800;
+	MSM_FB_SINGLE_MODE_PANEL(&pinfo);
 	pinfo.type = LCDC_PANEL;
 	pinfo.pdest = DISPLAY_1;
 	pinfo.wait_cycle = 0;
@@ -38,5 +39,5 @@ static int __init lcdc_vision_panel_init(void)
         return ret;
 }
 
-//device_initcall_sync(lcdc_vision_panel_init);
-late_initcall(lcdc_vision_panel_init);
+device_initcall_sync(lcdc_vision_panel_init);
+//late_initcall(lcdc_vision_panel_init);

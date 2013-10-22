@@ -9,7 +9,7 @@
 
 static struct msm_panel_common_pdata *lcdc_vision_pdata;
 static uint8_t last_val_pwm = SONYWVGA_BR_DEF_PANEL_PWM;
-unsigned int g_unblank_stage = 0;
+int lcdc_lcd_on = 1;
 
 extern int qspi_send_9bit(struct spi_msg *msg);
 
@@ -58,12 +58,17 @@ static struct spi_msg SAG_SONY_GAMMA_UPDATE_TABLE[] = {
 	LCM_CMD(0xC2, 0x36, 0x12),//Change PWM to 13k for HW's request
 };
 
+void spi_send_cmd(struct spi_msg *cmd)
+{
+  printk(KERN_ERR "%s; send cmd %p=%d\n", __func__, cmd, qspi_send_9bit(cmd));
+}
+
 static int lcm_write_tb(struct spi_msg cmd_table[], unsigned size)
 {
 	int i;
 
 	for (i = 0; i < size; i++)
-		qspi_send_9bit(&cmd_table[i]);
+		spi_send_cmd(&cmd_table[i]);
 	return 0;
 }
 
@@ -155,15 +160,18 @@ sonywvga_panel_shrink_pwm(int brightness)
 
 static int lcdc_vision_panel_off(struct platform_device *pdev)
 {
-        return 0;
+  if (!lcdc_lcd_on)
+    return 0;
+  lcdc_lcd_on = 0;
+  return 0;
 }
 
-/*
- * Caller must make sure the spi is ready
- * */
-static void lcdc_vision_set_gamma_val(int val)
+static void lcdc_vision_panel_set_backlight(struct msm_fb_data_type *mfd)
 {
+        unsigned int val = mfd->bl_level;
 	uint8_t data[4] = {0, 0, 0, 0};
+
+        printk(KERN_ERR "%s: %d\n", __func__, val);
 
 	if (!is_sony_spi()) {
 		//turn on backlight
@@ -173,7 +181,7 @@ static void lcdc_vision_set_gamma_val(int val)
 		microp_i2c_write(0x25, data, 4);
 	} else {
 		shrink_pwm = sonywvga_panel_shrink_pwm(val);
-		qspi_send_9bit(&gamma_update);
+		spi_send_cmd(&gamma_update);
 		if( panel_type == PANEL_ID_SAG_SONY )
 			lcm_write_tb(SAG_SONY_GAMMA_UPDATE_TABLE,  ARRAY_SIZE(SAG_SONY_GAMMA_UPDATE_TABLE));
 		else
@@ -184,19 +192,36 @@ static void lcdc_vision_set_gamma_val(int val)
 
 static int lcdc_vision_panel_on(struct platform_device *pdev)
 {
-	hr_msleep(100);
+        struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
+
+        //        if (lcdc_lcd_on)
+        //          return 0;
+        
+        spi_send_cmd(&init_cmd);
+        hr_msleep(5);
+        if (is_sony_RGB666()) {
+          init_data = 0x06;
+          spi_send_cmd(&init_cmd2);
+        } else {
+          init_data = 0x05;
+          spi_send_cmd(&init_cmd2);
+        }
+
+	msleep(100);
 	printk(KERN_ERR "%s: will send unblank\n",__func__);
-	qspi_send_9bit(&unblank_msg);
+	spi_send_cmd(&unblank_msg);
 	printk(KERN_ERR "%s: good!\n",__func__);
-	hr_msleep(20);
+	msleep(20);
 
 	//init gamma setting
 	if(!is_sony_with_gamma())
 		lcm_write_tb(SONY_TFT_INIT_TABLE,
 			ARRAY_SIZE(SONY_TFT_INIT_TABLE));
 
-	lcdc_vision_set_gamma_val(last_val_pwm);
-	g_unblank_stage = 1;        
+        mfd->bl_level = last_val_pwm;
+        lcdc_vision_panel_set_backlight(mfd);
+
+        lcdc_lcd_on = 1;
 
 	return 0;
 }
@@ -225,6 +250,7 @@ static struct platform_driver this_driver = {
 static struct msm_fb_panel_data vision_panel_data = {
 	.on = lcdc_vision_panel_on,
 	.off = lcdc_vision_panel_off,
+        .set_backlight = lcdc_vision_panel_set_backlight,
 };
 
 static int lcdc_vision_lcd_init(void);
