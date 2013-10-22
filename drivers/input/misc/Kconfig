@@ -731,4 +731,16 @@ config INPUT_ISL29023
 	  This driver can also be built as a module.  If so, the module
 	  will be called isl29023.
 
+config LIGHTSENSOR_MICROP
+        tristate "LIGHTSENSOR MICROP Driver"
+        depends on MICROP_COMMON
+        help
+          HTC LIGHTSENSOR Microp support.
+
+config INPUT_CAPELLA_CM3602
+	tristate "Capella CM3602 proximity and light sensor"
+	help
+	  Say Y here to enable the Capella CM3602 Short Distance Proximity
+	  Sensor with Ambient Light Sensor.
+
 source "drivers/input/misc/mpu3050/Kconfig"
