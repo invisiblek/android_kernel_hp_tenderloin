@@ -430,6 +430,14 @@ config SPI_QUP
 
 	  This driver can also be built as a module.  If so, the module
 	  will be called spi_qsd.
+
+config SPI_CRUCIAL_OJ
+        tristate "SPI support for CRUCIAL OJ"
+        default n
+	depends on ARCH_MSM7X30
+        help
+          SPI driver for CRUCIAL OJ
+
 #
 # Add new SPI master controllers in alphabetical order above this line
 #
