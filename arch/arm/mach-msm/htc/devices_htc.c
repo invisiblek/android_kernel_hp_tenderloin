@@ -543,6 +543,57 @@ unsigned int get_tamper_sf(void)
 }
 EXPORT_SYMBOL(get_tamper_sf);
 
+static char *keycap_tag = NULL;
+static int __init board_keycaps_tag(char *get_keypads)
+{
+	if(strlen(get_keypads))
+		keycap_tag = get_keypads;
+	else
+		keycap_tag = NULL;
+	return 1;
+}
+__setup("androidboot.keycaps=", board_keycaps_tag);
+
+void board_get_keycaps_tag(char **ret_data)
+{
+	*ret_data = keycap_tag;
+}
+EXPORT_SYMBOL(board_get_keycaps_tag);
+
+static char *cid_tag = NULL;
+static int __init board_set_cid_tag(char *get_hboot_cid)
+{
+	if(strlen(get_hboot_cid))
+		cid_tag = get_hboot_cid;
+	else
+		cid_tag = NULL;
+	return 1;
+}
+__setup("androidboot.cid=", board_set_cid_tag);
+
+void board_get_cid_tag(char **ret_data)
+{
+	*ret_data = cid_tag;
+}
+EXPORT_SYMBOL(board_get_cid_tag);
+
+static char *carrier_tag = NULL;
+static int __init board_set_carrier_tag(char *get_hboot_carrier)
+{
+	if(strlen(get_hboot_carrier))
+		carrier_tag = get_hboot_carrier;
+	else
+		carrier_tag = NULL;
+	return 1;
+}
+__setup("androidboot.carrier=", board_set_carrier_tag);
+
+void board_get_carrier_tag(char **ret_data)
+{
+	*ret_data = carrier_tag;
+}
+EXPORT_SYMBOL(board_get_carrier_tag);
+
 #ifdef CONFIG_ARCH_MSM8930
 #define MSM_RAM_CONSOLE_BASE   0x8F900000
 #elif defined(CONFIG_ARCH_MSM8X60)
