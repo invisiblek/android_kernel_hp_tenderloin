@@ -22,6 +22,7 @@
 
 #include <asm/mach-types.h>
 #include <mach/msm_hsusb.h>
+#include <mach/board.h>
 
 #define OTGSC_BSVIE            (1 << 27)
 #define OTGSC_IDIE             (1 << 24)
@@ -157,6 +158,15 @@ struct msm_otg {
 #ifdef CONFIG_USB_MSM_ACA
 	struct timer_list	id_timer;	/* drives id_status polling */
 	unsigned		b_max_power;	/* ACA: max power of accessory*/
+#endif
+#ifdef CONFIG_MACH_HTC
+	void (*vbus_notification_cb)(int online);
+
+	struct work_struct notifier_work;
+	enum usb_connect_type connect_type;
+	int connect_type_ready;
+	struct timer_list ac_detect_timer;
+	int ac_detect_count;
 #endif
 };
 

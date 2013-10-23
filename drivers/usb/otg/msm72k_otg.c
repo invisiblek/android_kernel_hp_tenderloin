@@ -31,12 +31,15 @@
 #include <linux/uaccess.h>
 #include <mach/clk.h>
 #include <mach/msm_xo.h>
+#ifdef CONFIG_MACH_HTC
+#include <mach/board-ext-htc.h>
+#endif
 
 #define MSM_USB_BASE	(dev->regs)
 #define USB_LINK_RESET_TIMEOUT	(msecs_to_jiffies(10))
 #define DRIVER_NAME	"msm_otg"
 static void otg_reset(struct usb_phy *phy, int phy_reset);
-static void msm_otg_set_vbus_state(int online);
+void msm_otg_set_vbus_state(int online);
 #ifdef CONFIG_USB_EHCI_MSM_72K
 static void msm_otg_set_id_state(int id);
 #else
@@ -44,8 +47,86 @@ static void msm_otg_set_id_state(int id)
 {
 }
 #endif
+#ifdef CONFIG_MACH_HTC
+static int htc_otg_vbus, force_host_mode;
+
+static DEFINE_MUTEX(notify_sem);
+static DEFINE_MUTEX(smwork_sem);
+#endif
 
 struct msm_otg *the_msm_otg;
+
+#ifdef CONFIG_MACH_HTC
+static void send_usb_connect_notify(struct work_struct *w)
+{
+	static struct t_usb_status_notifier *notifier;
+	struct msm_otg *motg = container_of(w, struct msm_otg,  notifier_work);
+	if (!motg)
+		return;
+
+	motg->connect_type_ready = 1;
+	printk(KERN_INFO "[USBH] send connect type %d\n", motg->connect_type);
+	mutex_lock(&notify_sem);
+#ifdef CONFIG_CABLE_DETECT_ACCESSORY
+        if (cable_get_accessory_type() == DOCK_STATE_DMB) {
+                motg->connect_type = CONNECT_TYPE_CLEAR;
+                printk(KERN_INFO "[USBH] current accessory is DMB, send  %d\n", motg->connect_type);
+        }
+#endif
+	list_for_each_entry(notifier, &g_lh_usb_notifier_list, notifier_link) {
+		if (notifier->func != NULL) {
+			/* Notify other drivers about connect type. */
+			/* use slow charging for unknown type*/
+			if (motg->connect_type == CONNECT_TYPE_UNKNOWN)
+				notifier->func(CONNECT_TYPE_USB);
+			else
+				notifier->func(motg->connect_type);
+		}
+	}
+	mutex_unlock(&notify_sem);
+}
+
+int htc_usb_register_notifier(struct t_usb_status_notifier *notifier)
+{
+	if (!notifier || !notifier->name || !notifier->func)
+		return -EINVAL;
+
+	mutex_lock(&notify_sem);
+	list_add(&notifier->notifier_link,
+			&g_lh_usb_notifier_list);
+	mutex_unlock(&notify_sem);
+	return 0;
+}
+
+int usb_is_connect_type_ready(void)
+{
+	if (!the_msm_otg)
+		return 0;
+	return the_msm_otg->connect_type_ready;
+}
+EXPORT_SYMBOL(usb_is_connect_type_ready);
+
+int usb_get_connect_type(void)
+{
+	if (!the_msm_otg)
+		return 0;
+#ifdef CONFIG_MACH_VERDI_LTE
+	if (the_msm_otg->connect_type == CONNECT_TYPE_USB_9V_AC)
+		return CONNECT_TYPE_9V_AC;
+#endif
+	return the_msm_otg->connect_type;
+}
+EXPORT_SYMBOL(usb_get_connect_type);
+
+void msm_hsusb_vbus_notif_register(void (*vbus_notif)(int))
+{
+	struct msm_otg *motg = the_msm_otg;
+	if (motg) {
+		motg->vbus_notification_cb = vbus_notif;
+		printk(KERN_INFO "[USBH] %s: success\n", __func__);
+	}
+}
+#endif
 
 static int is_host(void)
 {
@@ -60,11 +141,16 @@ static int is_host(void)
 static int is_b_sess_vld(void)
 {
 	struct msm_otg *dev = the_msm_otg;
-
+#ifdef CONFIG_MACH_HTC
+	printk(KERN_ERR "[USBH] %s: htc_otg_vbus:%d, otgsc_bsv:%d\n", __func__,
+		htc_otg_vbus, (OTGSC_BSV & readl(USB_OTGSC)) ? 1 : 0);
+	return htc_otg_vbus;
+#else
 	if (dev->pdata->otg_mode == OTG_ID)
 		return (OTGSC_BSV & readl(USB_OTGSC)) ? 1 : 0;
 	else
 		return test_bit(B_SESS_VLD, &dev->inputs);
+#endif
 }
 
 static unsigned ulpi_read(struct msm_otg *dev, unsigned reg)
@@ -552,6 +638,94 @@ static int msm_otg_set_power(struct usb_phy *xceiv, unsigned mA)
 
 	return 0;
 }
+
+#ifdef CONFIG_MACH_HTC
+static void ac_detect_expired(unsigned long _data)
+{
+	u32 delay = 0;
+	struct msm_otg *dev = the_msm_otg;
+
+	printk(KERN_INFO "[USBH] %s: count = %d, connect_type = %d\n", __func__,
+			dev->ac_detect_count, dev->connect_type);
+
+	if (dev->connect_type == CONNECT_TYPE_USB || dev->ac_detect_count >= 3)
+		return;
+
+	/* detect shorted D+/D-, indicating AC power */
+	if ((readl(USB_PORTSC) & PORTSC_LS) != PORTSC_LS) {
+		/* Some carkit can't be recognized as AC mode.
+		 * Add SW solution here to notify battery driver should
+		 * work as AC charger when car mode activated.
+		 */
+#ifdef CONFIG_CABLE_DETECT_ACCESSORY
+		if (cable_get_accessory_type() == DOCK_STATE_CAR) {
+                        printk(KERN_INFO "[USBH] car mode charger\n");
+			atomic_set(&dev->chg_type, USB_CHG_TYPE__WALLCHARGER);
+			dev->connect_type = CONNECT_TYPE_AC;
+			dev->ac_detect_count = 0;
+
+			queue_work(dev->wq, &dev->notifier_work);
+			queue_work(dev->wq, &dev->sm_work);
+			return;
+		}
+#endif
+		dev->ac_detect_count++;
+		if (dev->ac_detect_count == 1)
+			delay = 5 * HZ;
+		else if (dev->ac_detect_count == 2)
+			delay = 10 * HZ;
+
+		mod_timer(&dev->ac_detect_timer, jiffies + delay);
+	} else {
+                printk(KERN_INFO "[USBH] AC charger\n");
+		atomic_set(&dev->chg_type, USB_CHG_TYPE__WALLCHARGER);
+		dev->connect_type = CONNECT_TYPE_AC;
+		dev->ac_detect_count = 0;
+
+		queue_work(dev->wq, &dev->notifier_work);
+		queue_work(dev->wq, &dev->sm_work);
+	}
+}
+
+static void msm_otg_notify_charger_attached(int connect_type)
+{
+	struct msm_otg *motg = the_msm_otg;
+
+	switch (connect_type) {
+	case CONNECT_TYPE_UNKNOWN:
+		if (atomic_read(&motg->chg_type) != USB_CHG_TYPE__SDP)
+			atomic_set(&motg->chg_type, USB_CHG_TYPE__SDP);
+		if (motg->connect_type != CONNECT_TYPE_USB) {
+			motg->connect_type = CONNECT_TYPE_UNKNOWN;
+			motg->ac_detect_count = 0;
+			mod_timer(&motg->ac_detect_timer, jiffies + (3 * HZ));
+		} else {
+			/* connect_type = USB, and got a UNKNOWN notify */
+			return;
+		}
+		break;
+	case CONNECT_TYPE_USB:
+		if (atomic_read(&motg->chg_type) != USB_CHG_TYPE__SDP)
+			atomic_set(&motg->chg_type, USB_CHG_TYPE__SDP);
+		motg->ac_detect_count = 0;
+		del_timer(&motg->ac_detect_timer);
+
+		if (motg->connect_type != CONNECT_TYPE_USB) {
+			motg->connect_type = CONNECT_TYPE_USB;
+		} else {
+			/* connect_type = USB, and got a USB notify */
+			return;
+		}
+		break;
+	case CONNECT_TYPE_AC:
+		if (atomic_read(&motg->chg_type) != USB_CHG_TYPE__WALLCHARGER)
+			atomic_set(&motg->chg_type, USB_CHG_TYPE__WALLCHARGER);
+		motg->connect_type = CONNECT_TYPE_AC;
+		break;
+	}
+	queue_work(motg->wq, &motg->notifier_work);
+}
+#endif
 
 static int msm_otg_set_clk(struct usb_phy *xceiv, int on)
 {
@@ -1212,6 +1386,16 @@ void msm_otg_set_vbus_state(int online)
 {
 	struct msm_otg *dev = the_msm_otg;
 
+#ifdef CONFIG_MACH_HTC
+	htc_otg_vbus = online;
+	if (!dev) {
+                printk(KERN_INFO "[USBH] OTG does not probe yet\n");
+		return;
+	}
+        /* block vbus event if entering host mode manually */
+        if (force_host_mode)
+                return;
+#endif
 	/*
 	 * Process disconnect only for wallcharger
 	 * during fast plug-out plug-in at the
@@ -1809,6 +1993,14 @@ static void msm_otg_sm_work(struct work_struct *w)
 			msm_otg_start_peripheral(dev->phy.otg, 0);
 			dev->b_last_se0_sess = jiffies;
 
+#ifdef CONFIG_MACH_HTC
+			if (dev->connect_type != CONNECT_TYPE_NONE) {
+				dev->connect_type = CONNECT_TYPE_NONE;
+				queue_work(dev->wq, &dev->notifier_work);
+			}
+			dev->ac_detect_count = 0;
+			del_timer(&dev->ac_detect_timer);
+#endif
 			/* Workaround: Reset phy after session */
 			otg_reset(&dev->phy, 1);
 			work = 1;
@@ -2718,8 +2910,17 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 	msm_otg_init_timer(dev);
 	INIT_WORK(&dev->sm_work, msm_otg_sm_work);
 	INIT_WORK(&dev->otg_resume_work, msm_otg_resume_w);
+#ifdef CONFIG_MACH_HTC
+	INIT_WORK(&dev->notifier_work, send_usb_connect_notify);
+#endif
 	spin_lock_init(&dev->lock);
 	wake_lock_init(&dev->wlock, WAKE_LOCK_SUSPEND, "msm_otg");
+
+#ifdef CONFIG_MACH_HTC
+	dev->ac_detect_count = 0;
+	dev->ac_detect_timer.function = ac_detect_expired;
+	init_timer(&dev->ac_detect_timer);
+#endif
 
 	dev->wq = alloc_workqueue("k_otg", WQ_NON_REENTRANT, 0);
 	if (!dev->wq) {
@@ -2808,7 +3009,9 @@ static int __init msm_otg_probe(struct platform_device *pdev)
 
 	dev->phy.set_suspend = msm_otg_set_suspend;
 	dev->phy.set_power = msm_otg_set_power;
-
+#ifdef CONFIG_MACH_HTC
+        dev->phy.notify_charger = msm_otg_notify_charger_attached;
+#endif
 	dev->phy.otg->set_peripheral = msm_otg_set_peripheral;
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	dev->phy.otg->set_host = msm_otg_set_host;

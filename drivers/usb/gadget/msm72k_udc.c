@@ -457,6 +457,15 @@ static void usb_chg_detect(struct work_struct *w)
 	if (maxpower > 0)
 		usb_phy_set_power(ui->xceiv, maxpower);
 
+#ifdef CONFIG_MACH_HTC
+	if (ui->xceiv) {
+		if (atomic_read(&otg->chg_type) == USB_CHG_TYPE__WALLCHARGER)
+			ui->xceiv->notify_charger(CONNECT_TYPE_AC);
+		else if (atomic_read(&otg->chg_type) == USB_CHG_TYPE__SDP)
+			ui->xceiv->notify_charger(CONNECT_TYPE_UNKNOWN);
+	}
+#endif
+
 	/* USB driver prevents idle and suspend power collapse(pc)
 	 * while USB cable is connected. But when dedicated charger is
 	 * connected, driver can vote for idle and suspend pc.
@@ -1373,6 +1382,10 @@ static irqreturn_t usb_interrupt(int irq, void *data)
 		/* Start phy stuck timer */
 		if (ui->pdata && ui->pdata->is_phy_status_timer_on)
 			mod_timer(&phy_status_timer, PHY_STATUS_CHECK_DELAY);
+#ifdef CONFIG_MACH_HTC
+		if (ui->xceiv->notify_charger)
+			ui->xceiv->notify_charger(CONNECT_TYPE_USB);
+#endif
 	}
 
 	if (n & STS_SLI) {

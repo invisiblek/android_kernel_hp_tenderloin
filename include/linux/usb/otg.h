@@ -161,6 +161,8 @@ struct usb_phy {
 			enum usb_otg_event event);
 
 	void	(*notify_usb_attached)(void);
+
+	void	(*notify_charger)(int connect_type);
 #endif
 };
 
