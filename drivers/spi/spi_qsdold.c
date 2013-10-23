@@ -114,11 +114,7 @@ static struct spi_driver spi_qsd = {
 
 static int __init spi_qsd_init(void)
 {
-	int rc;
-        printk(KERN_ERR "%s: ++\n", __func__);
-	rc = spi_register_driver(&spi_qsd);
-        printk(KERN_ERR "%s:  %d\n", __func__, rc);
-	return rc;
+	return spi_register_driver(&spi_qsd);
 }
 module_init(spi_qsd_init);
 
