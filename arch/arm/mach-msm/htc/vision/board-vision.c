@@ -42,6 +42,7 @@
 #include <linux/bma150.h>
 #include <linux/capella_cm3602.h>
 #include <linux/atmel_qt602240.h>
+#include <mach/htc_battery.h>
 
 #include <asm/mach-types.h>
 #include <asm/mach/arch.h>
@@ -64,7 +65,6 @@
 #include <mach/qdsp5v2/aux_pcm.h>
 #include <mach/qdsp5v2/mi2s.h>
 #include <mach/qdsp5v2/audio_dev_ctl.h>
-#include <mach/msm_battery.h>
 #include <mach/rpc_server_handset.h>
 #include <mach/msm_tsif.h>
 #include <mach/socinfo.h>
@@ -262,6 +262,20 @@ static struct platform_device android_pmem_audio_device = {
 	.dev = { .platform_data = &android_pmem_audio_pdata },
 };
 #endif
+
+static struct htc_battery_platform_data htc_battery_pdev_data = {
+	.guage_driver = GUAGE_MODEM,
+	.charger = SWITCH_CHARGER_TPS65200,
+	.m2a_cable_detect = 1,
+};
+
+static struct platform_device htc_battery_pdev = {
+	.name = "htc_battery",
+	.id   = -1,
+	.dev  = {
+		.platform_data = &htc_battery_pdev_data,
+	},
+};
 
 struct pm8xxx_gpio_init_info {
 	unsigned			gpio;
@@ -1433,107 +1447,10 @@ static struct msm_usb_host_platform_data msm_usb_host_pdata = {
 };
 #endif
 
-#ifdef CONFIG_USB_MSM_OTG_72K
-static int hsusb_rpc_connect(int connect)
-{
-	if (connect)
-		return msm_hsusb_rpc_connect();
-	else
-		return msm_hsusb_rpc_close();
-}
-#endif
-
-#ifdef CONFIG_USB_MSM_OTG_72K
-static struct regulator *vreg_3p3;
-static int msm_hsusb_ldo_init(int init)
-{
-	uint32_t version = 0;
-	int def_vol = 3400000;
-
-	version = socinfo_get_version();
-
-	if (SOCINFO_VERSION_MAJOR(version) >= 2 &&
-			SOCINFO_VERSION_MINOR(version) >= 1) {
-		def_vol = 3075000;
-		pr_debug("%s: default voltage:%d\n", __func__, def_vol);
-	}
-
-	if (init) {
-		vreg_3p3 = regulator_get(NULL, "usb");
-		if (IS_ERR(vreg_3p3))
-			return PTR_ERR(vreg_3p3);
-		regulator_set_voltage(vreg_3p3, def_vol, def_vol);
-	} else
-		regulator_put(vreg_3p3);
-
-	return 0;
-}
-
-static int msm_hsusb_ldo_enable(int enable)
-{
-	static int ldo_status;
-
-	if (!vreg_3p3 || IS_ERR(vreg_3p3))
-		return -ENODEV;
-
-	if (ldo_status == enable)
-		return 0;
-
-	ldo_status = enable;
-
-	if (enable)
-		return regulator_enable(vreg_3p3);
-	else
-		return regulator_disable(vreg_3p3);
-}
-
-static int msm_hsusb_ldo_set_voltage(int mV)
-{
-	static int cur_voltage;
-
-	if (!vreg_3p3 || IS_ERR(vreg_3p3))
-		return -ENODEV;
-
-	if (cur_voltage == mV)
-		return 0;
-
-	cur_voltage = mV;
-
-	pr_debug("%s: (%d)\n", __func__, mV);
-
-	return regulator_set_voltage(vreg_3p3, mV*1000, mV*1000);
-}
-#endif
-
-static int phy_init_seq[] = { 0x06, 0x36, 0x0C, 0x31, 0x31, 0x32, 0x1, 0x0D, 0x1, 0x10, -1 };
-static struct msm_hsusb_gadget_platform_data msm_gadget_pdata = {
-	.phy_init_seq		= phy_init_seq,
-	.is_phy_status_timer_on = 1,
-};
-
 #ifndef CONFIG_USB_EHCI_MSM_72K
 static int msm_hsusb_pmic_notif_init(void (*callback)(int online), int init);
 #endif
 static struct msm_otg_platform_data msm_otg_pdata = {
-#if 0
-	.rpc_connect	= hsusb_rpc_connect,
-
-#ifndef CONFIG_USB_EHCI_MSM_72K
-	.pmic_vbus_notif_init         = msm_hsusb_pmic_notif_init,
-#else
-	.vbus_power = msm_hsusb_vbus_power,
-#endif
-	.pemp_level		 = PRE_EMPHASIS_WITH_20_PERCENT,
-	.cdr_autoreset		 = CDR_AUTO_RESET_DISABLE,
-	.drv_ampl		 = HS_DRV_AMPLITUDE_DEFAULT,
-	.se1_gating		 = SE1_GATING_DISABLE,
-	.chg_vbus_draw		 = hsusb_chg_vbus_draw,
-	.chg_connected		 = hsusb_chg_connected,
-	.chg_init		 = hsusb_chg_init,
-	.ldo_enable		 = msm_hsusb_ldo_enable,
-	.ldo_init		 = msm_hsusb_ldo_init,
-	.ldo_set_voltage	 = msm_hsusb_ldo_set_voltage,
-#else
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	.vbus_power = msm_hsusb_vbus_power,
 #endif
@@ -1541,9 +1458,15 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.cdr_autoreset		= CDR_AUTO_RESET_DISABLE,
 	.drv_ampl		= HS_DRV_AMPLITUDE_DEFAULT,
 	.se1_gating		= SE1_GATING_DISABLE,
-#endif
 };
 
+#ifdef CONFIG_USB_GADGET
+static int phy_init_seq[] = { 0x06, 0x36, 0x0C, 0x31, 0x31, 0x32, 0x1, 0x0D, 0x1, 0x10, -1 };
+static struct msm_hsusb_gadget_platform_data msm_gadget_pdata = {
+	.phy_init_seq		= phy_init_seq,
+	.is_phy_status_timer_on = 1,
+};
+#endif
 #ifndef CONFIG_USB_EHCI_MSM_72K
 typedef void (*notify_vbus_state) (int);
 notify_vbus_state notify_vbus_state_func_ptr;
@@ -1597,19 +1520,6 @@ static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
 static struct platform_device msm_migrate_pages_device = {
 	.name   = "msm_migrate_pages",
 	.id     = -1,
-};
-
-static struct msm_psy_batt_pdata msm_psy_batt_data = {
-	.voltage_min_design 	= 2800,
-	.voltage_max_design	= 4300,
-	.avail_chg_sources   	= AC_CHG | USB_CHG ,
-	.batt_technology        = POWER_SUPPLY_TECHNOLOGY_LION,
-};
-
-static struct platform_device msm_batt_device = {
-	.name 		    = "msm-battery",
-	.id		    = -1,
-	.dev.platform_data  = &msm_psy_batt_data,
 };
 
 #ifdef CONFIG_MSM_SDIO_AL
@@ -2662,10 +2572,6 @@ static struct msm_tsif_platform_data tsif_platform_data = {
 #endif /* defined(CONFIG_TSIF) || defined(CONFIG_TSIF_MODULE) */
 /* TSIF end   */
 
-static void __init pmic8058_leds_init(void)
-{
-}
-
 static struct msm_spm_platform_data msm_spm_data __initdata = {
 	.reg_base_addr = MSM_SAW0_BASE,
 
@@ -2844,9 +2750,9 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_dmov,
 	&qsd_device_spi,
 	&msm_device_nand,
-        //	&msm_device_otg,
-        //	&msm_device_gadget_peripheral,
-        //	&android_usb_device,
+        &msm_device_otg,
+        &msm_device_gadget_peripheral,
+        &android_usb_device,
 
 #ifdef CONFIG_MSM_SSBI
 	&msm_device_ssbi_pmic1,
@@ -2899,7 +2805,7 @@ static struct platform_device *devices[] __initdata = {
 	&msm_device_sdio_al,
 #endif
 
-	&msm_batt_device,
+        &htc_battery_pdev,
 	&msm_ebi0_thermal,
 	&msm_ebi1_thermal,
 	&msm_adsp_device,
@@ -2966,8 +2872,6 @@ static void __init msm7x30_init(void)
 	msm_device_ssbi_pmic1.dev.platform_data =
 				&msm7x30_ssbi_pm8058_pdata;
 #endif
-	//pmic8058_leds_init();
-
 	buses_init();
 
 	platform_add_devices(devices, ARRAY_SIZE(devices));
