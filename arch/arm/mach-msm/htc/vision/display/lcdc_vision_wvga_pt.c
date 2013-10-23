@@ -20,7 +20,7 @@ static int __init lcdc_vision_panel_init(void)
 	pinfo.fb_num = 2;
 	pinfo.clk_rate = 24576000;
 	pinfo.bl_max = 255;
-	pinfo.bl_min = 1;
+	pinfo.bl_min = 0;
 
 	pinfo.lcdc.h_back_porch = 18;
 	pinfo.lcdc.h_front_porch = 20;

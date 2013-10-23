@@ -58,17 +58,12 @@ static struct spi_msg SAG_SONY_GAMMA_UPDATE_TABLE[] = {
 	LCM_CMD(0xC2, 0x36, 0x12),//Change PWM to 13k for HW's request
 };
 
-void spi_send_cmd(struct spi_msg *cmd)
-{
-  printk(KERN_ERR "%s; send cmd %p=%d\n", __func__, cmd, qspi_send_9bit(cmd));
-}
-
 static int lcm_write_tb(struct spi_msg cmd_table[], unsigned size)
 {
 	int i;
 
 	for (i = 0; i < size; i++)
-		spi_send_cmd(&cmd_table[i]);
+		qspi_send_9bit(&cmd_table[i]);
 	return 0;
 }
 
@@ -160,8 +155,24 @@ sonywvga_panel_shrink_pwm(int brightness)
 
 static int lcdc_vision_panel_off(struct platform_device *pdev)
 {
+  uint8_t data[4] = {0, 0, 0, 0};
+
   if (!lcdc_lcd_on)
     return 0;
+
+  blank_msg.cmd = 0x28;
+  qspi_send_9bit(&blank_msg);
+  blank_msg.cmd = 0x10;
+  qspi_send_9bit(&blank_msg);
+  hr_msleep(40);
+
+  if (!is_sony_spi()) {
+    data[0] = 5;
+    data[1] = 0;
+    data[3] = 1;
+    microp_i2c_write(0x25, data, 4);
+  }
+
   lcdc_lcd_on = 0;
   return 0;
 }
@@ -181,7 +192,7 @@ static void lcdc_vision_panel_set_backlight(struct msm_fb_data_type *mfd)
 		microp_i2c_write(0x25, data, 4);
 	} else {
 		shrink_pwm = sonywvga_panel_shrink_pwm(val);
-		spi_send_cmd(&gamma_update);
+		qspi_send_9bit(&gamma_update);
 		if( panel_type == PANEL_ID_SAG_SONY )
 			lcm_write_tb(SAG_SONY_GAMMA_UPDATE_TABLE,  ARRAY_SIZE(SAG_SONY_GAMMA_UPDATE_TABLE));
 		else
@@ -194,22 +205,22 @@ static int lcdc_vision_panel_on(struct platform_device *pdev)
 {
         struct msm_fb_data_type *mfd = platform_get_drvdata(pdev);
 
-        //        if (lcdc_lcd_on)
-        //          return 0;
+        if (lcdc_lcd_on)
+          return 0;
         
-        spi_send_cmd(&init_cmd);
+        qspi_send_9bit(&init_cmd);
         hr_msleep(5);
         if (is_sony_RGB666()) {
           init_data = 0x06;
-          spi_send_cmd(&init_cmd2);
+          qspi_send_9bit(&init_cmd2);
         } else {
           init_data = 0x05;
-          spi_send_cmd(&init_cmd2);
+          qspi_send_9bit(&init_cmd2);
         }
 
 	msleep(100);
 	printk(KERN_ERR "%s: will send unblank\n",__func__);
-	spi_send_cmd(&unblank_msg);
+	qspi_send_9bit(&unblank_msg);
 	printk(KERN_ERR "%s: good!\n",__func__);
 	msleep(20);
 

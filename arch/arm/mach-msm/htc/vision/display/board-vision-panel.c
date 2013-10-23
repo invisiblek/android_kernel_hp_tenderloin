@@ -140,8 +140,6 @@ static uint32_t display_gpio_table[] = {
 #define MSM_FB_PRIM_BUF_SIZE (800 * 480 * 4 * 2) /* 4 bpp x 2 pages */
 #endif
 
-#define MSM_FB_EXT_BUF_SIZE     0
-
 #ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
 #define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((800 * 480 * 3 * 2), 4096)
 #else
@@ -155,7 +153,7 @@ static uint32_t display_gpio_table[] = {
 #endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
 
 /* Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE + MSM_FB_OVERLAY0_WRITEBACK_SIZE, 4096)
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 #define GPIO_LCD_PWR_EN  62
 #define GPIO_LVDS_SHDN_N 63
@@ -413,10 +411,8 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 #define MDP_VSYNC_GPIO			28
 
 static struct msm_panel_common_pdata mdp_pdata = {
-  //        .gpio = MDP_VSYNC_GPIO,
         .gpio = 30,
 	.hw_revision_addr = 0xac001270,
-        //        .mdp_max_clk = 200000000,
 	.mdp_max_clk = 192000000,
 	.mdp_rev = MDP_REV_40,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
