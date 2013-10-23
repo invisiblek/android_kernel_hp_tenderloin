@@ -151,7 +151,7 @@ enum power_supply_type {
 	POWER_SUPPLY_TYPE_UPS,
 	POWER_SUPPLY_TYPE_MAINS,
 	POWER_SUPPLY_TYPE_USB,		/* Standard Downstream Port */
-#ifdef CONFIG_HTC_BATT_CORE
+#if defined(CONFIG_HTC_BATT_CORE) || defined(CONFIG_HTC_BATTCHG)
 	POWER_SUPPLY_TYPE_WIRELESS,	/* Wireless Charger */
 #endif
 	POWER_SUPPLY_TYPE_USB_DCP,	/* Dedicated Charging Port */

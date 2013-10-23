@@ -32,6 +32,21 @@ config HTC_BATT_8960
 	default n
 	bool "HTC battery driver for MSM8960"
 
+config HTC_BATTCHG
+        depends on MSM_ONCRPCROUTER && POWER_SUPPLY
+        default n
+        bool "HTC battery / charger driver"
+
+config HTC_BATTCHG_MAX8957
+	depends on MSM_ONCRPCROUTER && POWER_SUPPLY
+	default n
+	bool "HTC battery / charger driver for PMIC MAX8957"
+
+config HTC_BATTCHG_SMEM
+        depends on (HTC_BATTCHG || HTC_BATTCHG_MAX8957)
+        default n
+        bool "Read Battery Info via SMEM"
+
 config HTC_HEADSET_MGR
 	tristate "HTC headset manager driver"
 	default n
