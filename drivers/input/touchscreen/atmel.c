@@ -28,12 +28,10 @@
 #include <linux/atmel_qt602240.h>
 #include <linux/jiffies.h>
 #include <mach/msm_hsusb.h>
-#if 0
 #if !defined(CONFIG_ARCH_MSM8X60)
 #include <mach/htc_battery.h>
 #else
 #include <mach/cable_detect.h>
-#endif
 #endif
 #include <linux/stat.h>
 #include <linux/pl_sensor.h>
@@ -2121,10 +2119,10 @@ static int atmel_ts_probe(struct i2c_client *client,
 		ts->unlock_attr = pdata->unlock_attr;
 
 #if !defined(CONFIG_ARCH_MSM8X60)
-                //		if (usb_get_connect_type())
-                //			ts->status = CONNECTED;
-                //		else if (htc_is_wireless_charger())
-                //			ts->wlc_status = CONNECTED;
+                if (usb_get_connect_type())
+                  ts->status = CONNECTED;
+                else if (htc_is_wireless_charger())
+                  ts->wlc_status = CONNECTED;
 #else
 		cable_connect_type = cable_get_connect_type();
 		if (cable_connect_type == 4)
@@ -2466,9 +2464,9 @@ static int atmel_ts_probe(struct i2c_client *client,
 			ts->input_dev->name);
 
 #if !defined(CONFIG_ARCH_MSM8X60)
-        //	htc_usb_register_notifier(&cable_status_handler);
-        //	if (pdata->wlc_config[0])
-        //		register_notifier_wireless_charger(&wlc_status_handler);
+        htc_usb_register_notifier(&cable_status_handler);
+        if (pdata->wlc_config[0])
+          register_notifier_wireless_charger(&wlc_status_handler);
 #else
 	cable_detect_register_notifier(&cable_status_handler);
 #endif
