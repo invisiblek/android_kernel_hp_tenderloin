@@ -988,6 +988,7 @@ config MSM_AMSS_VERSION
 	default 6210 if MSM_AMSS_VERSION_6210
 	default 6220 if MSM_AMSS_VERSION_6220
 	default 6225 if MSM_AMSS_VERSION_6225
+	default 1200 if MSM_AMSS_VERSION_1200
 
 choice
 	prompt "AMSS modem firmware version"
@@ -1002,6 +1003,10 @@ choice
 
 	config MSM_AMSS_VERSION_6225
 		bool "6.2.20 + New ADSP"
+
+	config MSM_AMSS_VERSION_1200
+		bool "1.2.00"
+
 endchoice
 
 config MSM_HAS_DEBUG_UART_HS
