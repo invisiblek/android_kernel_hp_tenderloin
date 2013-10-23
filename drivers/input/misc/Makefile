@@ -73,3 +73,4 @@ obj-$(CONFIG_INPUT_LSM303DLH)		+= lsm303dlh_mag_sysfs.o lsm303dlh_acc_sysfs.o
 obj-$(CONFIG_INPUT_ISL29023)		+= isl29023.o
 obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp.o
 obj-$(CONFIG_INPUT_CAPELLA_CM3602)	+= capella_cm3602.o
+obj-$(CONFIG_SENSORS_BMA150_SPI)	+= bma150_spi.o
