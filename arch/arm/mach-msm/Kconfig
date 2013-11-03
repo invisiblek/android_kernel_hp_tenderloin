@@ -2704,7 +2704,7 @@ config MSM_CPU_PWRCTL
 config MSM_UARTDM
 	tristate "MSM UARTDM (High Speed) Driver"
 	depends on ARCH_MSM
-	default y
+	default n
 	help
 	  Provides access to the high speed uart ports.
 
