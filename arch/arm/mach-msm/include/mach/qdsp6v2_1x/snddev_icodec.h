@@ -29,7 +29,7 @@
 #ifndef __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #define __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #include <linux/mfd/msm-adie-codec.h>
-#include <mach/qdsp5v2/audio_def.h>
+#include <mach/qdsp6v2/audio_def.h>
 #include <linux/spi_aic3254.h>
 #include <mach/pmic.h>
 
