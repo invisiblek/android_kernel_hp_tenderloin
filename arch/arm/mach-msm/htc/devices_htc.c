@@ -126,6 +126,19 @@ static int __init parse_tag_als_calibration(const struct tag *tag)
 
 __tagtable(ATAG_ALS, parse_tag_als_calibration);
 
+#define ATAG_WS		0x54410023
+
+unsigned int ws_kadc;
+EXPORT_SYMBOL(ws_kadc);
+static int __init parse_tag_ws_calibration(const struct tag *tag)
+{
+	ws_kadc = tag->u.als_kadc.kadc;
+
+	return 0;
+}
+
+__tagtable(ATAG_WS, parse_tag_ws_calibration);
+
 /* SMLOG values */
 #define ATAG_SMLOG     0x54410023
 
@@ -234,6 +247,40 @@ int __init parse_tag_cam(const struct tag *tags)
 	return mem_size;
 }
 __tagtable(ATAG_CAM, parse_tag_cam);
+
+int batt_stored_magic_num;
+int batt_stored_soc;
+int batt_stored_ocv_uv;
+int batt_stored_cc_uv;
+unsigned long batt_stored_time_ms;
+
+static int __init parse_tag_stored_batt_data(const struct tag *tags)
+{
+	int find = 0;
+	struct tag *t = (struct tag *)tags;
+
+	for (; t->hdr.size; t = tag_next(t)) {
+		if (t->hdr.tag == ATAG_BATT_DATA) {
+			printk(KERN_DEBUG "find the stored batt data tag\n");
+			find = 1;
+			break;
+		}
+	}
+
+	if (find) {
+		batt_stored_magic_num = t->u.batt_data.magic_num;
+		batt_stored_soc = t->u.batt_data.soc;
+		batt_stored_ocv_uv = t->u.batt_data.ocv;
+		batt_stored_cc_uv = t->u.batt_data.cc;
+		batt_stored_time_ms = t->u.batt_data.currtime;
+		printk(KERN_INFO "batt_data: magic_num=%x, soc=%d, "
+			"ocv_uv=%x, cc_uv=%x, stored_time=%ld\n",
+			batt_stored_magic_num, batt_stored_soc, batt_stored_ocv_uv,
+			batt_stored_cc_uv, batt_stored_time_ms);
+	}
+	return 0;
+}
+__tagtable(ATAG_BATT_DATA, parse_tag_stored_batt_data);
 
 /* Gyro/G-senosr calibration values */
 #define ATAG_GRYO_GSENSOR	0x54410020
@@ -543,6 +590,26 @@ unsigned int get_tamper_sf(void)
 }
 EXPORT_SYMBOL(get_tamper_sf);
 
+static int ls_setting = 0;
+#define FAKE_ID 2
+#define REAL_ID 1
+int __init board_ls_setting(char *s)
+{
+	if (!strcmp(s, "0x1"))
+		ls_setting = REAL_ID;
+	else if (!strcmp(s, "0x2"))
+		ls_setting = FAKE_ID;
+
+	return 1;
+}
+__setup("lscd=", board_ls_setting);
+
+int get_ls_setting(void)
+{
+	return ls_setting;
+}
+EXPORT_SYMBOL(get_ls_setting);
+
 static char *keycap_tag = NULL;
 static int __init board_keycaps_tag(char *get_keypads)
 {
@@ -600,6 +667,8 @@ EXPORT_SYMBOL(board_get_carrier_tag);
 #define MSM_RAM_CONSOLE_BASE   0x40300000
 #elif defined(CONFIG_ARCH_MSM7X30)
 #define MSM_RAM_CONSOLE_BASE   0x00500000
+#elif defined(CONFIG_ARCH_APQ8064)
+#define MSM_RAM_CONSOLE_BASE   0x8F100000
 #else
 #define MSM_RAM_CONSOLE_BASE   0x88900000
 #endif

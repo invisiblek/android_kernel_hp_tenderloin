@@ -180,5 +180,7 @@ char *board_serialno(void);
 unsigned long get_kernel_flag(void);
 unsigned int get_radio_flag(void);
 unsigned int get_tamper_sf(void);
+int board_fullramdump_flag(void);
+int get_ls_setting(void);
 
 #endif
