@@ -232,6 +232,20 @@ static int tsens_tz_get_temp(struct thermal_zone_device *thermal,
 	return 0;
 }
 
+int tsens_get_sensor_temp(int sensor_num, unsigned long *temp)
+{
+	if (!tmdev)
+		return -ENODEV;
+
+	if (sensor_num < 0 || sensor_num >= TSENS_MAX_SENSORS || !temp)
+		return -EINVAL;
+
+	tsens8960_get_temp(sensor_num, temp);
+
+	return 0;
+}
+EXPORT_SYMBOL(tsens_get_sensor_temp);
+
 int tsens_get_temp(struct tsens_device *device, unsigned long *temp)
 {
 	if (!tmdev)
