@@ -1201,6 +1201,7 @@ msm8625_ffa		MACH_MSM8625_FFA	MSM8625_FFA		4166
 operaul                 MACH_OPERAUL            OPERAUL                 4168
 msm8625_evt		MACH_MSM8625_EVT	MSM8625_EVT		4193
 tc2			MACH_TC2		TC2			4198
+m7_ul                   MACH_M7_UL              M7_UL                   4308
 m4_ul			MACH_M4_UL		M4_UL			4490
 apq8064_mako		MACH_APQ8064_MAKO	APQ8064_MAKO		7800
 msm8930_evt		MACH_MSM8930_EVT	MSM8930_EVT		4558
