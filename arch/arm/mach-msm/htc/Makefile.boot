@@ -14,6 +14,8 @@ else
    zreladdr-$(CONFIG_ARCH_MSM8930)	:= 0x80408000
 endif
 
+   zreladdr-$(CONFIG_ARCH_APQ8064)	:= 0x80608000
+
    zreladdr-$(CONFIG_MACH_VISION)       := 0x04008000
 params_phys-$(CONFIG_MACH_VISION)       := 0x04000100
 initrd_phys-$(CONFIG_MACH_VISION)       := 0x05000000
