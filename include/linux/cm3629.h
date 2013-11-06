@@ -30,6 +30,8 @@
 #define PS_2_thd		0x07
 #define PS_data			0x08
 #define ALS_data		0x09
+
+#define WS_data			0x0A
 #define INT_FLAG		0x0B
 #define CH_ID			0x0C
 
@@ -132,9 +134,11 @@
 #define CM3629_PS1_IF_CLOSE	(1 << 1)
 #define CM3629_PS1_IF_AWAY	(1 << 0)
 
+
 extern unsigned int ps_kparam1;
 extern unsigned int ps_kparam2;
 extern unsigned int als_kadc;
+extern unsigned int ws_kadc;
 enum {
 	CAPELLA_CM36282,
 	CAPELLA_CM36292,
@@ -146,6 +150,8 @@ enum {
 	CM3629_PS2_ONLY,
 	CM3629_PS1_PS2_BOTH,
 };
+int get_lightsensoradc(void);
+int get_lightsensorkadc(void);
 
 struct cm3629_platform_data {
 	int model;
@@ -169,11 +175,12 @@ struct cm3629_platform_data {
 	uint8_t ps_calibration_rule;
 	uint8_t ps_conf1_val;
 	uint8_t ps_conf3_val;
-	uint8_t enable_polling_ignore;
+	uint8_t dynamical_threshold;
 	uint8_t ps1_thd_no_cal;
 	uint8_t ps1_thd_with_cal;
 	uint8_t ps2_thd_no_cal;
 	uint8_t ps2_thd_with_cal;
+	uint8_t ps_th_add;
 	uint8_t ls_cmd;
 	uint8_t ps1_adc_offset;
 	uint8_t ps2_adc_offset;
@@ -181,7 +188,7 @@ struct cm3629_platform_data {
 	uint16_t ps_delay_time;
 	unsigned int no_need_change_setting;
 	uint8_t dark_level;
+	uint16_t w_golden_adc;
 };
 
-int power_key_check_in_pocket(void);
 #endif
