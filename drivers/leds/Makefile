@@ -23,6 +23,7 @@ obj-$(CONFIG_LEDS_PM8XXX)		+= leds-pm8xxx-htc.o
 else
 obj-$(CONFIG_LEDS_PM8XXX)		+= leds-pm8xxx.o
 endif
+obj-$(CONFIG_LEDS_PM8921)               += leds-pm8921.o
 obj-$(CONFIG_LEDS_PM8038)		+= leds-pm8038.o
 obj-$(CONFIG_LEDS_QPNP)			+= leds-qpnp.o
 obj-$(CONFIG_LEDS_GPIO_REGISTER)	+= leds-gpio-register.o
