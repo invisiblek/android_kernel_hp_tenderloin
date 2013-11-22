@@ -71,8 +71,10 @@ struct isl29023_data {
 	u16 rext;
 	u8 polled;
 	u16 poll_interval;
+        struct isl29023_platform_data *platform_data;
 };
 
+static struct i2c_client *i2c_client;
 static int gain_range[] = {
 	1000, 4000, 16000, 64000
 };
@@ -319,8 +321,11 @@ static int isl29023_get_power_state(struct i2c_client *client)
 
 static int isl29023_get_adc_value(struct i2c_client *client)
 {
-	struct isl29023_data *data = i2c_get_clientdata(client);
+        struct isl29023_data *data = NULL;
 	int lsb, msb, range, bitdepth;
+
+        client = i2c_client;
+	data = i2c_get_clientdata(client);
 
 	mutex_lock(&data->lock);
 	lsb = i2c_smbus_read_byte_data(client, ISL29023_REG_LSB_SENSOR);
@@ -338,6 +343,7 @@ static int isl29023_get_adc_value(struct i2c_client *client)
 
 	range = isl29023_get_range(client);
 	bitdepth = (4 - isl29023_get_resolution(client)) * 4;
+
 	return (((msb << 8) | lsb) * ((gain_range[range] * 499) / data->rext))
 		>> bitdepth;
 }
@@ -401,7 +407,7 @@ static ssize_t isl29023_show_int_persists(struct device *dev,
 					  struct device_attribute *attr,
 					  char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%i\n", isl29023_get_int_persists(client));
 }
 
@@ -409,7 +415,7 @@ static ssize_t isl29023_store_int_persists(struct device *dev,
 					   struct device_attribute *attr,
 					   const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -432,7 +438,7 @@ static ssize_t isl29023_show_int_flag(struct device *dev,
 					  struct device_attribute *attr,
 					  char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%i\n", isl29023_get_int_flag(client));
 }
 
@@ -440,7 +446,7 @@ static ssize_t isl29023_store_int_flag(struct device *dev,
 					   struct device_attribute *attr,
 					   const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -461,7 +467,7 @@ static DEVICE_ATTR(int_flag, S_IWUSR | S_IRUGO,
 static ssize_t isl29023_show_int_lt(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%i\n", isl29023_get_int_lt(client));
 }
 
@@ -469,7 +475,7 @@ static ssize_t isl29023_store_int_lt(struct device *dev,
 				    struct device_attribute *attr,
 				    const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -490,7 +496,7 @@ static DEVICE_ATTR(int_lt, S_IWUSR | S_IRUGO,
 static ssize_t isl29023_show_int_ht(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%i\n", isl29023_get_int_ht(client));
 }
 
@@ -498,7 +504,7 @@ static ssize_t isl29023_store_int_ht(struct device *dev,
 				    struct device_attribute *attr,
 				    const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -519,7 +525,7 @@ static DEVICE_ATTR(int_ht, S_IWUSR | S_IRUGO,
 static ssize_t isl29023_show_range(struct device *dev,
 				   struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%i\n", isl29023_get_range(client));
 }
 
@@ -527,7 +533,7 @@ static ssize_t isl29023_store_range(struct device *dev,
 				    struct device_attribute *attr,
 				    const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -550,7 +556,7 @@ static ssize_t isl29023_show_resolution(struct device *dev,
 					struct device_attribute *attr,
 					char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%d\n", isl29023_get_resolution(client));
 }
 
@@ -558,7 +564,7 @@ static ssize_t isl29023_store_resolution(struct device *dev,
 					 struct device_attribute *attr,
 					 const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -579,14 +585,14 @@ static DEVICE_ATTR(resolution, S_IWUSR | S_IRUGO,
 static ssize_t isl29023_show_mode(struct device *dev,
 				  struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%d\n", isl29023_get_mode(client));
 }
 
 static ssize_t isl29023_store_mode(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -610,7 +616,7 @@ static ssize_t isl29023_show_power_state(struct device *dev,
 					 struct device_attribute *attr,
 					 char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	return sprintf(buf, "%d\n", isl29023_get_power_state(client));
 }
 
@@ -618,7 +624,7 @@ static ssize_t isl29023_store_power_state(struct device *dev,
 					  struct device_attribute *attr,
 					  const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+        struct i2c_client *client = i2c_client;
 	unsigned long val;
 	int ret;
 
@@ -637,13 +643,11 @@ static DEVICE_ATTR(power_state, 0666,
 static ssize_t isl29023_show_lux(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
-
 	/* No LUX data if not operational */
-	if (!isl29023_get_power_state(client))
+	if (!isl29023_get_power_state(i2c_client))
 		return -EBUSY;
 
-	return sprintf(buf, "%d\n", isl29023_get_adc_value(client));
+	return sprintf(buf, "%d\n", isl29023_get_adc_value(i2c_client));
 }
 
 static DEVICE_ATTR(lux, S_IRUGO, isl29023_show_lux, NULL);
@@ -652,7 +656,7 @@ static DEVICE_ATTR(lux, S_IRUGO, isl29023_show_lux, NULL);
 static ssize_t isl29023_show_int_lt_lux(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 
 	/* No LUX data if not operational */
 	if (isl29023_get_mode(client) != ISL29023_ALS_ONCE_MODE &&
@@ -665,7 +669,7 @@ static ssize_t isl29023_show_int_lt_lux(struct device *dev,
 static ssize_t isl29023_store_int_lt_lux(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	struct isl29023_data *data = i2c_get_clientdata(client);
 	unsigned long val, lux_data;
 	int range, bitdepth, ret;
@@ -720,7 +724,7 @@ static DEVICE_ATTR(int_lt_lux, S_IWUSR | S_IRUGO,
 static ssize_t isl29023_show_int_ht_lux(struct device *dev,
 				 struct device_attribute *attr, char *buf)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 
 	/* No LUX data if not operational */
 	if (isl29023_get_mode(client) != ISL29023_ALS_ONCE_MODE &&
@@ -733,7 +737,7 @@ static ssize_t isl29023_show_int_ht_lux(struct device *dev,
 static ssize_t isl29023_store_int_ht_lux(struct device *dev,
 		struct device_attribute *attr, const char *buf, size_t count)
 {
-	struct i2c_client *client = to_i2c_client(dev);
+	struct i2c_client *client = i2c_client;
 	struct isl29023_data *data = i2c_get_clientdata(client);
 	unsigned long val, lux_data;
 	int range, bitdepth, ret;
@@ -884,29 +888,30 @@ static irqreturn_t isl29023_irq_handler(int irq, void *handle)
 static int __devinit isl29023_probe(struct i2c_client *client,
 				    const struct i2c_device_id *id)
 {
-	struct i2c_adapter *adapter = to_i2c_adapter(client->dev.parent);
 	struct isl29023_data *data;
-	struct isl29023_platform_data *ls_data;
 	struct input_dev *input_dev;
 	int err = 0;
 
-	if (!i2c_check_functionality(adapter, I2C_FUNC_SMBUS_BYTE))
+	if (!i2c_check_functionality(client->adapter, I2C_FUNC_SMBUS_BYTE))
 		return -EIO;
 
 	data = kzalloc(sizeof(struct isl29023_data), GFP_KERNEL);
 	if (!data)
 		return -ENOMEM;
 
-	ls_data = (struct isl29023_platform_data *)
-	    (client->dev).platform_data;
-
+	i2c_set_clientdata(client, data);
+        data->platform_data = client->dev.platform_data;
+	i2c_set_clientdata(client, data);
 	data->client = client;
-	data->rext = ls_data->rext;
-	data->polled = ls_data->polled;
-	data->poll_interval = ls_data->poll_interval;
+	data->rext = data->platform_data->rext;
+	data->polled = data->platform_data->polled;
+	data->poll_interval = data->platform_data->poll_interval;
+
 	snprintf(data->phys, sizeof(data->phys),
 		 "%s", dev_name(&client->dev));
-	i2c_set_clientdata(client, data);
+
+        i2c_client = client;
+
 	mutex_init(&data->lock);
 
 	/* initialize the ISL29023 chip */
