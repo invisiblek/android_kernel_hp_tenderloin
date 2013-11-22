@@ -2642,7 +2642,6 @@ struct i2c_registry {
 };
 
 static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
-#if 0
 #ifdef CONFIG_INPUT_LSM303DLH
     {
         I2C_SURF | I2C_FFA,
@@ -2656,7 +2655,6 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
         lsm303dlh_mag_i2c_board_info,
         ARRAY_SIZE(lsm303dlh_mag_i2c_board_info),
     },
-#endif
 #endif
     {
         I2C_SURF | I2C_FFA,
