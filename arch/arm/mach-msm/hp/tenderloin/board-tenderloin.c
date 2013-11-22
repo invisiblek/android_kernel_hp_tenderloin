@@ -151,25 +151,6 @@
 #include <mach/ion.h>
 #include <mach/msm_rtb.h>
 
-#define AUTORESTART 120000
-#ifdef AUTORESTART
-#include <linux/workqueue.h>
-static void my_work_handler(struct work_struct *w);
-
-static struct workqueue_struct *wq = 0;
-static DECLARE_DELAYED_WORK(my_work, my_work_handler);
-static unsigned long delay;
-
-static void
-my_work_handler(struct work_struct *w)
-{
-  //uint32_t restart_reason = 0x6f656d99;
-  //msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
-  //arch_reset(0, "");
-  msm_restart(0, "");
-}
-#endif
-
 struct pm8xxx_mpp_init_info {
 	unsigned			mpp;
 	struct pm8xxx_mpp_config_data	config;
@@ -1253,12 +1234,11 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_ION_MM_FW_SIZE	0x200000 /* (2MB) */
 #define MSM_ION_MM_SIZE		0x3600000 /* (54MB) Must be a multiple of 64K */
 #define MSM_ION_MFC_SIZE	SZ_8K
-#define MSM_ION_WB_SIZE		0x600000 /* 6MB */
 #define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-#define MSM_ION_HEAP_NUM	9
+#define MSM_ION_HEAP_NUM	7
 #define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SF_SIZE
 static unsigned msm_ion_sf_size = MSM_ION_SF_SIZE;
 #else
@@ -1590,31 +1570,11 @@ static struct platform_device rpm_regulator_device __devinitdata = {
 		.platform_data = &tenderloin_rpm_regulator_pdata,
 	},
 };
-#if 0
-static struct platform_device rpm_regulator_early_device __devinitdata = {
-	.name	= "rpm-regulator",
-	.id	= 0,
-	.dev	= {
-		.platform_data = &tenderloin_rpm_regulator_early_pdata,
-	},
-};
-
-static struct platform_device rpm_regulator_device __devinitdata = {
-	.name	= "rpm-regulator",
-	.id	= 1,
-	.dev	= {
-		.platform_data = &tenderloin_rpm_regulator_pdata,
-	},
-};
-#endif
-static struct platform_device *early_regulators[] __initdata = {
-	&msm_device_saw_s0,
-	&msm_device_saw_s1,
-	&rpm_regulator_early_device,
-        &tenderloin_fixed_reg_device,
-};
 
 static struct platform_device *early_devices[] __initdata = {
+	&msm_device_saw_s0,
+	&msm_device_saw_s1,
+        &tenderloin_fixed_reg_device,
 #ifdef CONFIG_MSM_BUS_SCALING
 	&msm_bus_apps_fabric,
 	&msm_bus_sys_fabric,
@@ -1822,11 +1782,6 @@ static struct ion_cp_heap_pdata cp_mfc_ion_pdata = {
 	.setup_region = setup_smi_region,
 };
 
-static struct ion_cp_heap_pdata cp_wb_ion_pdata = {
-	.permission_type = IPT_TYPE_MDP_WRITEBACK,
-	.align = PAGE_SIZE,
-};
-
 static struct ion_co_heap_pdata fw_co_ion_pdata = {
 	.adjacent_mem_id = ION_CP_MM_HEAP_ID,
 	.align = SZ_128K,
@@ -1897,22 +1852,6 @@ struct ion_platform_heap msm8x60_heaps [] = {
 			.extra_data = &co_ion_pdata,
 		},
 		{
-			.id	= ION_CP_WB_HEAP_ID,
-			.type	= ION_HEAP_TYPE_CP,
-			.name	= ION_WB_HEAP_NAME,
-			.size	= MSM_ION_WB_SIZE,
-			.memory_type = ION_EBI_TYPE,
-			.extra_data = (void *) &cp_wb_ion_pdata,
-		},
-		{
-			.id	= ION_QSECOM_HEAP_ID,
-			.type	= ION_HEAP_TYPE_CARVEOUT,
-			.name	= ION_QSECOM_HEAP_NAME,
-			.size	= MSM_ION_QSECOM_SIZE,
-			.memory_type = ION_EBI_TYPE,
-			.extra_data = (void *) &co_ion_pdata,
-		},
-		{
 			.id	= ION_AUDIO_HEAP_ID,
 			.type	= ION_HEAP_TYPE_CARVEOUT,
 			.name	= ION_AUDIO_HEAP_NAME,
@@ -1937,19 +1876,21 @@ static struct platform_device ion_dev = {
 
 static struct platform_device *tenderloin_devices[] __initdata = {
 
-	&rpm_regulator_device,
 	&msm8x60_device_acpuclk,
 	&msm_device_smd,
         &msm_device_uart_dm12,
 	&msm_device_otg,
 	&msm_device_gadget_peripheral,
 	&android_usb_device,
+	&msm_pil_q6v3,
+	&msm_pil_modem,
+	&msm_pil_tzapps,
 #ifdef CONFIG_I2C_QUP
-	&msm_gsbi3_qup_i2c_device,
-	&msm_gsbi4_qup_i2c_device,
-	&msm_gsbi7_qup_i2c_device,
+        &msm_gsbi3_qup_i2c_device,
+        &msm_gsbi4_qup_i2c_device,
+        &msm_gsbi7_qup_i2c_device,
         &msm_gsbi8_qup_i2c_device,
-	&msm_gsbi9_qup_i2c_device,
+        &msm_gsbi9_qup_i2c_device,
 	&msm_gsbi10_qup_i2c_device,
 #endif
 #if defined(CONFIG_SPI_QUP) || defined(CONFIG_SPI_QUP_MODULE)
@@ -1985,7 +1926,7 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 	&android_pmem_smipool_device,
 #endif
 	&android_pmem_audio_device,
-#endif 
+#endif
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
@@ -2023,6 +1964,10 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 	&ion_dev,
 #endif
 	&msm8660_device_watchdog,
+#ifdef CONFIG_MSM_RTB
+	&msm_rtb_device,
+#endif
+	&msm8660_iommu_domain_device,
 };
 
 static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
@@ -2057,16 +2002,6 @@ static void reserve_ion_memory(void)
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
 	unsigned int i;
 
-        msm_ion_sf_size = MSM_HDMI_PRIM_ION_SF_SIZE;
-        for (i = 0; i < ion_pdata.nr; i++) {
-          if (ion_pdata.heaps[i].id == ION_SF_HEAP_ID) {
-            ion_pdata.heaps[i].size = msm_ion_sf_size;
-            pr_debug("msm_ion_sf_size 0x%x\n",
-                     msm_ion_sf_size);
-            break;
-          }
-        }
-
 	/* Verify size of heap is a multiple of 64K */
 	for (i = 0; i < ion_pdata.nr; i++) {
 		struct ion_platform_heap *heap = &(ion_pdata.heaps[i]);
@@ -2089,7 +2024,6 @@ static void reserve_ion_memory(void)
 	msm8x60_reserve_table[MEMTYPE_SMI].size += MSM_ION_MM_SIZE;
 	msm8x60_reserve_table[MEMTYPE_SMI].size += MSM_ION_MFC_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_CAMERA_SIZE;
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_WB_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
 #endif
 }
@@ -2100,7 +2034,6 @@ static void __init size_pmem_devices(void)
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_smipool_pdata.size = MSM_PMEM_SMIPOOL_SIZE;
-
 	android_pmem_pdata.size = pmem_sf_size;
 #endif
 	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
@@ -2117,7 +2050,7 @@ static void __init reserve_pmem_memory(void)
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	reserve_memory_for(&android_pmem_adsp_pdata);
-	reserve_memory_for(&android_pmem_smipool_pdata);
+        reserve_memory_for(&android_pmem_smipool_pdata);
 	reserve_memory_for(&android_pmem_pdata);
 #endif
 	reserve_memory_for(&android_pmem_audio_pdata);
@@ -2152,10 +2085,13 @@ static struct reserve_info msm8x60_reserve_info __initdata = {
 
 void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel);
 
+static void __init tenderloin_early_memory(void)
+{
+	reserve_info = &msm8x60_reserve_info;
+}
+
 static void __init tenderloin_reserve(void)
 {
-  	msm8x60_set_display_params("lcdc_tenderloin", "hdmi_msm");
-	reserve_info = &msm8x60_reserve_info;
 	msm_reserve();
 }
 
@@ -2706,6 +2642,7 @@ struct i2c_registry {
 };
 
 static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
+#if 0
 #ifdef CONFIG_INPUT_LSM303DLH
     {
         I2C_SURF | I2C_FFA,
@@ -2719,6 +2656,7 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
         lsm303dlh_mag_i2c_board_info,
         ARRAY_SIZE(lsm303dlh_mag_i2c_board_info),
     },
+#endif
 #endif
     {
         I2C_SURF | I2C_FFA,
@@ -2995,14 +2933,9 @@ static void __init tenderloin_init(void)
 {
 	uint32_t soc_platform_version;
 
-	if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
-		pr_err("meminfo_init() failed!\n");
+        if (meminfo_init(SYS_MEMORY, SZ_256M) < 0)
+          pr_err("meminfo_init() failed!\n");
 
-#ifdef AUTORESTART
-        delay = msecs_to_jiffies(AUTORESTART);
-        wq = create_singlethread_workqueue("my");
-        queue_delayed_work(wq, &my_work, delay);
-#endif
 	platform_device_register(&msm_gpio_device);
 
 	BUG_ON(msm_rpm_init(&msm8660_rpm_data));
@@ -3014,8 +2947,9 @@ static void __init tenderloin_init(void)
 
 	if (msm_xo_init())
 		pr_err("Failed to initialize XO votes\n");
-	
-	platform_add_devices(early_regulators, ARRAY_SIZE(early_regulators));
+
+	platform_device_register(&rpm_regulator_early_device);
+	platform_device_register(&rpm_regulator_device);
 
 	msm_clock_init(&msm8x60_clock_init_data);
 
@@ -3128,6 +3062,7 @@ MACHINE_START(TENDERLOIN, "tenderloin")
 	.init_machine = tenderloin_init,
 	.timer = &msm_timer,
 	.init_early = msm8x60_allocate_memory_regions,
+	.init_very_early = tenderloin_early_memory,
 	.restart = msm_restart,
 MACHINE_END
 

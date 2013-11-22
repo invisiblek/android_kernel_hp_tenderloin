@@ -36,7 +36,7 @@
 #define QCE_0_BASE		0x18500000
 #endif
 
-#define PHY_BASE_ADDR1  0x48000000
+#define PHY_BASE_ADDR1  0x40200000
 #define SIZE_ADDR1      0x25600000
 
 /* Macros assume PMIC GPIOs start at 0 */
