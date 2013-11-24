@@ -6169,6 +6169,10 @@ msmsdcc_probe(struct platform_device *pdev)
 	ret = device_create_file(&pdev->dev, &host->idle_timeout);
 	if (ret)
 		goto remove_polling_file;
+
+	if (plat->board_probe)
+		plat->board_probe(pdev->id, host->mmc);
+
 	return 0;
 
  remove_polling_file:
@@ -6250,6 +6254,9 @@ static int msmsdcc_remove(struct platform_device *pdev)
 
 	DBG(host, "Removing SDCC device = %d\n", pdev->id);
 	plat = host->plat;
+
+	if (plat && plat->board_remove)
+		plat->board_remove(pdev->id, host->mmc);
 
 	device_remove_file(&pdev->dev, &host->max_bus_bw);
 	if (!plat->status_irq)
