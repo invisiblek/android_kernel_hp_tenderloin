@@ -96,14 +96,14 @@ static struct msm_sdcc_pad_pull_cfg sdc4_pad_on_pull_cfg[] = {
 };
 
 static struct msm_sdcc_pad_drv_cfg sdc4_pad_off_drv_cfg[] = {
-	{TLMM_HDRV_SDC4_CLK, GPIO_CFG_2MA},
-	{TLMM_HDRV_SDC4_CMD, GPIO_CFG_2MA},
-	{TLMM_HDRV_SDC4_DATA, GPIO_CFG_2MA}
+	{TLMM_HDRV_SDC4_CLK, GPIO_CFG_8MA},
+	{TLMM_HDRV_SDC4_CMD, GPIO_CFG_8MA},
+	{TLMM_HDRV_SDC4_DATA, GPIO_CFG_8MA}
 };
 
 static struct msm_sdcc_pad_pull_cfg sdc4_pad_off_pull_cfg[] = {
-	{TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_DOWN},
-	{TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_DOWN}
+	{TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_UP},
+	{TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_UP}
 };
 #endif
 
@@ -544,8 +544,10 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 };
 #endif
 
-#if 0
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
+void tenderloin_remove_wifi(int id, struct mmc_host *mmc);
+void tenderloin_probe_wifi(int id, struct mmc_host *mmc);
+
 static struct mmc_platform_data msm8x60_sdc4_data = {
 	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd  = msm_sdcc_setup_power,
@@ -553,11 +555,14 @@ static struct mmc_platform_data msm8x60_sdc4_data = {
 	.msmsdcc_fmin	= 400000,
 	.msmsdcc_fmid	= 24000000,
 	.msmsdcc_fmax	= 48000000,
-	.nonremovable	= 0,
+	.board_probe	= tenderloin_probe_wifi,
+	.board_remove	= tenderloin_remove_wifi,
+	.nonremovable	= 1,
 	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC4_DAT1,
-	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	//	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	//	.cfg_mpm_sdiowakeup = msm_sdcc_cfg_mpm_sdiowakeup,
+	//	.dummy52_required = 1,
 };
-#endif
 #endif
 
 void __init msm8x60_init_mmc(void)
@@ -588,7 +593,6 @@ void __init msm8x60_init_mmc(void)
         //        ret = tenderloin_init_mmc();
         //        if (ret != 0)
         //          printk(KERN_ERR "%s: Unable to initialize MMC (SDCC4)\n", __func__);
-#if 0 
 	sdcc_vreg_data[3].vdd_data = &sdcc_vdd_reg_data[3];
 	sdcc_vreg_data[3].vdd_data->reg_name = "8058_s3";
 	sdcc_vreg_data[3].vdd_data->set_voltage_sup = 1;
@@ -597,7 +601,6 @@ void __init msm8x60_init_mmc(void)
 	sdcc_vreg_data[3].vccq_data = NULL;
 
 	msm_add_sdcc(4, &msm8x60_sdc4_data);
-#endif
 #endif
 }
 
