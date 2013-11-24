@@ -5423,9 +5423,12 @@ static int __devinit pm8921_chg_hw_init(struct pm8921_chg_chip *chip)
 	unsigned long flags;
 	u8 subrev;
 
-	if (pm8xxx_get_version(chip->dev->parent) == PM8XXX_VERSION_8921) {
-		
+	if (pm8xxx_get_version(chip->dev->parent) == PM8XXX_VERSION_8921) {		
+#if defined(CONFIG_MACH_MSM8960) && !defined(CONFIG_MACH_APQ8064)
 		chip->lockup_lpm_wrkarnd = true;
+#else
+		chip->lockup_lpm_wrkarnd = false;
+#endif
 	}
 
 	if (chip->lockup_lpm_wrkarnd) {
