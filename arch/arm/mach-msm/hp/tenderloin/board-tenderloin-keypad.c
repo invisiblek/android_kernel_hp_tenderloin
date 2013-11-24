@@ -43,7 +43,7 @@ static struct gpio_event_direct_entry tenderloin_keypad_input_map[] = {
 	},
         {
                 .gpio = CORE_NAVI_GPIO,
-                .code = KEY_HOME,
+                .code = KEY_HOMEPAGE,
         },
 };
 
