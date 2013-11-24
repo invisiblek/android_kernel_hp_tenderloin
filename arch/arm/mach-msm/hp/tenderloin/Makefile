@@ -9,6 +9,7 @@ obj-$(CONFIG_MACH_TENDERLOIN) += board-tenderloin-ts.o
 obj-$(CONFIG_MACH_TENDERLOIN) += board-tenderloin-usb.o
 obj-$(CONFIG_MACH_TENDERLOIN) += board-tenderloin-a6.o
 obj-$(CONFIG_MACH_TENDERLOIN) += board-tenderloin-rfkill.o
+obj-$(CONFIG_MACH_TENDERLOIN) += board-tenderloin-wifi.o
 obj-$(CONFIG_MACH_TENDERLOIN) += a6_sbw_impl_tenderloin.o
 obj-$(CONFIG_MACH_TENDERLOIN) += display/
 
