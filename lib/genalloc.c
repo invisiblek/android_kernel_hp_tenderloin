@@ -249,9 +249,7 @@ void gen_pool_destroy(struct gen_pool *pool)
 		nbytes = sizeof(struct gen_pool_chunk) +
 				(end_bit + BITS_PER_BYTE - 1) / BITS_PER_BYTE;
 		bit = find_next_bit(chunk->bits, end_bit, 0);
-                //                if (bit < end_bit)
-                //                  return ;
-		WARN_ON(bit < end_bit);
+		BUG_ON(bit < end_bit);
 
 		if (nbytes <= PAGE_SIZE)
 			kfree(chunk);
