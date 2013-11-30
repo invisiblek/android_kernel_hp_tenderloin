@@ -2490,8 +2490,7 @@ static struct i2c_board_info isl29023_i2c_board_info[] = {
 #ifdef CONFIG_MFD_WM8994
 
 #define WM8958_I2C_SLAVE_ADDR 0x1a
-#if 0
-//static struct regulator *vreg_wm8958;
+static struct regulator *vreg_wm8958;
 
 static int wm8994_ldo_power(int enable)
 {
@@ -2589,7 +2588,6 @@ static void msm_wm8958_shutdown_power(void)
 
 	regulator_put(vreg_wm8958);
 }
-#endif
 
 static struct wm8994_pdata wm8958_pdata = {
 	.gpio_defaults = { 	0x0001, //GPIO1 AUDIO_AMP_EN write 0x41 to enable AMP
@@ -2612,8 +2610,8 @@ static struct wm8994_pdata wm8958_pdata = {
 	.num_enh_eq_cfgs = 1,
 	.lineout1_diff = 1,
 	.lineout2_diff = 1,
-        //	.wm8994_setup = msm_wm8958_setup_power,
-        //	.wm8994_shutdown = msm_wm8958_shutdown_power,
+	.wm8994_setup = msm_wm8958_setup_power,
+	.wm8994_shutdown = msm_wm8958_shutdown_power,
 	.micdet_irq = TENDERLOIN_AUD_HEAD_MIC_DET_IRQ_GPIO,
 	.micbias = { 0x0029, 0x002d, },
 };

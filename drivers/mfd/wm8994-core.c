@@ -414,6 +414,10 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		goto err;
 	}
 
+
+    if ((pdata)&&(pdata->wm8994_setup))
+		pdata->wm8994_setup();
+
 	switch (wm8994->type) {
 	case WM1811:
 		wm8994->num_supplies = ARRAY_SIZE(wm1811_main_supplies);
@@ -710,7 +714,8 @@ static __devinit int wm8994_i2c_probe(struct i2c_client *i2c,
 	i2c_set_clientdata(i2c, wm8994);
 	wm8994->dev = &i2c->dev;
 	wm8994->irq = i2c->irq;
-	wm8994->type = id->driver_data;
+//	wm8994->type = id->driver_data;
+    wm8994->type = WM8958;
 
 	wm8994->regmap = devm_regmap_init_i2c(i2c, &wm8994_base_regmap_config);
 	if (IS_ERR(wm8994->regmap)) {
