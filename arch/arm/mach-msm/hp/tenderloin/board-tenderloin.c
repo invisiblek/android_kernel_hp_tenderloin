@@ -3033,15 +3033,15 @@ static void __init tenderloin_init(void)
 #ifdef CONFIG_A6
 	tenderloin_init_a6();
 #endif
-#ifdef CONFIG_MSM8X60_AUDIO_1X
-	spi_register_board_info(msm_spi_board_info, ARRAY_SIZE(msm_spi_board_info));
-	gpio_tlmm_config(msm_spi_gpio[0], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(msm_spi_gpio[1], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(msm_spi_gpio[2], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(msm_spi_gpio[3], GPIO_CFG_ENABLE);
-	msm_auxpcm_init(); 
+#ifdef CONFIG_MSM8X60_AUDIO
+	//spi_register_board_info(msm_spi_board_info, ARRAY_SIZE(msm_spi_board_info));
+	//gpio_tlmm_config(msm_spi_gpio[0], GPIO_CFG_ENABLE);
+	//gpio_tlmm_config(msm_spi_gpio[1], GPIO_CFG_ENABLE);
+	//gpio_tlmm_config(msm_spi_gpio[2], GPIO_CFG_ENABLE);
+	//gpio_tlmm_config(msm_spi_gpio[3], GPIO_CFG_ENABLE);
+	//msm_auxpcm_init();
 	msm_snddev_init();
-        tenderloin_audio_init();
+      //  tenderloin_audio_init();
 #endif
 
         tenderloin_init_keypad();
