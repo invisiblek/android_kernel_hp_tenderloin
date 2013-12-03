@@ -292,13 +292,14 @@ static int wm8994_suspend(struct device *dev)
 	if (pdata->wm8994_shutdown)
 		pdata->wm8994_shutdown();
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	ret = regulator_bulk_disable(wm8994->num_supplies,
 				     wm8994->supplies);
 	if (ret != 0) {
 		dev_err(dev, "Failed to disable supplies: %d\n", ret);
 		return ret;
 	}
-
+#endif
 	return 0;
 }
 
@@ -315,11 +316,12 @@ static int wm8994_resume(struct device *dev)
 	if (pdata->wm8994_setup)
 		pdata->wm8994_setup();
 
-	ret = regulator_bulk_enable(wm8994->num_supplies,
-				    wm8994->supplies);
+	//ret = regulator_bulk_enable(wm8994->num_supplies,
+	//			    wm8994->supplies);
 	if (ret != 0) {
 		dev_err(dev, "Failed to enable supplies: %d\n", ret);
 		return ret;
+
 	}
 
 	regcache_cache_only(wm8994->regmap, false);
@@ -339,7 +341,7 @@ static int wm8994_resume(struct device *dev)
 	return 0;
 
 err_enable:
-	regulator_bulk_disable(wm8994->num_supplies, wm8994->supplies);
+	//regulator_bulk_disable(wm8994->num_supplies, wm8994->supplies);
 
 	return ret;
 }
@@ -418,6 +420,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
     if ((pdata)&&(pdata->wm8994_setup))
 		pdata->wm8994_setup();
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	switch (wm8994->type) {
 	case WM1811:
 		wm8994->num_supplies = ARRAY_SIZE(wm1811_main_supplies);
@@ -458,13 +461,6 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		BUG();
 		goto err;
 	}
-		
-	if ((pdata)&&(pdata->wm8994_setup))
-	  {
-	    pdata->wm8994_setup();
-	    wm8994->num_supplies = 0;
-	    wm8994->supplies = NULL;
-	  }
 
 	ret = regulator_bulk_get(wm8994->dev, wm8994->num_supplies,
 				 wm8994->supplies);
@@ -479,7 +475,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		dev_err(wm8994->dev, "Failed to enable supplies: %d\n", ret);
 		goto err_get;
 	}
-
+#endif
 	ret = wm8994_reg_read(wm8994, WM8994_SOFTWARE_RESET);
 	if (ret < 0) {
 		dev_err(wm8994->dev, "Failed to read ID register\n");
@@ -668,10 +664,12 @@ err_irq:
 err_enable:
 	if ((pdata)&&(pdata->wm8994_shutdown))
 		pdata->wm8994_shutdown();
+#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 err_get:
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
+#endif
 err:
 	mfd_remove_devices(wm8994->dev);
 	return ret;
@@ -687,10 +685,11 @@ static __devexit void wm8994_device_exit(struct wm8994 *wm8994)
 
 	if ((pdata)&&(pdata->wm8994_shutdown))
 		pdata->wm8994_shutdown();
-
+#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
+#endif
 }
 
 static const struct of_device_id wm8994_of_match[] = {

@@ -4073,21 +4073,21 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 				     ARRAY_SIZE(wm8958_snd_controls));
 		snd_soc_dapm_new_controls(dapm, wm8958_dapm_widgets,
 					  ARRAY_SIZE(wm8958_dapm_widgets));
-		if (wm8994->revision < 1) {
+		//if (wm8994->revision < 1) {
 			snd_soc_dapm_new_controls(dapm, wm8994_lateclk_revd_widgets,
 						  ARRAY_SIZE(wm8994_lateclk_revd_widgets));
 			snd_soc_dapm_new_controls(dapm, wm8994_adc_revd_widgets,
 						  ARRAY_SIZE(wm8994_adc_revd_widgets));
 			snd_soc_dapm_new_controls(dapm, wm8994_dac_revd_widgets,
 						  ARRAY_SIZE(wm8994_dac_revd_widgets));
-		} else {
+		/*} else {
 			snd_soc_dapm_new_controls(dapm, wm8994_lateclk_widgets,
 						  ARRAY_SIZE(wm8994_lateclk_widgets));
 			snd_soc_dapm_new_controls(dapm, wm8994_adc_widgets,
 						  ARRAY_SIZE(wm8994_adc_widgets));
 			snd_soc_dapm_new_controls(dapm, wm8994_dac_widgets,
 						  ARRAY_SIZE(wm8994_dac_widgets));
-		}
+		}*/
 		break;
 
 	case WM1811:
@@ -4124,17 +4124,17 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 		}
 		break;
 	case WM8958:
-		if (wm8994->revision < 1) {
+		//if (wm8994->revision < 1) {
 			snd_soc_dapm_add_routes(dapm, wm8994_revd_intercon,
 						ARRAY_SIZE(wm8994_revd_intercon));
 			snd_soc_dapm_add_routes(dapm, wm8994_lateclk_revd_intercon,
 						ARRAY_SIZE(wm8994_lateclk_revd_intercon));
-		} else {
+		/*} else {
 			snd_soc_dapm_add_routes(dapm, wm8994_lateclk_intercon,
 						ARRAY_SIZE(wm8994_lateclk_intercon));
 			snd_soc_dapm_add_routes(dapm, wm8958_intercon,
 						ARRAY_SIZE(wm8958_intercon));
-		}
+		}*/
 
 		wm8958_dsp2_init(codec);
 		break;
