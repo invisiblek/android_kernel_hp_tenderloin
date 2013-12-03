@@ -1067,6 +1067,218 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+#ifdef CONFIG_MSM_CAMERA
+#ifdef CONFIG_WEBCAM_MT9M113
+
+static int camera_mt9m113_gpios[] = {
+	TENDERLOIN_CAM_I2C_DATA,
+	TENDERLOIN_CAM_I2C_CLK,
+	TENDERLOIN_CAMIF_MCLK,
+	TENDERLOIN_WEBCAM_RST,
+	TENDERLOIN_WEBCAM_PWDN,
+};
+
+struct regulator *votg_lvs0 = NULL;
+struct regulator *votg_vreg_l11 = NULL;
+bool gpios_web_cam_mt9m113_on = false;
+
+static int config_camera_on_gpios_web_cam_mt9m113(void)
+{
+	int rc = 0;
+
+	printk("+++ %s\n", __func__);
+	if ( !gpios_web_cam_mt9m113_on ) {
+
+		configure_gpiomux_gpios(1, camera_mt9m113_gpios,
+			ARRAY_SIZE(camera_mt9m113_gpios));
+
+		votg_lvs0 = regulator_get(NULL, "8058_lvs0");
+		if (IS_ERR_OR_NULL(votg_lvs0)) {
+			printk("%s: unable to get votg_lvs0\n", __func__);
+			goto err;
+		}
+
+		if (regulator_enable(votg_lvs0)) {
+			printk("%s:Unable to enable the regulator votg_lvs0\n", __func__);
+			goto err1;
+		}
+		else {
+			printk("%s:enable the regulator votg_lvs0 succeed\n", __func__);
+		}
+
+		votg_vreg_l11 = regulator_get(NULL, "8058_l11");
+		if (IS_ERR_OR_NULL(votg_vreg_l11)) {
+			printk("%s: unable to get votg_vreg_l11\n", __func__);
+			goto err1;
+		}
+
+		if(regulator_set_voltage(votg_vreg_l11, 2850000, 2850000)) {
+			printk("%s: Unable to set regulator voltage:"
+			" votg_l11\n", __func__);
+			goto err2;
+		}
+
+		if (regulator_enable(votg_vreg_l11)) {
+			printk("%s:Unable to enable the regulator votg_vreg_l11\n", __func__);
+			goto err2;
+		}
+		else {
+			printk("%s:enable the regulator votg_vreg_l11 succeed\n", __func__);
+		}
+
+		gpios_web_cam_mt9m113_on = true;
+	}
+
+	printk("--- %s\n", __func__);
+	return 0;
+
+err2:
+	regulator_disable(votg_vreg_l11);
+	regulator_put(votg_vreg_l11);
+	votg_vreg_l11 = NULL;
+
+err1:
+	regulator_disable(votg_lvs0);
+	regulator_put(votg_lvs0);
+	votg_lvs0 = NULL;
+
+err:
+	configure_gpiomux_gpios(0, camera_mt9m113_gpios,
+			ARRAY_SIZE(camera_mt9m113_gpios));
+
+	//If error code is not specified return -1
+	if (!rc) {
+		rc = -1;
+	}
+
+	printk("--- %s\n", __func__);
+	return rc;
+}
+
+static void config_camera_off_gpios_web_cam_mt9m113(void)
+{
+	printk("+++ %s\n", __func__);
+
+	if (gpios_web_cam_mt9m113_on) {
+
+		configure_gpiomux_gpios(0, camera_mt9m113_gpios,
+				ARRAY_SIZE(camera_mt9m113_gpios));
+
+		if (IS_ERR_OR_NULL(votg_lvs0)) {
+			printk("%s: unable to get votg_lvs0\n", __func__);
+		} else {
+
+			if (regulator_disable(votg_lvs0)) {
+				printk("%s:Unable to disable the regulator: votg_lvs0\n", __func__);
+			}
+			else {
+				printk("%s:disable the regulator: votg_lvs0 succeed\n", __func__);
+			}
+
+			regulator_put(votg_lvs0);
+			votg_lvs0 = NULL;
+		}
+
+		if (IS_ERR_OR_NULL(votg_vreg_l11)) {
+			printk("%s: unable to get votg_vreg_l11\n", __func__);
+		} else {
+
+			if (regulator_disable(votg_vreg_l11)) {
+				printk("%s:Unable to disable the regulator: votg_vreg_l11\n", __func__);
+			}
+			else {
+				printk("%s:disable the regulator: votg_vreg_l11 succeed\n", __func__);
+			}
+
+			regulator_put(votg_vreg_l11);
+			votg_vreg_l11 = NULL;
+		}
+
+		gpios_web_cam_mt9m113_on = false;
+	}
+
+	printk("--- %s\n", __func__);
+}
+
+struct msm_camera_device_platform_data msm_camera_device_data_web_cam_mt9m113 = {
+	.camera_gpio_on  = config_camera_on_gpios_web_cam_mt9m113,
+	.camera_gpio_off = config_camera_off_gpios_web_cam_mt9m113,
+	.ioext.csiphy = 0x04900000,
+	.ioext.csisz  = 0x00000400,
+	.ioext.csiirq = CSI_1_IRQ,
+	.ioclk.mclk_clk_rate = 24000000,
+	.ioclk.vfe_clk_rate  = 228570000,
+};
+
+struct resource msm_camera_resources[] = {
+	{
+		.start	= 0x04500000,
+		.end	= 0x04500000 + SZ_1M - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= VFE_IRQ,
+		.end	= VFE_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct msm_camera_sensor_flash_data msm_flash_none = {
+       .flash_type = MSM_CAMERA_FLASH_NONE,
+       .flash_src  = NULL
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_mt9m113_data = {
+	.sensor_name	= "mt9m113",
+	.sensor_reset	= 106,
+	.sensor_pwd		= 107,
+	.vcm_pwd		= 1,
+	.vcm_enable		= 0,
+	.pdata			= &msm_camera_device_data_web_cam_mt9m113,
+	.resource		= msm_camera_resources,
+	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.flash_data		= &msm_flash_none,
+	.csi_if			= 1
+};
+
+struct platform_device msm_camera_sensor_webcam_mt9m113 = {
+	.name	= "msm_camera_mt9m113",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_mt9m113_data,
+	},
+};
+
+static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("mt9m113", 0x78),
+	},
+};
+#endif
+#endif
+
+#ifdef CONFIG_MSM_VPE
+static struct resource msm_vpe_resources[] = {
+	{
+		.start	= 0x05300000,
+		.end	= 0x05300000 + SZ_1M - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= INT_VPE,
+		.end	= INT_VPE,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device msm_vpe_device = {
+	.name = "msm_vpe",
+	.id   = 0,
+	.num_resources = ARRAY_SIZE(msm_vpe_resources),
+	.resource = msm_vpe_resources,
+};
+#endif
+
+
 #ifdef CONFIG_MSM_GEMINI
 static struct resource msm_gemini_resources[] = {
 	{
@@ -1966,8 +2178,16 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
+#ifdef CONFIG_MSM_CAMERA
+#ifdef CONFIG_WEBCAM_MT9M113
+	&msm_camera_sensor_webcam_mt9m113,
+#endif
+#endif //CONFIG_MSM_CAMERA
 #ifdef CONFIG_MSM_GEMINI
 	&msm_gemini_device,
+#endif
+#ifdef CONFIG_MSM_VPE
+	&msm_vpe_device,
 #endif
 	&msm_device_vidc,
 #ifdef CONFIG_USER_PINS
@@ -3191,7 +3411,7 @@ static void __init tenderloin_init(void)
 
         tenderloin_init_ts();
 #ifdef CONFIG_MSM_CAMERA
-        msm8x60_init_cam();
+//        msm8x60_init_cam();
 #endif
 
 #ifdef CONFIG_BATTERY_MSM8X60

@@ -296,10 +296,15 @@ static struct gpiomux_setting lcdc_active_cfg_2m =
 #define MDM2AP_STATUS_SUSPEND_CFG \
 	GPIOMUX_CFG(0, 0, GPIOMUX_PULL_NONE)
 
-#define CAM_F1_OUTH_8M_PN	GPIOMUX_DCFG(\
-	GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_HIGH)
-#define CAM_F1_OUTL_8M_PN	GPIOMUX_DCFG(\
-	GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_LOW)
+static struct gpiomux_setting cam_gpio_outh_8m_pn =
+  GPIOMUX_DCFG(\
+		GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_HIGH)
+#define CAM_F1_OUTH_8M_PN &cam_gpio_outh_8m_pn
+
+static struct gpiomux_setting cam_gpio_outl_8m_pn =
+  GPIOMUX_DCFG(\
+		GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_LOW)
+#define CAM_F1_OUTL_8M_PN &cam_gpio_outl_8m_pn
 
 #define MDM2AP_SYNC_ACTIVE_CFG \
 	GPIOMUX_CFG(GPIOMUX_FUNC_GPIO, GPIOMUX_DRV_2MA, GPIOMUX_PULL_NONE)
@@ -1097,6 +1102,13 @@ static struct msm_gpiomux_config msm8x60_pmic_configs[] __initdata = {
 };
 
 #ifdef CONFIG_WEBCAM_MT9M113
+
+#define TENDERLOIN_CAM_I2C_DATA		47
+#define TENDERLOIN_CAM_I2C_CLK		48
+#define TENDERLOIN_CAMIF_MCLK		32
+#define TENDERLOIN_WEBCAM_RST		106
+#define TENDERLOIN_WEBCAM_PWDN		107
+
 static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
 	GPIOMUX_ACT_SUSP_DEF(TENDERLOIN_CAM_I2C_DATA,  CAM_F1_OUTH_8M_PN, GPIO_IN_2M_PU),
 	GPIOMUX_ACT_SUSP_DEF(TENDERLOIN_CAM_I2C_CLK, CAM_F1_OUTH_8M_PN, GPIO_IN_2M_PU),

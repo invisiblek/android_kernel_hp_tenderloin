@@ -2286,7 +2286,74 @@ CONFIG_VIDEO_IR_I2C=y
 # CONFIG_VIDEO_M52790 is not set
 # CONFIG_MSM_VCAP is not set
 # CONFIG_V4L_USB_DRIVERS is not set
-# CONFIG_V4L_PLATFORM_DRIVERS is not set
+CONFIG_V4L_PLATFORM_DRIVERS=y
+# CONFIG_SOC_CAMERA is not set
+
+#
+# Qualcomm MSM Camera And Video
+#
+CONFIG_MSM_CAMERA=y
+# CONFIG_MSM_CAMERA_DEBUG is not set
+# CONFIG_MSM_CAMERA_V4L2 is not set
+
+#
+# Camera Sensor Selection
+#
+# CONFIG_MT9D113 is not set
+# CONFIG_IMX074 is not set
+# CONFIG_S5K3H2YX is not set
+# CONFIG_S5K6A1GX is not set
+# CONFIG_S5K4E5YX is not set
+# CONFIG_AR0260 is not set
+# CONFIG_OV2722 is not set
+# CONFIG_OV5640 is not set
+# CONFIG_OV5647 is not set
+CONFIG_WEBCAM_MT9M113=y
+# CONFIG_MT9M114 is not set
+# CONFIG_WEBCAM_OV7692 is not set
+# CONFIG_WEBCAM_OV9726 is not set
+# CONFIG_VX6953 is not set
+# CONFIG_MT9E013 is not set
+# CONFIG_IMX074_ACT is not set
+# CONFIG_S5K3H2YX_ACT is not set
+# CONFIG_QS_S5K4E1 is not set
+# CONFIG_S5K4E1 is not set
+# CONFIG_MSM_CAMERA_FLASH_SC628A is not set
+# CONFIG_IMX072 is not set
+# CONFIG_OV2720 is not set
+# CONFIG_MSM_CAMERA_FLASH is not set
+# CONFIG_MSM_CAMERA_SENSOR is not set
+# CONFIG_MSM_ACTUATOR is not set
+CONFIG_MSM_GEMINI=y
+CONFIG_MSM_VPE=y
+# CONFIG_RAWCHIP is not set
+# CONFIG_RAWCHIPII is not set
+# CONFIG_CAMERA_IMAGE_NONE_BOARD is not set
+CONFIG_QUP_EXCLUSIVE_TO_CAMERA=y
+# CONFIG_S5K3L1YX is not set
+# CONFIG_IMX091 is not set
+# CONFIG_IMX105 is not set
+# CONFIG_IMX175 is not set
+# CONFIG_IMX135 is not set
+# CONFIG_OV8838 is not set
+# CONFIG_IMX175_ACT is not set
+# CONFIG_RUMBAS_ACT is not set
+# CONFIG_AD5823_ACT is not set
+# CONFIG_AD5816_ACT is not set
+# CONFIG_TI201_ACT is not set
+# CONFIG_ACT_OIS_BINDER is not set
+# CONFIG_LC898212_ACT is not set
+# CONFIG_MT9V113 is not set
+# CONFIG_IMX175_2LANE is not set
+# CONFIG_S5K4E5YX_ACT is not set
+# CONFIG_OV5693_ACT is not set
+# CONFIG_OV5693 is not set
+# CONFIG_RAWCHIP_MCLK is not set
+# CONFIG_DISABLE_MCLK_RAWCHIP_TO_MAINCAM is not set
+# CONFIG_S5K6A2YA is not set
+# CONFIG_S5K6AAFX is not set
+# CONFIG_VD6869 is not set
+# CONFIG_OV4688 is not set
 # CONFIG_V4L_MEM2MEM_DRIVERS is not set
 CONFIG_MSM_VIDC=y
 # CONFIG_RADIO_ADAPTERS is not set
