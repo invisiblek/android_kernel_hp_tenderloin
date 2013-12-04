@@ -37,6 +37,12 @@
 
 #include "msm8x60-pcm.h"
 
+#if defined(CONFIG_MACH_TENDERLOIN)
+#include "../codecs/wm8994.h"
+#include <linux/mfd/wm8994/registers.h>
+#include <linux/mfd/wm8994/pdata.h>
+#endif
+
 static struct platform_device *msm_audio_snd_device;
 struct audio_locks the_locks;
 EXPORT_SYMBOL(the_locks);
@@ -1110,6 +1116,48 @@ static struct snd_kcontrol_new snd_msm_secondary_controls[] = {
 			msm_voc_session_info, msm_voip_session_get, NULL, 0),
 };
 
+static int wm8994_en_pwr_amp(struct snd_soc_dapm_widget *w,
+	struct snd_kcontrol *k, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+
+	if( SND_SOC_DAPM_EVENT_ON(event) ){
+		snd_soc_write(codec, WM8994_GPIO_1, 0x41);
+	}
+	else{
+		snd_soc_write(codec, WM8994_GPIO_1, 0x1);
+	}
+	return 0;
+}
+
+#if defined(CONFIG_MACH_TENDERLOIN)
+static const struct snd_soc_dapm_widget tenderloin_dapm_widgets[] = {
+	SND_SOC_DAPM_HP("Headphone", NULL),
+	SND_SOC_DAPM_MIC("Headset Mic", NULL),
+	SND_SOC_DAPM_MIC("Internal Mic", NULL),
+	SND_SOC_DAPM_SPK("Speaker",wm8994_en_pwr_amp),
+};
+
+static struct snd_soc_dapm_route tenderloin_dapm_routes[] = {
+	{ "Headphone", 	NULL, "HPOUT1L" },
+	{ "Headphone", 	NULL, "HPOUT1R" },
+
+	{ "Speaker", 	NULL, "LINEOUT1P" },
+	{ "Speaker", 	NULL, "LINEOUT1N" },
+	{ "Speaker", 	NULL, "LINEOUT2P" },
+	{ "Speaker", 	NULL, "LINEOUT2N" },
+
+	// Internal Mic
+	{ "IN1LN",   NULL, "MICBIAS1" },
+        { "MICBIAS1",   NULL, "Internal Mic" },
+	// Headset Mic
+	{ "IN2LN", 		NULL, "MICBIAS2" },
+	{ "MICBIAS2", 	NULL, "Headset Mic" },
+
+};
+
+#endif
+
 static int msm_new_mixer(struct snd_soc_codec *codec)
 {
 	unsigned int idx;
@@ -1156,6 +1204,7 @@ static int msm_soc_dai_init(
 
 	int ret = 0;
 	struct snd_soc_codec *codec = rtd->codec;
+	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
 	init_waitqueue_head(&the_locks.enable_wait);
 	init_waitqueue_head(&the_locks.eos_wait);
@@ -1163,12 +1212,47 @@ static int msm_soc_dai_init(
 	init_waitqueue_head(&the_locks.read_wait);
 	memset(&session_route, DEVICE_IGNORE, sizeof(struct pcm_session));
 
+#if defined(CONFIG_MACH_TENDERLOIN)
+	snd_soc_dapm_new_controls(dapm, tenderloin_dapm_widgets,
+				ARRAY_SIZE(tenderloin_dapm_widgets));
+
+	snd_soc_dapm_add_routes(dapm, tenderloin_dapm_routes,
+				ARRAY_SIZE(tenderloin_dapm_routes));
+#endif
+
+
 	ret = msm_new_mixer(codec);
 	if (ret < 0)
 		pr_err("%s: ALSA MSM Mixer Fail\n", __func__);
 
 	return ret;
 }
+
+#if defined(CONFIG_MACH_TENDERLOIN)
+static int tendorloin_hw_params(struct snd_pcm_substream *substream,
+                           struct snd_pcm_hw_params *params)
+{
+	struct snd_soc_pcm_runtime *rtd = substream->private_data;
+	struct snd_soc_dai *codec_dai = rtd->codec_dai;
+	int ret;
+
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_CBS_CFS |
+		SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF);
+
+	if (ret != 0) {
+		pr_err("Failed to set DAI format: %d\n", ret);
+		return ret;
+	}
+
+	return 0;
+}
+
+
+
+static struct snd_soc_ops tenderloin_ops = {
+	.hw_params = tendorloin_hw_params,
+};
+#endif
 
 static struct snd_soc_dai_link msm_dai[] = {
 {
