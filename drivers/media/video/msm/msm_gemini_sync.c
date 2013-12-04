@@ -153,7 +153,7 @@ inline void msm_gemini_outbuf_q_cleanup(struct msm_gemini_q *q_p)
 	do {
 		buf_p = msm_gemini_q_out(q_p);
 		if (buf_p) {
-			msm_gemini_platform_p2v(buf_p->file);
+			msm_gemini_platform_p2v(buf_p->file, &buf_p->handle);
 			GMN_DBG("%s:%d] %s\n", __func__, __LINE__, q_p->name);
 			kfree(buf_p);
 		}
@@ -318,7 +318,7 @@ int msm_gemini_output_get(struct msm_gemini_device *pgmn_dev, void __user *to)
 	}
 
 	buf_cmd = buf_p->vbuf;
-	msm_gemini_platform_p2v(buf_p->file);
+	msm_gemini_platform_p2v(buf_p->file, &buf_p->handle);
 	kfree(buf_p);
 
 	GMN_DBG("%s:%d] 0x%08x %d\n", __func__, __LINE__,
@@ -361,7 +361,7 @@ int msm_gemini_output_buf_enqueue(struct msm_gemini_device *pgmn_dev,
 		buf_cmd.y_len);
 
 	buf_p->y_buffer_addr = msm_gemini_platform_v2p(buf_cmd.fd,
-		buf_cmd.y_len, &buf_p->file);
+		buf_cmd.y_len, &buf_p->file, &buf_p->handle);
 	if (!buf_p->y_buffer_addr) {
 		GMN_PR_ERR("%s:%d] v2p wrong\n", __func__, __LINE__);
 		kfree(buf_p);
@@ -426,7 +426,7 @@ int msm_gemini_input_get(struct msm_gemini_device *pgmn_dev, void __user * to)
 	}
 
 	buf_cmd = buf_p->vbuf;
-	msm_gemini_platform_p2v(buf_p->file);
+	msm_gemini_platform_p2v(buf_p->file, &buf_p->handle);
 	kfree(buf_p);
 
 	GMN_DBG("%s:%d] 0x%08x %d\n", __func__, __LINE__,
@@ -468,7 +468,7 @@ int msm_gemini_input_buf_enqueue(struct msm_gemini_device *pgmn_dev,
 		(int) buf_cmd.vaddr, buf_cmd.y_len);
 
 	buf_p->y_buffer_addr    = msm_gemini_platform_v2p(buf_cmd.fd,
-		buf_cmd.y_len + buf_cmd.cbcr_len, &buf_p->file);
+		buf_cmd.y_len + buf_cmd.cbcr_len, &buf_p->file, &buf_p->handle);
 	buf_p->y_len          = buf_cmd.y_len;
 
 	buf_p->cbcr_buffer_addr = buf_p->y_buffer_addr + buf_cmd.y_len;

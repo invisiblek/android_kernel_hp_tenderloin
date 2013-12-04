@@ -41,6 +41,7 @@ struct msm_gemini_hw_buf {
 	uint32_t cbcr_buffer_addr;
 	uint32_t cbcr_len;
 	uint32_t num_of_mcu_rows;
+	struct ion_handle *handle;
 };
 
 struct msm_gemini_hw_pingpong {
