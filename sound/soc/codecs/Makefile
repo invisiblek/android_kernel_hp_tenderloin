@@ -199,14 +199,14 @@ obj-$(CONFIG_SND_SOC_WM8988)	+= snd-soc-wm8988.o
 obj-$(CONFIG_SND_SOC_WM8990)	+= snd-soc-wm8990.o
 obj-$(CONFIG_SND_SOC_WM8991)	+= snd-soc-wm8991.o
 obj-$(CONFIG_SND_SOC_WM8993)	+= snd-soc-wm8993.o
-obj-$(CONFIG_SND_SOC_WM8994)	+= snd-soc-wm8994.o
+obj-y	                        += snd-soc-wm8994.o
 obj-$(CONFIG_SND_SOC_WM8995)	+= snd-soc-wm8995.o
 obj-$(CONFIG_SND_SOC_WM9081)	+= snd-soc-wm9081.o
 obj-$(CONFIG_SND_SOC_WM9090)	+= snd-soc-wm9090.o
 obj-$(CONFIG_SND_SOC_WM9705)	+= snd-soc-wm9705.o
 obj-$(CONFIG_SND_SOC_WM9712)	+= snd-soc-wm9712.o
 obj-$(CONFIG_SND_SOC_WM9713)	+= snd-soc-wm9713.o
-obj-$(CONFIG_SND_SOC_WM_HUBS)	+= snd-soc-wm-hubs.o
+obj-y                          	+= snd-soc-wm-hubs.o
 obj-$(CONFIG_SND_SOC_MSM_STUB)  += snd-soc-msm-stub.o
 
 # Amp
