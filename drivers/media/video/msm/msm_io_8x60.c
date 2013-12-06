@@ -508,9 +508,13 @@ int msm_camio_clk_enable(enum msm_camio_clk_type clktype)
 	}
 
 	if (!IS_ERR(clk))
-		clk_prepare_enable(clk);
+		rc = clk_prepare_enable(clk);
 	else
-		rc = -1;
+		rc = PTR_ERR(clk);
+
+	if (rc < 0)
+		pr_err("%s(%d) failed %d\n", __func__, clktype, rc);
+
 	return rc;
 }
 
@@ -584,7 +588,11 @@ int msm_camio_clk_disable(enum msm_camio_clk_type clktype)
 		clk_disable_unprepare(clk);
 		clk_put(clk);
 	} else
-		rc = -1;
+		rc = PTR_ERR(clk);
+
+	if (rc < 0)
+		pr_err("%s(%d) failed %d\n", __func__, clktype, rc);
+
 	return rc;
 }
 
