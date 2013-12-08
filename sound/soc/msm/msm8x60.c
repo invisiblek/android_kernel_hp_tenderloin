@@ -1212,15 +1212,6 @@ static int msm_soc_dai_init(
 	init_waitqueue_head(&the_locks.read_wait);
 	memset(&session_route, DEVICE_IGNORE, sizeof(struct pcm_session));
 
-#if defined(CONFIG_MACH_TENDERLOIN)
-	snd_soc_dapm_new_controls(dapm, tenderloin_dapm_widgets,
-				ARRAY_SIZE(tenderloin_dapm_widgets));
-
-	snd_soc_dapm_add_routes(dapm, tenderloin_dapm_routes,
-				ARRAY_SIZE(tenderloin_dapm_routes));
-#endif
-
-
 	ret = msm_new_mixer(codec);
 	if (ret < 0)
 		pr_err("%s: ALSA MSM Mixer Fail\n", __func__);
@@ -1229,30 +1220,23 @@ static int msm_soc_dai_init(
 }
 
 #if defined(CONFIG_MACH_TENDERLOIN)
-static int tendorloin_hw_params(struct snd_pcm_substream *substream,
-                           struct snd_pcm_hw_params *params)
-{
-	struct snd_soc_pcm_runtime *rtd = substream->private_data;
-	struct snd_soc_dai *codec_dai = rtd->codec_dai;
-	int ret;
 
-	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_CBS_CFS |
-		SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF);
-
-	if (ret != 0) {
-		pr_err("Failed to set DAI format: %d\n", ret);
-		return ret;
+static struct snd_soc_dai_link msm_dai[] = {
+	{
+		.name = "Media Playback",
+		.stream_name = "Media Playback",
+		.cpu_dai_name = "msm-cpu-dai.0",
+		.codec_dai_name = "wm8994-aif1",
+		.platform_name = "msm-dsp-audio.0",
+		.codec_name = "wm8994-codec",
+		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
+						| SND_SOC_DAIFMT_CBM_CFM,
+		//.init   = msm_soc_dai_init,
 	}
-
-	return 0;
-}
-
-
-
-static struct snd_soc_ops tenderloin_ops = {
-	.hw_params = tendorloin_hw_params,
 };
-#endif
+
+
+#else
 
 static struct snd_soc_dai_link msm_dai[] = {
 {
@@ -1276,10 +1260,19 @@ static struct snd_soc_dai_link msm_dai[] = {
 #endif
 };
 
+#endif //tenderloin
+
 static struct snd_soc_card snd_soc_card_msm = {
 	.name		= "msm-audio",
+	.owner = THIS_MODULE,
 	.dai_link	= msm_dai,
 	.num_links = ARRAY_SIZE(msm_dai),
+#if defined(CONFIG_MACH_TENDERLOIN)
+	.dapm_widgets = tenderloin_dapm_widgets,
+	.num_dapm_widgets = ARRAY_SIZE(tenderloin_dapm_widgets),
+	.dapm_routes = tenderloin_dapm_routes,
+	.num_dapm_routes = ARRAY_SIZE(tenderloin_dapm_routes),
+#endif
 };
 
 static int __init msm_audio_init(void)
