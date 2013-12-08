@@ -13,10 +13,13 @@
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
  */
-#include <mach/board.h>
+
 #include <asm/setup.h>
+#include <mach/board.h>
+#include <mach/msm_iomap.h>
 #include <linux/mtd/nand.h>
 #include <linux/module.h>
+
 #define MFG_GPIO_TABLE_MAX_SIZE        0x400
 static unsigned char mfg_gpio_table[MFG_GPIO_TABLE_MAX_SIZE];
 
@@ -670,12 +673,16 @@ EXPORT_SYMBOL(board_get_carrier_tag);
 #elif defined(CONFIG_ARCH_APQ8064)
 #define MSM_RAM_CONSOLE_BASE   0x8F100000
 #else
-#define MSM_RAM_CONSOLE_BASE   0x88900000
+#define MSM_RAM_CONSOLE_BASE	MSM_HTC_RAM_CONSOLE_PHYS
 #endif
 #ifdef CONFIG_ARCH_MSM7X30
 #define MSM_RAM_CONSOLE_SIZE	0x00100000
 #else
+#ifdef MSM_RAM_CONSOLE_SIZE
+#define MSM_RAM_CONSOLE_SIZE	MSM_HTC_RAM_CONSOLE_SIZE
+#else
 #define MSM_RAM_CONSOLE_SIZE   (SZ_1M - SZ_128K) /* 128K for debug info */
+#endif
 #endif
 
 static struct resource ram_console_resources[] = {
