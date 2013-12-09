@@ -1,6 +1,6 @@
 #
 # Automatically generated file; DO NOT EDIT.
-# Linux/arm 3.4.66 Kernel Configuration
+# Linux/arm 3.4.73 Kernel Configuration
 #
 CONFIG_ARM=y
 CONFIG_ARM_HAS_SG_CHAIN=y
@@ -2919,6 +2919,7 @@ CONFIG_LEDS_GPIO_PLATFORM=y
 # CONFIG_LEDS_LP5523 is not set
 # CONFIG_LEDS_PCA955X is not set
 # CONFIG_LEDS_PM8XXX is not set
+# CONFIG_LEDS_PM8921 is not set
 # CONFIG_LEDS_PM8038 is not set
 # CONFIG_LEDS_PCA9633 is not set
 # CONFIG_LEDS_DAC124S085 is not set
