@@ -318,11 +318,11 @@ static int wm8994_resume(struct device *dev)
 
 	//ret = regulator_bulk_enable(wm8994->num_supplies,
 	//			    wm8994->supplies);
-	if (ret != 0) {
+	/*if (ret != 0) {
 		dev_err(dev, "Failed to enable supplies: %d\n", ret);
 		return ret;
 
-	}
+	}*/
 
 	regcache_cache_only(wm8994->regmap, false);
 	ret = regcache_sync(wm8994->regmap);
