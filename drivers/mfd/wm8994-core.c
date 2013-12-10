@@ -195,6 +195,7 @@ static const char *wm8958_main_supplies[] = {
 static int wm8994_suspend(struct device *dev)
 {
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
 	int ret;
 
 	/* Don't actually go through with the suspend if the CODEC is
@@ -288,6 +289,9 @@ static int wm8994_suspend(struct device *dev)
 
 	wm8994->suspended = true;
 
+	if (pdata->wm8994_shutdown)
+		pdata->wm8994_shutdown();
+
 	ret = regulator_bulk_disable(wm8994->num_supplies,
 				     wm8994->supplies);
 	if (ret != 0) {
@@ -301,11 +305,15 @@ static int wm8994_suspend(struct device *dev)
 static int wm8994_resume(struct device *dev)
 {
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
 	int ret;
 
 	/* We may have lied to the PM core about suspending */
 	if (!wm8994->suspended)
 		return 0;
+
+	if (pdata->wm8994_setup)
+		pdata->wm8994_setup();
 
 	ret = regulator_bulk_enable(wm8994->num_supplies,
 				    wm8994->supplies);
@@ -447,6 +455,13 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		goto err;
 	}
 		
+	if ((pdata)&&(pdata->wm8994_setup))
+	  {
+	    pdata->wm8994_setup();
+	    wm8994->num_supplies = 0;
+	    wm8994->supplies = NULL;
+	  }
+
 	ret = regulator_bulk_get(wm8994->dev, wm8994->num_supplies,
 				 wm8994->supplies);
 	if (ret != 0) {
@@ -642,12 +657,13 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 
 	pm_runtime_enable(wm8994->dev);
 	pm_runtime_idle(wm8994->dev);
-
 	return 0;
 
 err_irq:
 	wm8994_irq_exit(wm8994);
 err_enable:
+	if ((pdata)&&(pdata->wm8994_shutdown))
+		pdata->wm8994_shutdown();
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 err_get:
@@ -659,9 +675,15 @@ err:
 
 static __devexit void wm8994_device_exit(struct wm8994 *wm8994)
 {
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
+
 	pm_runtime_disable(wm8994->dev);
 	mfd_remove_devices(wm8994->dev);
 	wm8994_irq_exit(wm8994);
+
+	if ((pdata)&&(pdata->wm8994_shutdown))
+		pdata->wm8994_shutdown();
+
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
