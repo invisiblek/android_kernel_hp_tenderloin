@@ -2151,7 +2151,6 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 		sink = route->sink;
 		source = route->source;
 	}
-
 	/*
 	 * find src and dest widgets over all widgets but favor a widget from
 	 * current DAPM context

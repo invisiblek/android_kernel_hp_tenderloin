@@ -1206,11 +1206,11 @@ static int msm_soc_dai_init(
 	struct snd_soc_codec *codec = rtd->codec;
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
 
-	init_waitqueue_head(&the_locks.enable_wait);
+	/*init_waitqueue_head(&the_locks.enable_wait);
 	init_waitqueue_head(&the_locks.eos_wait);
 	init_waitqueue_head(&the_locks.write_wait);
 	init_waitqueue_head(&the_locks.read_wait);
-	memset(&session_route, DEVICE_IGNORE, sizeof(struct pcm_session));
+	memset(&session_route, DEVICE_IGNORE, sizeof(struct pcm_session));*/
 
 	ret = msm_new_mixer(codec);
 	if (ret < 0)
@@ -1231,8 +1231,18 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_name = "wm8994-codec",
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
 						| SND_SOC_DAIFMT_CBM_CFM,
-		//.init   = msm_soc_dai_init,
-	}
+		.init   = msm_soc_dai_init,
+	},
+	{
+		.name = "Media Capture",
+		.stream_name = "Media Capture",
+		.cpu_dai_name = "msm-cpu-dai.0",
+		.codec_dai_name = "wm8994-aif2",
+		.platform_name = "msm-dsp-audio.0",
+		.codec_name = "wm8994-codec",
+		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
+								| SND_SOC_DAIFMT_CBM_CFM,
+	},
 };
 
 

@@ -1039,7 +1039,8 @@ void wm8958_dsp2_init(struct snd_soc_codec *codec)
 			return;
 		}
 
-		for (i = 0; i < pdata->num_enh_eq_cfgs; i++)
+		//FLINTMAN THIS IS CAUSING THE KERNEL TO LOCK UP NEED TO LOOK AT.
+		/*for (i = 0; i < pdata->num_enh_eq_cfgs; i++)
 			wm8994->enh_eq_texts[i] = pdata->enh_eq_cfgs[i].name;
 
 		wm8994->enh_eq_enum.max = pdata->num_enh_eq_cfgs;
@@ -1049,6 +1050,7 @@ void wm8958_dsp2_init(struct snd_soc_codec *codec)
 		if (ret != 0)
 			dev_err(wm8994->codec->dev,
 				"Failed to add enhanced EQ controls: %d\n",
-				ret);
+				ret);*/
 	}
+
 }
