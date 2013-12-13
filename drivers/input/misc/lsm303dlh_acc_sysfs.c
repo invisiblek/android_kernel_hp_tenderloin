@@ -56,8 +56,6 @@
 
 #include <linux/i2c/lsm303dlh.h>
 
-#define	DEBUG	1
-
 #define G_MAX		8000
 
 #define SENSITIVITY_2G		1	/**	mg/LSB	*/
@@ -109,24 +107,6 @@
 #define I2C_RETRIES		5
 #define I2C_AUTO_INCREMENT	0x80
 
-/* RESUME STATE INDICES */
-#define	RES_CTRL_REG1		0
-#define	RES_CTRL_REG2		1
-#define	RES_CTRL_REG3		2
-#define	RES_CTRL_REG4		3
-#define	RES_CTRL_REG5		4
-#define	RES_REFERENCE		5
-
-#define	RES_INT_CFG1		6
-#define	RES_INT_THS1		7
-#define	RES_INT_DUR1		8
-#define	RES_INT_CFG2		9
-#define	RES_INT_THS2		10
-#define	RES_INT_DUR2		11
-
-#define	RESUME_ENTRIES		12
-/* end RESUME STATE INDICES */
-
 
 static struct {
 	unsigned int cutoff_ms;
@@ -144,39 +124,11 @@ static struct {
 	{2000, LSM303DLH_ACC_ODRHALF | LSM303DLH_ACC_ODR1000 },
 };
 
-struct lsm303dlh_acc_data {
-	struct i2c_client *client;
-	struct lsm303dlh_acc_platform_data *pdata;
-
-	struct mutex lock;
-	struct delayed_work input_work;
-
-	struct input_dev *input_dev;
-
-	int hw_initialized;
-	/* hw_working=-1 means not tested yet */
-	int hw_working;
-	int selftest_enabled;
-
-	atomic_t enabled;
-	int on_before_suspend;
-
-	u8 sensitivity;
-
-	u8 resume_state[RESUME_ENTRIES];
-
-	int irq1;
-	struct work_struct irq1_work;
-	struct workqueue_struct *irq1_work_queue;
-	int irq2;
-	struct work_struct irq2_work;
-	struct workqueue_struct *irq2_work_queue;
-
-#ifdef DEBUG
-	u8 reg_addr;
-#endif
-};
-
+/*
+ * Because i2c devices can not carry a pointer from driver register to
+ * open, we keep this global.  This limits the driver to a single instance.
+ */
+static struct lsm303dlh_acc_data *lsm303dlh_acc_misc_data = NULL;
 
 static int lsm303dlh_acc_i2c_read(struct lsm303dlh_acc_data *acc,
 				  u8 *buf, int len)
@@ -359,7 +311,9 @@ static int lsm303dlh_acc_device_power_on(struct lsm303dlh_acc_data *acc)
 			enable_irq(acc->irq2);
 	}
 
-	if (!acc->hw_initialized) {
+	//When power on ACC, we need to know whether this action comes from Gyro or native ACC,
+	//if from Gyro, we should not do HW init, otherwise I2C error will occur
+	if (!acc->hw_initialized && !acc->ext_adap_enabled) {
 		err = lsm303dlh_acc_hw_init(acc);
 		if (acc->hw_working == 1 && err < 0) {
 			lsm303dlh_acc_device_power_off(acc);
@@ -408,6 +362,7 @@ static void lsm303dlh_acc_irq1_work_func(struct work_struct *work)
 	;
 	/*  */
 	printk(KERN_INFO "%s: IRQ1 triggered\n", LSM303DLH_ACC_DEV_NAME);
+//exit:
 	enable_irq(acc->irq1);
 }
 
@@ -422,6 +377,7 @@ static void lsm303dlh_acc_irq2_work_func(struct work_struct *work)
 	/*  */
 
 	printk(KERN_INFO "%s: IRQ2 triggered\n", LSM303DLH_ACC_DEV_NAME);
+//exit:
 	enable_irq(acc->irq2);
 }
 
@@ -452,7 +408,7 @@ int lsm303dlh_acc_update_g_range(struct lsm303dlh_acc_data *acc, u8 new_g_range)
 		return -EINVAL;
 	}
 
-	if (atomic_read(&acc->enabled)) {
+	//if (atomic_read(&acc->enabled)) {
 		/* Set configuration register 4, which contains g range setting
 		 *  NOTE: this is a straight overwrite because this driver does
 		 *  not use any of the other configuration bits in this
@@ -474,7 +430,7 @@ int lsm303dlh_acc_update_g_range(struct lsm303dlh_acc_data *acc, u8 new_g_range)
 			goto error;
 		acc->resume_state[RES_CTRL_REG4] = updated_val;
 		acc->sensitivity = sensitivity;
-	}
+	//}
 
 
 	return err;
@@ -506,13 +462,13 @@ int lsm303dlh_acc_update_odr(struct lsm303dlh_acc_data *acc,
 
 	/* If device is currently enabled, we need to write new
 	 *  configuration out to it */
-	if (atomic_read(&acc->enabled)) {
+	//if (atomic_read(&acc->enabled)) {
 		config[0] = CTRL_REG1;
 		err = lsm303dlh_acc_i2c_write(acc, config, 1);
 		if (err < 0)
 			goto error;
 		acc->resume_state[RES_CTRL_REG1] = config[1];
-	}
+	//}
 
 	return err;
 
@@ -655,8 +611,13 @@ static int lsm303dlh_acc_enable(struct lsm303dlh_acc_data *acc)
 			atomic_set(&acc->enabled, 0);
 			return err;
 		}
-		schedule_delayed_work(&acc->input_work,
-			msecs_to_jiffies(acc->pdata->poll_interval));
+		if (!acc->ext_adap_enabled) {
+			schedule_delayed_work(&acc->input_work,
+				msecs_to_jiffies(acc->pdata->poll_interval));
+		}
+		else {
+			cancel_delayed_work_sync(&acc->input_work);
+		}
 	}
 
 	return 0;
@@ -668,9 +629,47 @@ static int lsm303dlh_acc_disable(struct lsm303dlh_acc_data *acc)
 		cancel_delayed_work_sync(&acc->input_work);
 		lsm303dlh_acc_device_power_off(acc);
 	}
+	else {
+		//if enable acc from gyro request, we need to re-initial acc
+		if (!acc->ext_adap_enabled) {
+			lsm303dlh_acc_hw_init(acc);
+			schedule_delayed_work(&acc->input_work,
+				msecs_to_jiffies(acc->pdata->poll_interval));
+		}
+	}
 
 	return 0;
 }
+
+int lsm303dlh_acc_enable_ext(struct lsm303dlh_acc_data *acc)
+{
+	int err=0;
+	if (!acc->ext_adap_enabled)
+	{
+		acc->ext_adap_enabled = 1;
+		err = lsm303dlh_acc_enable(acc);
+	}
+	return err;
+}
+EXPORT_SYMBOL(lsm303dlh_acc_enable_ext);
+
+int lsm303dlh_acc_disable_ext(struct lsm303dlh_acc_data *acc)
+{
+	int err=0;
+	if (acc->ext_adap_enabled)
+	{
+		acc->ext_adap_enabled = 0;
+		err = lsm303dlh_acc_disable(acc);
+	}
+	return err;
+}
+EXPORT_SYMBOL(lsm303dlh_acc_disable_ext);
+
+struct lsm303dlh_acc_data * lsm303dlh_acc_get_instance_ext(void)
+{
+	return lsm303dlh_acc_misc_data;
+}
+EXPORT_SYMBOL(lsm303dlh_acc_get_instance_ext);
 
 
 static ssize_t read_single_reg(struct device *dev, char *buf, u8 reg)
@@ -1134,7 +1133,7 @@ static void lsm303dlh_acc_input_cleanup(struct lsm303dlh_acc_data *acc)
 static int lsm303dlh_acc_probe(struct i2c_client *client,
 			   const struct i2c_device_id *id)
 {
-	struct lsm303dlh_acc_data *acc;
+	struct lsm303dlh_acc_data *acc = lsm303dlh_acc_misc_data;
 	int err = -1;
 	//int tempvalue;
 
@@ -1170,16 +1169,6 @@ static int lsm303dlh_acc_probe(struct i2c_client *client,
 		goto exit_check_functionality_failed;
 	}
 	*/
-
-	acc = kzalloc(sizeof(struct lsm303dlh_acc_data), GFP_KERNEL);
-	if (acc == NULL) {
-		err = -ENOMEM;
-		dev_err(&client->dev,
-				"failed to allocate memory for module data: "
-					"%d\n", err);
-		goto exit_check_functionality_failed;
-	}
-
 
 	mutex_init(&acc->lock);
 	mutex_lock(&acc->lock);
@@ -1251,7 +1240,7 @@ static int lsm303dlh_acc_probe(struct i2c_client *client,
 		goto err_pdata_init;
 	}
 
-	atomic_set(&acc->enabled, 1);
+	//atomic_set(&acc->enabled, 1);
 
 	err = lsm303dlh_acc_update_g_range(acc, acc->pdata->g_range);
 	if (err < 0) {
@@ -1284,7 +1273,7 @@ static int lsm303dlh_acc_probe(struct i2c_client *client,
 	lsm303dlh_acc_device_power_off(acc);
 
 	/* As default, do not report information */
-	atomic_set(&acc->enabled, 0);
+	//atomic_set(&acc->enabled, 0);
 
 	if(acc->pdata->gpio_int1 >= 0){
 		INIT_WORK(&acc->irq1_work, lsm303dlh_acc_irq1_work_func);
@@ -1392,9 +1381,19 @@ static int __devexit lsm303dlh_acc_remove(struct i2c_client *client)
 static int lsm303dlh_acc_resume(struct i2c_client *client)
 {
 	struct lsm303dlh_acc_data *acc = i2c_get_clientdata(client);
-
-	if (acc->on_before_suspend)
-		return lsm303dlh_acc_enable(acc);
+	int err;
+	if (acc->on_before_suspend) {
+		err = lsm303dlh_acc_device_power_on(acc);
+		if (err>=0) {
+			if (!acc->ext_adap_enabled) {
+				schedule_delayed_work(&acc->input_work,
+					msecs_to_jiffies(acc->pdata->poll_interval));
+			}
+			else {
+				cancel_delayed_work_sync(&acc->input_work);
+			}
+		}
+	}
 	return 0;
 }
 
@@ -1403,7 +1402,9 @@ static int lsm303dlh_acc_suspend(struct i2c_client *client, pm_message_t mesg)
 	struct lsm303dlh_acc_data *acc = i2c_get_clientdata(client);
 
 	acc->on_before_suspend = atomic_read(&acc->enabled);
-	return lsm303dlh_acc_disable(acc);
+	cancel_delayed_work_sync(&acc->input_work);
+	lsm303dlh_acc_device_power_off(acc);
+	return 0;
 }
 #else
 #define lis3dh_acc_suspend	NULL
@@ -1429,14 +1430,25 @@ static struct i2c_driver lsm303dlh_acc_driver = {
 
 static int __init lsm303dlh_acc_init(void)
 {
+	struct lsm303dlh_acc_data *acc;
+
 	printk(KERN_DEBUG "%s accelerometer driver: init\n",
 						LSM303DLH_ACC_DEV_NAME);
+
+	acc = kzalloc(sizeof(struct lsm303dlh_acc_data), GFP_KERNEL);
+	if (acc == NULL) {
+		pr_err("failed to allocate memory for module data\n");
+		return -ENOMEM;
+	}
+
+	lsm303dlh_acc_misc_data = acc;
+
 	return i2c_add_driver(&lsm303dlh_acc_driver);
 }
 
 static void __exit lsm303dlh_acc_exit(void)
 {
-	#if DEBUG
+	#ifdef DEBUG
 	printk(KERN_DEBUG "%s accelerometer driver exit\n",
 						LSM303DLH_ACC_DEV_NAME);
 	#endif
