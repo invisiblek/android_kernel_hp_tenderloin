@@ -1214,10 +1214,12 @@ static int kgsl_iommu_setup_regs(struct kgsl_mmu *mmu,
 
 	return 0;
 err:
-	for (i--; i >= 0; i--)
+	for (i--; i >= 0; i--) {
 		kgsl_mmu_unmap(pt,
 				&(iommu->iommu_units[i].reg_map));
-
+		kgsl_mmu_put_gpuaddr(pt,
+				&(iommu->iommu_units[i].reg_map));
+	}
 	return status;
 }
 
@@ -1235,11 +1237,17 @@ static void kgsl_iommu_cleanup_regs(struct kgsl_mmu *mmu,
 {
 	struct kgsl_iommu *iommu = mmu->priv;
 	int i;
-	for (i = 0; i < iommu->unit_count; i++)
+	for (i = 0; i < iommu->unit_count; i++){
 		kgsl_mmu_unmap(pt, &(iommu->iommu_units[i].reg_map));
+		kgsl_mmu_put_gpuaddr(pt,
+				&(iommu->iommu_units[i].reg_map));
+	}
 
-	if (iommu->sync_lock_desc.gpuaddr)
+	if (iommu->sync_lock_desc.gpuaddr) {
 		kgsl_mmu_unmap(pt, &iommu->sync_lock_desc);
+		kgsl_mmu_put_gpuaddr(pt,
+				&iommu->sync_lock_desc);
+	}
 }
 
 
