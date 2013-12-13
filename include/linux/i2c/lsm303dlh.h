@@ -39,6 +39,12 @@
 #define	LSM303DLH_MAG_DEV_NAME	"lsm303dlh_mag_sysfs"
 
 
+#define LSM303DLH_ACC_MIN_POLL_PERIOD_MS 1
+#define LSM303DLH_MAG_MIN_POLL_PERIOD_MS 5
+
+#define LSM303DLH_ACC_DEFAULT_INT1_GPIO (-EINVAL)
+#define LSM303DLH_ACC_DEFAULT_INT2_GPIO (-EINVAL)
+
 
 /************************************************/
 /* 	Accelerometer section defines	 	*/
@@ -57,7 +63,23 @@
 #define LSM303DLH_ACC_PM_OFF		LSM303DLH_ACC_DISABLE
 
 
+/* RESUME STATE INDICES */
+#define	RES_CTRL_REG1		0
+#define	RES_CTRL_REG2		1
+#define	RES_CTRL_REG3		2
+#define	RES_CTRL_REG4		3
+#define	RES_CTRL_REG5		4
+#define	RES_REFERENCE		5
 
+#define	RES_INT_CFG1		6
+#define	RES_INT_THS1		7
+#define	RES_INT_DUR1		8
+#define	RES_INT_CFG2		9
+#define	RES_INT_THS2		10
+#define	RES_INT_DUR2		11
+
+#define	RESUME_ENTRIES		12
+/* end RESUME STATE INDICES */
 
 /************************************************/
 /* 	Magnetometer section defines	 	*/
@@ -109,6 +131,40 @@ struct lsm303dlh_acc_platform_data {
 	int gpio_int2;
 };
 
+struct lsm303dlh_acc_data {
+	struct i2c_client *client;
+	struct lsm303dlh_acc_platform_data *pdata;
+
+	struct mutex lock;
+	struct delayed_work input_work;
+
+	struct input_dev *input_dev;
+
+	int hw_initialized;
+	/* hw_working=-1 means not tested yet */
+	int hw_working;
+	int selftest_enabled;
+
+	atomic_t enabled;
+	int on_before_suspend;
+
+	u8 sensitivity;
+
+	u8 resume_state[RESUME_ENTRIES];
+
+	int irq1;
+	struct work_struct irq1_work;
+	struct workqueue_struct *irq1_work_queue;
+	int irq2;
+	struct work_struct irq2_work;
+	struct workqueue_struct *irq2_work_queue;
+
+	u8 reg_addr;
+
+	int ext_adap_enabled;
+	void *ext_handle;
+};
+
 struct lsm303dlh_mag_platform_data {
 
 	int poll_interval;
@@ -129,6 +185,30 @@ struct lsm303dlh_mag_platform_data {
 	int (*power_on)(void);
 	int (*power_off)(void);
 
+};
+
+struct lsm303dlh_mag_data {
+	struct i2c_client *client;
+	struct lsm303dlh_mag_platform_data *pdata;
+
+	struct mutex lock;
+
+	struct input_polled_dev *input_poll_dev;
+
+	int hw_initialized;
+	atomic_t enabled;
+	atomic_t self_test_enabled;
+
+	u16 xy_sensitivity;
+	u16 z_sensitivity;
+
+	u8 resume_state[3];
+
+	u8 reg_addr;
+
+	int on_before_suspend;
+	int ext_adap_enabled;
+	void *ext_handle;
 };
 #endif /* __KERNEL__ */
 
