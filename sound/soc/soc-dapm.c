@@ -2139,7 +2139,6 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 	char prefixed_sink[80];
 	char prefixed_source[80];
 	int ret = 0;
-
 	if (dapm->codec && dapm->codec->name_prefix) {
 		snprintf(prefixed_sink, sizeof(prefixed_sink), "%s %s",
 			 dapm->codec->name_prefix, route->sink);
@@ -2151,6 +2150,7 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 		sink = route->sink;
 		source = route->source;
 	}
+
 	/*
 	 * find src and dest widgets over all widgets but favor a widget from
 	 * current DAPM context

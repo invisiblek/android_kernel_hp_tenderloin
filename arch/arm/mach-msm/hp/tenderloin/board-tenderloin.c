@@ -1217,7 +1217,7 @@ static void __init msm8x60_init_dsps(void)
 
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x600000
 #define MSM_PMEM_ADSP_SIZE         0x4200000
-#define MSM_PMEM_AUDIO_SIZE        0x28B000
+#define MSM_PMEM_AUDIO_SIZE        0x4CF000
 
 #define MSM_SMI_BASE          0x38000000
 #define MSM_SMI_SIZE          0x4000000
@@ -2285,63 +2285,42 @@ static struct i2c_board_info wm8903_codec_i2c_info[] = {
 };
 #endif
 
-#ifdef CONFIG_MSM8X60_AUDIO_1X
-static uint32_t msm_spi_gpio[] = {
-	GPIO_CFG(TENDERLOIN_SPI_DO,  1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(TENDERLOIN_SPI_DI,  1, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(TENDERLOIN_SPI_CS,  1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(TENDERLOIN_SPI_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
+static struct wm8958_enh_eq_cfg enh_eq_beats_cfg = { "Beats",
+											   		 { 	0x0020,//0x2200
+  												 	   	0x0000,//0x2201
+													   	0x0040,//0x2202
+														0x0000,//0x2203
+														0x0000,//0x2204
+														0xCC75,//0x2205
+														0x007F,//0x2206
+														0x65A7,//0x2207
+														0x0030,//0x2208
+														0x0057,//0x2209
+														0x0009,//0x220a
+														0x5BB9,//0x220b
+														0x0064,//0x220c
+														0x90CD,//0x220d
+														0x001E,//0x220e
+														0x7BA4,//0x220f
+														0x000D,//0x2210
+														0x473B,//0x2211
+														0x00FE,//0x2212
+														0x4290,//0x2213
+														0x0014,//0x2214
+														0xCD7F,//0x2215
+														0x0000,//0x2216
+														0x0000,//0x2217
+														0x00EB,//0x2218
+														0x3281,//0x2219
+														0x00AA,//0x221a
+														0x9205,//0x221b
+														0x00E9,//0x221c
+														0x9AFE,//0x221d
+														0x000C,//0x221e
+														0x73D5,//0x221f
+													},
+												   };
 
-static uint32_t auxpcm_gpio_table[] = {
-	GPIO_CFG(111, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(112, 1, GPIO_CFG_INPUT,  GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
-	GPIO_CFG(113, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-	GPIO_CFG(114, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
-};
-
-static void msm_auxpcm_init(void)
-{
-	gpio_tlmm_config(auxpcm_gpio_table[0], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(auxpcm_gpio_table[1], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(auxpcm_gpio_table[2], GPIO_CFG_ENABLE);
-	gpio_tlmm_config(auxpcm_gpio_table[3], GPIO_CFG_ENABLE);
-}
-
-static struct tpa2051d3_platform_data tpa2051d3_pdata = {
-	.gpio_tpa2051_spk_en = TENDERLOIN_AUD_HP_EN,
-	.spkr_cmd = {0x00, 0x82, 0x00, 0x07, 0xCD, 0x4F, 0x0D},
-	.hsed_cmd = {0x00, 0x8C, 0x20, 0x57, 0xCD, 0x4F, 0x0D},
-};
-#define TPA2051D3_I2C_SLAVE_ADDR	(0xE0 >> 1)
-
-static struct i2c_board_info msm_i2c_gsbi7_tpa2051d3_info[] = {
-	{
-		I2C_BOARD_INFO(TPA2051D3_I2C_NAME, TPA2051D3_I2C_SLAVE_ADDR),
-		.platform_data = &tpa2051d3_pdata,
-	},
-};
-
-void msm_snddev_voltage_on(void)
-{
-}
-
-void __init tenderloin_audio_init(void);
-
-void msm_snddev_voltage_off(void)
-{
-}
-
-static struct spi_board_info msm_spi_board_info[] __initdata = {
-	{
-		.modalias	= "spi_aic3254",
-		.mode           = SPI_MODE_1,
-		.bus_num        = 0,
-		.chip_select    = 0,
-		.max_speed_hz   = 10800000,
-	}
-};
-#endif 
 
 #ifdef CONFIG_PMIC8901
 
@@ -2608,6 +2587,7 @@ static struct wm8994_pdata wm8958_pdata = {
 	 * Line outputs are not actually connected on the board.
 	 */
 	.num_enh_eq_cfgs = 1,
+	.enh_eq_cfgs = &enh_eq_beats_cfg,
 	.lineout1_diff = 1,
 	.lineout2_diff = 1,
 	.wm8994_setup = msm_wm8958_setup_power,
