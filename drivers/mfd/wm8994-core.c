@@ -157,7 +157,7 @@ static struct mfd_cell wm8994_devs[] = {
  * and should be handled via the standard regulator API supply
  * management.
  */
-static const char *wm1811_main_supplies[] = {
+/*static const char *wm1811_main_supplies[] = {
 	"DBVDD1",
 	"DBVDD2",
 	"DBVDD3",
@@ -189,7 +189,7 @@ static const char *wm8958_main_supplies[] = {
 	"CPVDD",
 	"SPKVDD1",
 	"SPKVDD2",
-};
+};*/
 
 #ifdef CONFIG_PM
 static int wm8994_suspend(struct device *dev)
@@ -645,7 +645,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 					WM8994_LDO1_DISCH, 0);
 	}
 
-	wm8994_irq_init(wm8994);
+	//wm8994_irq_init(wm8994);
 
 	ret = mfd_add_devices(wm8994->dev, -1,
 			      wm8994_devs, ARRAY_SIZE(wm8994_devs),
