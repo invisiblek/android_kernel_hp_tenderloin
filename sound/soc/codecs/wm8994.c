@@ -2649,7 +2649,7 @@ static int bclk_divs[] = {
 	640, 880, 960, 1280, 1760, 1920
 };
 
-static int wm8994_hw_params(struct snd_pcm_substream *substream,
+int wm8994_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params,
 			    struct snd_soc_dai *dai)
 {
@@ -2808,6 +2808,7 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(wm8994_hw_params);
 
 static int wm8994_aif3_hw_params(struct snd_pcm_substream *substream,
 				 struct snd_pcm_hw_params *params,
@@ -2982,7 +2983,7 @@ static const struct snd_soc_dai_ops wm8994_aif3_dai_ops = {
 	.set_tristate	= wm8994_set_tristate,
 };
 
-static struct snd_soc_dai_driver wm8994_dai[] = {
+struct snd_soc_dai_driver wm8994_dai[] = {
 	{
 		.name = "wm8994-aif1",
 		.id = 1,
