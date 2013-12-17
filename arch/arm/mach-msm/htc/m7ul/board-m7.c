@@ -178,24 +178,6 @@ extern void hdmi_hpd_feature(int enable);
 #define TPA6185_I2C_SLAVE_ADDR	(0xC6 >> 1)
 #define RT5501_I2C_SLAVE_ADDR	(0xF0 >> 1)
 
-#define AUTORESTART 20000
-#ifdef AUTORESTART
-#include <linux/workqueue.h>
-static void my_work_handler(struct work_struct *w);
-
-static struct workqueue_struct *wq = 0;
-static DECLARE_DELAYED_WORK(my_work, my_work_handler);
-static unsigned long delay;
-
-static void
-my_work_handler(struct work_struct *w)
-{
-  //uint32_t restart_reason = 0x6f656d99;
-  //msm_proc_comm(PCOM_RESET_CHIP_IMM, &restart_reason, 0);
-  msm_restart(0, "");
-}
-#endif
-
 unsigned skuid;
 
 #define PM8XXX_GPIO_INIT(_gpio, _dir, _buf, _val, _pull, _vin, _out_strength, \
@@ -560,15 +542,6 @@ struct ion_platform_heap apq8064_heaps[] = {
 			.size	= MSM_ION_AUDIO_SIZE,
 			.memory_type = ION_EBI_TYPE,
 			.extra_data = (void *) &co_apq8064_ion_pdata,
-		},
-		{
-			.id     = ION_ADSP_HEAP_ID,
-			.type   = ION_HEAP_TYPE_DMA,
-			.name   = ION_ADSP_HEAP_NAME,
-			.size   = MSM_ION_ADSP_SIZE,
-			.memory_type = ION_EBI_TYPE,
-			.extra_data = (void *) &co_apq8064_ion_pdata,
-			.priv = &ion_adsp_heap_device.dev,
 		},
 #endif
 };
@@ -5225,6 +5198,64 @@ static void __init m7_allocate_memory_regions(void)
 	m7_allocate_fb_region();
 }
 
+static struct resource mdm_resources[] = {
+	{
+		.start	= MDM2AP_ERR_FATAL,
+		.end		= MDM2AP_ERR_FATAL,
+		.name	= "MDM2AP_ERRFATAL",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= AP2MDM_ERR_FATAL,
+		.end		= AP2MDM_ERR_FATAL,
+		.name	= "AP2MDM_ERRFATAL",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= MDM2AP_STATUS,
+		.end		= MDM2AP_STATUS,
+		.name	= "MDM2AP_STATUS",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= AP2MDM_STATUS,
+		.end		= AP2MDM_STATUS,
+		.name	= "AP2MDM_STATUS",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= AP2MDM_PON_RESET_N,
+		.end		= AP2MDM_PON_RESET_N,
+		.name	= "AP2MDM_PMIC_RESET_N",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= MDM2AP_HSIC_READY,
+		.end		= MDM2AP_HSIC_READY,
+		.name	= "MDM2AP_HSIC_READY",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start	= AP2MDM_WAKEUP,
+		.end		= AP2MDM_WAKEUP,
+		.name	= "AP2MDM_WAKEUP",
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.start  = APQ2MDM_IPC1,
+		.end    = APQ2MDM_IPC1,
+		.name   = "AP2MDM_IPC1",
+		.flags  = IORESOURCE_IO,
+	},
+};
+
+static struct platform_device mdm_m7_device = {
+	.name		= "mdm2_modem",
+	.id		= -1,
+	.num_resources	= ARRAY_SIZE(mdm_resources),
+	.resource	= mdm_resources,
+};
+
 static void __init m7_cdp_init(void)
 {
 	int rc = 0;
@@ -5237,12 +5268,6 @@ static void __init m7_cdp_init(void)
 
         htc_add_ramconsole_devices();
 	platform_device_register(&msm_gpio_device);
-
-#ifdef AUTORESTART
-        delay = msecs_to_jiffies(AUTORESTART);
-        wq = create_singlethread_workqueue("my");
-        queue_delayed_work(wq, &my_work, delay);
-#endif
 
 	msm_spm_init(msm_spm_data, ARRAY_SIZE(msm_spm_data));
 	msm_spm_l2_init(msm_spm_l2_data);
@@ -5347,8 +5372,8 @@ static void __init m7_cdp_init(void)
 
 	pr_info("%s: Add MDM2 device\n", __func__);
         // TEMP REMOVED
-        //	mdm_8064_device.dev.platform_data = &mdm_platform_data;
-        //	platform_device_register(&mdm_8064_device);
+        mdm_m7_device.dev.platform_data = &mdm_platform_data;
+        platform_device_register(&mdm_m7_device);
 
 	platform_device_register(&apq8064_slim_ctrl);
 	slim_register_board_info(m7_slim_devices,
