@@ -41,6 +41,7 @@
 #include "smd_private.h"
 #include "timer.h"
 #include <mach/htc_restart_handler.h>
+#include "msm_watchdog.h"
 
 #define WDT0_RST	0x38
 #define WDT0_EN		0x40
@@ -125,6 +126,82 @@ void msm_set_restart_mode(int mode)
 	restart_mode = mode;
 }
 EXPORT_SYMBOL(msm_set_restart_mode);
+
+static unsigned mdm2ap_errfatal_restart;
+static unsigned ap2mdm_pmic_reset_n_gpio = -1;
+static unsigned ap2qsc_pmic_pwr_en_value;
+static unsigned ap2qsc_pmic_pwr_en_gpio = -1;
+static unsigned ap2qsc_pmic_soft_reset_gpio = -1;
+
+void set_mdm2ap_errfatal_restart_flag(unsigned flag)
+{
+	mdm2ap_errfatal_restart = flag;
+}
+
+void register_ap2mdm_pmic_reset_n_gpio(unsigned gpio)
+{
+	ap2mdm_pmic_reset_n_gpio = gpio;
+}
+
+void register_ap2qsc_pmic_pwr_en_gpio(unsigned gpio, unsigned enable_value)
+{
+	ap2qsc_pmic_pwr_en_gpio = gpio;
+	ap2qsc_pmic_pwr_en_value = enable_value;
+}
+
+void register_ap2qsc_pmic_soft_reset_gpio(unsigned gpio)
+{
+	ap2qsc_pmic_soft_reset_gpio = gpio;
+}
+
+#define MDM_HOLD_TIME			2000
+#define MDM_SELF_REFRESH_TIME		3000
+#define MDM_MODEM_DELTA		1000
+static void turn_off_mdm_power(void)
+{
+	int i;
+
+	
+	if (gpio_is_valid(ap2mdm_pmic_reset_n_gpio) && !mdm2ap_errfatal_restart) {
+		printk(KERN_CRIT "Powering off MDM...\n");
+		gpio_direction_output(ap2mdm_pmic_reset_n_gpio, 0);
+		for (i = MDM_HOLD_TIME; i > 0; i -= MDM_MODEM_DELTA) {
+                        pet_watchdog();
+			mdelay(MDM_MODEM_DELTA);
+		}
+		printk(KERN_CRIT "Power off MDM down...\n");
+	}
+}
+
+static void turn_off_qsc_power(void)
+{
+	if (gpio_is_valid(ap2qsc_pmic_pwr_en_gpio))
+	{
+		if (gpio_is_valid(ap2qsc_pmic_soft_reset_gpio))
+		{
+			pr_info("Discharging QSC...\n");
+			gpio_direction_output(ap2qsc_pmic_soft_reset_gpio, 1);
+
+			mdelay(500);
+		}
+
+		printk(KERN_CRIT "Powering off QSC...\n");
+		gpio_direction_output(ap2qsc_pmic_pwr_en_gpio, !ap2qsc_pmic_pwr_en_value);
+                pet_watchdog();
+		mdelay(1000);
+                pet_watchdog();
+	}
+}
+
+static void wait_mdm_enter_self_refresh(void)
+{
+	int i;
+	printk(KERN_CRIT "Waiting MDM enter self refresh...\n");
+	for (i = MDM_SELF_REFRESH_TIME; i > 0; i -= MDM_MODEM_DELTA) {
+                pet_watchdog();
+		mdelay(MDM_MODEM_DELTA);
+	}
+}
 
 static void msm_flush_console(void)
 {
@@ -262,6 +339,9 @@ static struct notifier_block notify_efs_sync_notifier = {
 
 static void __msm_power_off(int lower_pshold)
 {
+	turn_off_mdm_power();	
+	turn_off_qsc_power();
+
 	printk(KERN_CRIT "[K] Powering off the SoC\n");
 #ifdef CONFIG_MSM_DLOAD_MODE
 	set_dload_mode(0);
@@ -375,6 +455,14 @@ void msm_restart(char mode, const char *cmd)
 	} else {
 		set_restart_action(RESTART_REASON_REBOOT, NULL);
 	}
+
+	if (!(get_radio_flag() & RADIO_FLAG_USB_UPLOAD) || ((get_restart_reason() != RESTART_REASON_RAMDUMP) && (get_restart_reason() != (RESTART_REASON_OEM_BASE | 0x99))))
+	{
+		turn_off_mdm_power();
+		turn_off_qsc_power();
+	}
+	else
+		wait_mdm_enter_self_refresh();
 
 	msm_flush_console();
 	flush_cache_all();

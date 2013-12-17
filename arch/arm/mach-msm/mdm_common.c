@@ -466,6 +466,67 @@ static void mdm_update_gpio_configs(struct mdm_device *mdev,
 	}
 }
 
+#ifdef CONFIG_MACH_HTC
+int board_mfg_mode(void);
+int get_radio_flag(void);
+#define HTC_MDM_HOLD_TIME			2000
+#define HTC_MDM_MODEM_DELTA		1000
+
+static void htc_power_down_mdm(struct mdm_modem_drv *mdm_drv)
+{
+	int i = 0;
+	pr_info("%s+\n", __func__);
+	if ( !mdm_drv ) {
+		pr_err("%s-: mdm_drv = NULL\n", __func__);
+		return;
+	}
+
+	if (mdm_drv->ap2mdm_kpdpwr_n_gpio > 0)
+		gpio_direction_output(mdm_drv->ap2mdm_kpdpwr_n_gpio, 0);
+
+	if (mdm_drv->ap2mdm_pmic_reset_n_gpio > 0)
+		gpio_direction_output(mdm_drv->ap2mdm_pmic_reset_n_gpio, 0);
+
+	for (i = HTC_MDM_HOLD_TIME; i > 0; i -= HTC_MDM_MODEM_DELTA) {
+		mdelay(HTC_MDM_MODEM_DELTA);
+	}
+	pr_info("%s-\n", __func__);
+
+}
+
+static char modem_errmsg[MODEM_ERRMSG_LEN];
+static int set_mdm_errmsg(void __user *msg)
+{
+	memset(modem_errmsg, 0, sizeof(modem_errmsg));
+	if (unlikely(copy_from_user(modem_errmsg, msg, MODEM_ERRMSG_LEN))) {
+		pr_err("%s: copy modem_errmsg failed\n", __func__);
+		return -EFAULT;
+	}
+	modem_errmsg[MODEM_ERRMSG_LEN-1] = '\0';
+	pr_info("%s: set modem errmsg: %s\n", __func__, modem_errmsg);
+	return 0;
+}
+
+char *get_mdm_errmsg(void)
+{
+	if (strlen(modem_errmsg) <= 0) {
+		pr_err("%s: can not get mdm errmsg.\n", __func__);
+		return NULL;
+	}
+	return modem_errmsg;
+}
+EXPORT_SYMBOL(get_mdm_errmsg);
+
+static int notify_mdm_nv_write_done(struct mdm_modem_drv *mdm_drv)
+{
+	gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 1);
+	msleep(1);
+	gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 0);
+	return 0;
+}
+
+#endif
+
 static long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 				unsigned long arg)
 {
@@ -487,6 +548,7 @@ static long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 	case WAKE_CHARM:
 		pr_info("%s: Powering on mdm id %d\n",
 				__func__, mdev->mdm_data.device_id);
+		mdm_drv->mdm_hsic_reconnectd = 0;
 		mdm_ops->power_on_mdm_cb(mdm_drv);
 		break;
 	case CHECK_FOR_BOOT:
@@ -587,6 +649,39 @@ static long mdm_modem_ioctl(struct file *filp, unsigned int cmd,
 			   __func__, ret);
 		put_user(ret, (unsigned long __user *) arg);
 		break;
+#ifdef CONFIG_MACH_HTC
+	case GET_MFG_MODE:
+		pr_info("%s: board_mfg_mode()=%d\n", __func__, board_mfg_mode());
+		put_user(board_mfg_mode(),
+				 (unsigned long __user *) arg);
+		break;
+	case SET_MODEM_ERRMSG:
+		pr_info("%s: Set modem fatal errmsg\n", __func__);
+		ret = set_mdm_errmsg((void __user *) arg);
+		break;
+	case GET_RADIO_FLAG:
+		pr_info("%s:get_radio_flag()=%x\n", __func__, get_radio_flag());
+		put_user(get_radio_flag(),
+				 (unsigned long __user *) arg);
+		break;
+	case EFS_SYNC_DONE:
+		pr_info("%s: efs sync is done\n", __func__);
+		break;
+	case NV_WRITE_DONE:
+		pr_info("%s: NV write done!\n", __func__);
+		notify_mdm_nv_write_done(mdm_drv);
+		break;
+	case HTC_POWER_OFF_CHARM:
+		pr_info("%s: (HTC_POWER_OFF_CHARM)Powering off mdm\n", __func__);
+                atomic_set(&mdev->mdm_data.mdm_ready, 0);
+                mdm_drv->mdm_hsic_reconnectd = 0;
+                htc_power_down_mdm(mdm_drv);
+		break;
+	case HTC_UPDATE_CRC_RESTART_LEVEL:
+		pr_info("%s: (HTC_UPDATE_CRC_RESTART_LEVEL)\n", __func__);
+                pr_info("%s: Default SSR is Enabled...\n", __func__);
+		break;
+#endif
 	default:
 		pr_err("%s: invalid ioctl cmd = %d\n", __func__, _IOC_NR(cmd));
 		ret = -EINVAL;
@@ -998,6 +1093,23 @@ static void mdm_modem_initialize_data(struct platform_device *pdev,
 							"USB_SW");
 	mdm_drv->usb_switch_gpio = pres ? pres->start : -1;
 
+#ifdef CONFIG_MACH_HTC
+        /* AP2MDM_PMIC_RESET_N */
+	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
+							"AP2MDM_PMIC_RESET_N");
+        mdm_drv->ap2mdm_pmic_reset_n_gpio = pres ? pres->start : -1;
+
+        /* MDM2AP_HSIC_READY */
+	pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
+							"MDM2AP_HSIC_READY");
+        mdm_drv->mdm2ap_hsic_ready_gpio = pres ? pres->start : -1;
+
+	/* AP2MDM_IPC1 */
+        pres = platform_get_resource_byname(pdev, IORESOURCE_IO,
+							"AP2MDM_IPC1");
+        mdm_drv->ap2mdm_ipc1_gpio = pres ? pres->start : -1;
+#endif
+
 	mdm_drv->boot_type                  = CHARM_NORMAL_BOOT;
 
 	mdev->dump_timeout_ms = mdm_drv->pdata->ramdump_timeout_ms > 0 ?
@@ -1029,6 +1141,15 @@ static void mdm_deconfigure_ipc(struct mdm_device *mdev)
 	if (GPIO_IS_VALID(mdm_drv->ap2mdm_wakeup_gpio))
 		gpio_free(mdm_drv->ap2mdm_wakeup_gpio);
 
+#ifdef CONFIG_MACH_HTC
+	if (GPIO_IS_VALID(mdm_drv->ap2mdm_pmic_reset_n_gpio))
+		gpio_free(mdm_drv->ap2mdm_pmic_reset_n_gpio);
+        if (GPIO_IS_VALID(mdm_drv->mdm2ap_hsic_ready_gpio))
+          gpio_free(mdm_drv->mdm2ap_hsic_ready_gpio);
+        if (GPIO_IS_VALID(mdm_drv->ap2mdm_ipc1_gpio))
+          gpio_free(mdm_drv->ap2mdm_ipc1_gpio);
+#endif
+
 	if (mdev->mdm_queue) {
 		destroy_workqueue(mdev->mdm_queue);
 		mdev->mdm_queue = NULL;
@@ -1039,10 +1160,18 @@ static void mdm_deconfigure_ipc(struct mdm_device *mdev)
 	}
 }
 
+#ifdef CONFIG_MACH_HTC
+extern void register_ap2mdm_pmic_reset_n_gpio(unsigned);
+#endif
 static int mdm_configure_ipc(struct mdm_device *mdev)
 {
 	struct mdm_modem_drv *mdm_drv = &mdev->mdm_data;
 	int ret = -1, irq;
+
+#ifdef CONFIG_MACH_HTC
+        if (GPIO_IS_VALID(mdm_drv->ap2mdm_pmic_reset_n_gpio))
+          register_ap2mdm_pmic_reset_n_gpio(mdm_drv->ap2mdm_pmic_reset_n_gpio);
+#endif
 
 	gpio_request(mdm_drv->ap2mdm_status_gpio, "AP2MDM_STATUS");
 	gpio_request(mdm_drv->ap2mdm_errfatal_gpio, "AP2MDM_ERRFATAL");
@@ -1069,6 +1198,16 @@ static int mdm_configure_ipc(struct mdm_device *mdev)
 			mdm_drv->usb_switch_gpio = -1;
 		}
 	}
+
+#ifdef CONFIG_MACH_HTC
+        if (GPIO_IS_VALID(mdm_drv->ap2mdm_pmic_reset_n_gpio))
+          gpio_request(mdm_drv->ap2mdm_pmic_reset_n_gpio, "AP2MDM_PMIC_RESET_N");
+        if (GPIO_IS_VALID(mdm_drv->ap2mdm_ipc1_gpio))
+          gpio_request(mdm_drv->ap2mdm_ipc1_gpio, "AP2MDM_IPC1");
+        if (GPIO_IS_VALID(mdm_drv->mdm2ap_hsic_ready_gpio))
+          gpio_request(mdm_drv->mdm2ap_hsic_ready_gpio, "MDM2AP_HSIC_READY");
+	gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 0);
+#endif
 
 	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 0);
 	gpio_direction_output(mdm_drv->ap2mdm_errfatal_gpio, 0);
