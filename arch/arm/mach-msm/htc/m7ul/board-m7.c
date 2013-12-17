@@ -4362,7 +4362,7 @@ static struct msm_hdmi_platform_data hdmi_msm_data = {
 	.core_power = hdmi_core_power,
 
 	.driving_params = m7_driving_params,
-	.dirving_params_count = ARRAY_SIZE(m7_driving_params),
+	.driving_params_count = ARRAY_SIZE(m7_driving_params),
 };
 
 static struct platform_device hdmi_msm_device = {

@@ -4,7 +4,7 @@ obj-$(CONFIG_MACH_M7_UL) += board-m7-storage.o
 obj-$(CONFIG_MACH_M7_UL) += board-m7-gpiomux.o
 obj-$(CONFIG_MACH_M7_UL) += board-m7-keypad.o
 obj-$(CONFIG_MACH_M7_UL) += board-m7-wifi.o
-#obj-$(CONFIG_MACH_M7_UL) += board-m7-audio.o
+obj-$(CONFIG_MACH_M7_UL) += board-m7-audio.o
 obj-$(CONFIG_MACH_M7_UL) += board-m7-gpu.o
 ifdef CONFIG_MSM_CAMERA
 obj-$(CONFIG_MACH_M7_UL) += board-m7-camera.o
