@@ -799,18 +799,23 @@ void __init m7_mdp_writeback(struct memtype_reserve* reserve_table)
 		mdp_pdata.ov1_wb_size;
 #endif
 }
-static int first_init = 1;
+
 uint32_t cfg_panel_te_active[] = {GPIO_CFG(LCD_TE, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA)};
 uint32_t cfg_panel_te_sleep[] = {GPIO_CFG(LCD_TE, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA)};
 
+extern int mipi_lcd_on;
+static bool dsi_power_on;
+
 static int mipi_dsi_panel_power(int on)
 {
-	static bool dsi_power_on = false;
 	static struct regulator *reg_lvs5, *reg_l2;
 	static int gpio36, gpio37;
+	static bool bPanelPowerOn = false;
 	int rc;
 
-	PR_DISP_INFO("%s: on=%d\n", __func__, on);
+	printk(KERN_ERR "%s: on(%d)\n", __func__, on);
+        if (panel_type == PANEL_ID_NONE)
+          return -ENODEV;
 
 	if (!dsi_power_on) {
 		reg_lvs5 = regulator_get(&msm_mipi_dsi1_device.dev,
@@ -852,96 +857,79 @@ static int mipi_dsi_panel_power(int on)
 		dsi_power_on = true;
 	}
 
-	if (on) {
-		if (!first_init) {
-			rc = regulator_set_optimum_mode(reg_l2, 100000);
-			if (rc < 0) {
-				pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
-				return -EINVAL;
-			}
-			rc = regulator_enable(reg_l2);
-			if (rc) {
-				pr_err("enable l2 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			rc = regulator_enable(reg_lvs5);
-			if (rc) {
-				pr_err("enable lvs5 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			hr_msleep(1);
-			gpio_set_value_cansleep(gpio37, 1);
-			hr_msleep(2);	
-			gpio_set_value_cansleep(gpio36, 1);
-			hr_msleep(7);	
-			gpio_set_value(LCD_RST, 1);
-
-			
-			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_ON);
-			hr_msleep(10);
-			
-			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
-		} else {
-			
-			rc = regulator_enable(reg_lvs5);
-			if (rc) {
-				pr_err("enable lvs5 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			rc = regulator_set_optimum_mode(reg_l2, 100000);
-			if (rc < 0) {
-				pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
-				return -EINVAL;
-			}
-			rc = regulator_enable(reg_l2);
-			if (rc) {
-				pr_err("enable l2 failed, rc=%d\n", rc);
-				return -ENODEV;
-			}
-			
-			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_ON);
-			msleep(10);
-			msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
-		}
+	if (on) 
+          {
+            rc = regulator_set_optimum_mode(reg_l2, 100000);
+            if (rc < 0) {
+              pr_err("set_optimum_mode l2 failed, rc=%d\n", rc);
+              return -EINVAL;
+            }
+            rc = regulator_enable(reg_l2);
+            if (rc) {
+              pr_err("enable l2 failed, rc=%d\n", rc);
+              return -ENODEV;
+            }
+            rc = regulator_enable(reg_lvs5);
+            if (rc) {
+              pr_err("enable lvs5 failed, rc=%d\n", rc);
+              return -ENODEV;
+            }
+            if (!mipi_lcd_on)
+              {
+                hr_msleep(1);
+                gpio_set_value_cansleep(gpio37, 1);
+                hr_msleep(2);	
+                gpio_set_value_cansleep(gpio36, 1);
+                hr_msleep(7);	
+                gpio_set_value(LCD_RST, 1);
+              }
+            
+            msm_xo_mode_vote(wa_xo, MSM_XO_MODE_ON);
+            hr_msleep(10);
+            
+            msm_xo_mode_vote(wa_xo, MSM_XO_MODE_OFF);
 #if 1
-		rc = gpio_tlmm_config(cfg_panel_te_active[0], GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
-					cfg_panel_te_active[0], rc);
-		}
+            rc = gpio_tlmm_config(cfg_panel_te_active[0], GPIO_CFG_ENABLE);
+            if (rc) {
+              pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
+                     cfg_panel_te_active[0], rc);
+            }
 #endif
-	} else {
+            bPanelPowerOn = true;
+          } else {
+          if (!bPanelPowerOn) return 0;
 #if 1
-		rc = gpio_tlmm_config(cfg_panel_te_sleep[0], GPIO_CFG_ENABLE);
-		if (rc) {
-			pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
-					cfg_panel_te_sleep[0], rc);
-		}
+          rc = gpio_tlmm_config(cfg_panel_te_sleep[0], GPIO_CFG_ENABLE);
+          if (rc) {
+            pr_err("%s: gpio_tlmm_config(%#x)=%d\n", __func__,
+                   cfg_panel_te_sleep[0], rc);
+          }
 #endif
-		gpio_tlmm_config(GPIO_CFG(BL_HW_EN, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
-		gpio_set_value(BL_HW_EN, 0);
-
-		gpio_set_value(LCD_RST, 0);
-		hr_msleep(3);	
-
-		gpio_set_value_cansleep(gpio36, 0);
-		hr_msleep(2);
-		gpio_set_value_cansleep(gpio37, 0);
-
-		hr_msleep(8);	
-		rc = regulator_disable(reg_lvs5);
-		if (rc) {
-			pr_err("disable reg_lvs5 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
-
-		rc = regulator_disable(reg_l2);
-		if (rc) {
-			pr_err("disable reg_l2 failed, rc=%d\n", rc);
-			return -ENODEV;
-		}
+          gpio_tlmm_config(GPIO_CFG(BL_HW_EN, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+          gpio_set_value(BL_HW_EN, 0);
+          
+          gpio_set_value(LCD_RST, 0);
+          hr_msleep(3);	
+          
+          gpio_set_value_cansleep(gpio36, 0);
+          hr_msleep(2);
+          gpio_set_value_cansleep(gpio37, 0);
+          
+          hr_msleep(8);	
+          rc = regulator_disable(reg_lvs5);
+          if (rc) {
+            pr_err("disable reg_lvs5 failed, rc=%d\n", rc);
+            return -ENODEV;
+          }
+          
+          rc = regulator_disable(reg_l2);
+          if (rc) {
+            pr_err("disable reg_l2 failed, rc=%d\n", rc);
+            return -ENODEV;
+          }
+          bPanelPowerOn = false;
 	}
-
+        
 	return 0;
 }
 
