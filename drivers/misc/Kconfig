@@ -776,6 +776,36 @@ config MDMGPIO
 	  This driver can also be built as a module, choose M here: the
 	  module will be called mdmgpio.
 
+config AMP_TPA6185
+        tristate "TI TPA6185 AMP Driver"
+	depends on I2C=y
+        help
+          TI TPA6185 AMP Driver implemented by HTC.
+
+config AMP_RT5501
+        tristate "TI RT5501 AMP Driver"
+	depends on I2C=y
+        help
+          RichTek RT5501 AMP Driver implemented by HTC.
+
+config AMP_RT5501_DELAY
+        tristate "RichTek RT5501 AMP Delay Workaround"
+	depends on I2C=y
+        help
+          RichTek RT5501 AMP Delay Workaround for pop noise of headset enable.
+
+config AMP_TFA9887
+        tristate "NXP TFA9887 Speaker AMP Driver"
+	depends on I2C=y
+        help
+         NXP TFA9887 Speaker AMP Driver implemented by HTC.
+
+config AMP_TFA9887L
+        tristate "NXP TFA9887L Speaker AMP Driver"
+	depends on I2C=y
+        help
+         NXP TFA9887L Speaker AMP Driver implemented by HTC.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
