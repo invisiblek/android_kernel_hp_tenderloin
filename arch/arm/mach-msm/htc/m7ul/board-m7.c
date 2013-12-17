@@ -4552,8 +4552,8 @@ static struct platform_device *common_devices[] __initdata = {
 	&apq_cpudai_afe_02_rx,
 	&apq_cpudai_afe_02_tx,
 	&apq_pcm_afe,
-        //	&apq_cpudai_pri_i2s_rx,
-        //	&apq_cpudai_pri_i2s_tx,
+        &apq_cpudai_pri_i2s_rx,
+        &apq_cpudai_pri_i2s_tx,
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
 	&hdmi_msm_device,
 #endif
@@ -4621,7 +4621,7 @@ static struct platform_device *cdp_devices[] __initdata = {
 	&apq8064_device_uart_gsbi3,
 #endif
 	&apq8064_device_uart_gsbi7,
-        //	&msm_cpudai_mi2s,
+        &msm_cpudai_mi2s,
 	&msm_device_sps_apq8064,
 };
 
