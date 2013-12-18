@@ -1410,4 +1410,12 @@ config SERIAL_EFM32_UART_CONSOLE
 	depends on SERIAL_EFM32_UART=y
 	select SERIAL_CORE_CONSOLE
 
+config SERIAL_CIR
+	tristate "MSM UART High Speed : Legacy mode CIR Driver"
+	depends on ARM && ARCH_MSM
+	select SERIAL_CORE
+	default n
+	help
+	  Select this module to enable MSM high speed CIR driver.
+
 endmenu

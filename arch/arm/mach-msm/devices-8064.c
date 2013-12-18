@@ -308,8 +308,16 @@ static struct resource resources_uart_gsbi3[] = {
 };
 
 struct platform_device apq8064_device_uart_gsbi3 = {
+#ifdef CONFIG_SERIAL_IRDA
+	.name	= "msm_serial_irda",
+	.id	= 2,
+#elif defined CONFIG_SERIAL_CIR
+	.name	= "msm_serial_cir",
+	.id	= 2,
+#else
 	.name	= "msm_serial_hsl",
 	.id	= 0,
+#endif
 	.num_resources	= ARRAY_SIZE(resources_uart_gsbi3),
 	.resource	= resources_uart_gsbi3,
 };

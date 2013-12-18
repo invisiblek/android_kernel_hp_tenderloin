@@ -694,11 +694,29 @@ config SENSORS_BMA250
 	help
 	  BMA250 G-sensor driver for HTC
 
+config SIG_MOTION
+	bool "BMA250 Significant Motion"
+	default n
+	help
+	  Enable BMA250 Significant Motion feature
+
 config INPUT_CAPELLA_CM3629
 	tristate "CM3629 proximity and light sensor"
 	help
 	  Say Y here to enable the CM3629 short distance proximity
 	  sensor with ambient light sensor.
+
+config WSENSOR_ENABLE
+        tristate "CM3629 proximity and light sensor"
+        help
+          Say Y here to enable the CM3629 Short Distance Proximity
+          Sensor with Ambient Light Sensor.
+
+config PSENSOR_KTHRESHOLD
+        tristate "CM3629 proximity and light sensor"
+        help
+          Say Y here to enable the CM3629 Proximity Sensor
+          set or get threshold value from emmc.
 
 config SENSORS_R3GD20
 	tristate "ST R3GD20 3-axis gyroscope"
@@ -711,6 +729,12 @@ config SENSORS_R3GD20
 	  gyroscope will be called r3gd20.
 
 	  Say Y here if you have a device containing the r3gd20 chip.
+
+config R3GD20_NEW_SENSOR_TYPE
+        bool "R3GD20 New Sensor type"
+	default n
+	help
+	  Enable R3GD20 New Sensor type
 
 config INPUT_LSM303DLH
 	tristate "ST LSM303DLH 3-axis accelerometer and 3-axis magnetometer"
@@ -749,5 +773,40 @@ config SENSORS_BMA150_SPI
         default y
         help
          BMA150 G-sensor Driver implemented by HTC.
+
+config CIR_ALWAYS_READY
+        bool "BMA250 CIR Always Ready"
+	default n
+	help
+	  Enable CIR Always Ready
+
+config BOSCH_BMA250
+        tristate "BMA250 acceleration sensor support"
+	depends on I2C=y
+	help
+	  If you say yes here you get support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BOSCH_BMA250_ENABLE_INT1
+	tristate "BMA250 acceleration sensor interrupt INT1 support"
+	depends on BOSCH_BMA250=y
+        help
+	  If you say yes here you get INT1 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config BOSCH_BMA250_ENABLE_INT2
+	tristate "BMA250 acceleration sensor interrupt INT2 support"
+	depends on BOSCH_BMA250=y
+	help
+	  If you say yes here you get INT2 support for Bosch Sensortec's
+	  acceleration sensors BMA250.
+
+config SENSORS_AK8963_NST
+        tristate "AK8963 compass support with Magnetic Filed Uncalibrated"
+        default n
+        depends on I2C
+        help
+          If you say yes here you get support for Asahi Kasei's
+          orientation sensor AK8963 with Magnetic Filed Uncalibrated.
 
 source "drivers/input/misc/mpu3050/Kconfig"

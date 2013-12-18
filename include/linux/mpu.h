@@ -85,9 +85,7 @@
 #define MPU_GET_CONFIG_COMPASS      (0x29)
 #define MPU_GET_CONFIG_PRESSURE     (0x2a)
 
-#ifdef CONFIG_MACH_HTC
 #define HTC_READ_CAL_DATA
-#endif
 #ifdef HTC_READ_CAL_DATA
 #define MPU_READ_CAL_DATA           (0xef)
 extern unsigned char gyro_gsensor_kvalue[37];
@@ -206,7 +204,14 @@ struct tFixPntRange {
 struct ext_slave_descr {
 	int (*init) (void *mlsl_handle,
 		     struct ext_slave_descr *slave,
+#ifdef CONFIG_CIR_ALWAYS_READY
+		     struct ext_slave_platform_data *pdata,
+		     int (*power_LPM)(int on)
+		     );
+#else
 		     struct ext_slave_platform_data *pdata);
+#endif
+
 	int (*exit) (void *mlsl_handle,
 		     struct ext_slave_descr *slave,
 		     struct ext_slave_platform_data *pdata);

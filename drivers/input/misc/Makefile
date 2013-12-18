@@ -74,3 +74,5 @@ obj-$(CONFIG_INPUT_ISL29023)		+= isl29023.o
 obj-$(CONFIG_LIGHTSENSOR_MICROP)	+= cm3602_lightsensor_microp.o
 obj-$(CONFIG_INPUT_CAPELLA_CM3602)	+= capella_cm3602.o
 obj-$(CONFIG_SENSORS_BMA150_SPI)	+= bma150_spi.o
+obj-$(CONFIG_BOSCH_BMA250)      += bma250_bosch.o
+obj-$(CONFIG_SENSORS_AK8963_NST)    += akm8963_nst.o
