@@ -1534,27 +1534,7 @@ out:
 }
 
 static struct android_usb_platform_data android_usb_pdata = {
-#if 0
-	.vendor_id	= 0x0BB4,
-
-	.product_id	= 0x0dea,
-	.version	= 0x0100,
-	.product_name		= "Android Phone",
-	.manufacturer_name	= "HTC",
-	.num_products = ARRAY_SIZE(usb_products),
-	.products = usb_products,
-	.num_functions = ARRAY_SIZE(usb_functions_all),
-	.functions = usb_functions_all,
-#endif
 	.update_pid_and_serial_num = usb_diag_update_pid_and_serial_num,
-#if 0
-	.usb_id_pin_gpio = USB1_HS_ID_GPIO,
-	.usb_rmnet_interface = "HSIC:HSIC",
-	.usb_diag_interface = "diag,diag_mdm",
-	.fserial_init_string = "HSIC:modem,tty,tty:autobot,tty:serial,tty:autobot",
-	.serial_number = "000000000000",
-	.nluns		= 1,
-#endif
 };
 
 static struct platform_device android_usb_device = {
@@ -1780,30 +1760,6 @@ void m7_add_usb_devices(void)
 			pr_info("[USB_BOARD] %s: Config ERROR: GPIO=%u, rc=%d\n",
 					__func__, otg_pmic_gpio_pvt[0].gpio, rc);
 	}
-
-#if 0
-	android_usb_pdata.products[0].product_id =
-			android_usb_pdata.product_id;
-
-
-	if (get_radio_flag() & RADIO_FLAG_RESERVE_17) {
-		android_usb_pdata.diag_init = 1;
-		android_usb_pdata.modem_init = 1;
-		android_usb_pdata.rmnet_init = 1;
-	}
-
-
-	if (board_mfg_mode() == 0) {
-		android_usb_pdata.nluns = 1;
-		android_usb_pdata.cdrom_lun = 0x1;
-	}
-	android_usb_pdata.serial_number = board_serialno();
-
-	android_usb_pdata.usb_id_pin_gpio = PM8921_GPIO_PM_TO_SYS(USB1_HS_ID_GPIO);
-
-	platform_device_register(&apq8064_device_gadget_peripheral);
-	platform_device_register(&android_usb_device);
-#endif
 }
 
 
@@ -3416,34 +3372,6 @@ static struct i2c_board_info i2c_CM36282_devices_r8[] = {
 	},
 };
 
-#if 0
-static uint32_t gsbi2_gpio_table[] = {
-	GPIO_CFG(I2C2_DATA_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(I2C2_CLK_SENS, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-};
-
-
-static uint32_t gsbi3_gpio_table[] = {
-	GPIO_CFG(MONACO_GPIO_TP_I2C_DAT, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-	GPIO_CFG(MONACO_GPIO_TP_I2C_CLK, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),
-};
-
-static void gsbi_qup_i2c_gpio_config(int adap_id, int config_type) {
-
-	printk(KERN_INFO "%s(): adap_id = %d, config_type = %d \n", __func__, adap_id, config_type);
-
-	if ((adap_id == MSM8064_GSBI2_QUP_I2C_BUS_ID) && (config_type == 1)) {
-		gpio_tlmm_config(gsbi2_gpio_table[0], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(gsbi2_gpio_table[1], GPIO_CFG_ENABLE);
-	}
-
-	if ((adap_id == MSM8064_GSBI3_QUP_I2C_BUS_ID) && (config_type == 1)) {
-		gpio_tlmm_config(gsbi3_gpio_table[0], GPIO_CFG_ENABLE);
-		gpio_tlmm_config(gsbi3_gpio_table[1], GPIO_CFG_ENABLE);
-	}
-}
-#endif
-
 #define MSM_WCNSS_PHYS	0x03000000
 #define MSM_WCNSS_SIZE	0x280000
 
@@ -3855,162 +3783,6 @@ static struct msm_rpmrs_platform_data msm_rpmrs_data __initdata = {
 		[MSM_RPMRS_ID_RPM_CTL]		= MSM_RPM_ID_RPM_CTL,
 	},
 };
-#if 0
-static struct msm_cpuidle_state msm_cstates[] __initdata = {
-	{0, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{0, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{0, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{0, 3, "C3", "POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE},
-
-	{1, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{1, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{1, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{2, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{2, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{2, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-
-	{3, 0, "C0", "WFI",
-		MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT},
-
-	{3, 1, "C1", "RETENTION",
-		MSM_PM_SLEEP_MODE_RETENTION},
-
-	{3, 2, "C2", "STANDALONE_POWER_COLLAPSE",
-		MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE},
-};
-
-static struct msm_pm_platform_data msm_pm_data[] = {
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_RETENTION)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(0, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_RETENTION)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(1, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_RETENTION)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(2, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_POWER_COLLAPSE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_POWER_COLLAPSE_STANDALONE)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-
-	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_RETENTION)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 0,
-		.suspend_enabled = 0,
-	},
-
-	[MSM_PM_MODE(3, MSM_PM_SLEEP_MODE_WAIT_FOR_INTERRUPT)] = {
-		.idle_supported = 1,
-		.suspend_supported = 1,
-		.idle_enabled = 1,
-		.suspend_enabled = 1,
-	},
-};
-#endif
 
 static uint8_t spm_wfi_cmd_sequence[] __initdata = {
 	0x03, 0x0f,
@@ -4161,15 +3933,6 @@ static struct msm_spm_platform_data msm_spm_data[] __initdata = {
 };
 
 #ifdef CONFIG_FLASHLIGHT_TPS61310
-#if 0
-#ifdef CONFIG_MSM_CAMERA_FLASH
-int flashlight_control(int mode)
-{
-pr_info("%s, linear led, mode=%d", __func__, mode);
-	return tps61310_flashlight_control(mode);
-}
-#endif
-#endif
 static void config_flashlight_gpios(void)
 {
 	static uint32_t flashlight_gpio_table[] = {
@@ -4232,15 +3995,6 @@ static struct platform_device m7_device_ext_mpp8_vreg __devinitdata = {
 	.dev	= {
 		.platform_data
 			= &m7_gpio_regulator_pdata[GPIO_VREG_ID_EXT_MPP8],
-	},
-};
-
-static struct platform_device m7_device_ext_ts_sw_vreg __devinitdata = {
-	.name	= GPIO_REGULATOR_DEV_NAME,
-	.id	= PM8921_GPIO_PM_TO_SYS(23),
-	.dev	= {
-		.platform_data
-			= &m7_gpio_regulator_pdata[GPIO_VREG_ID_EXT_TS_SW],
 	},
 };
 
@@ -4449,7 +4203,6 @@ static struct platform_device *common_devices[] __initdata = {
 #endif
 	&m7_device_ext_5v_vreg,
 	&m7_device_ext_mpp8_vreg,
-	&m7_device_ext_ts_sw_vreg,
 	&apq8064_device_ssbi_pmic1,
 	&apq8064_device_ssbi_pmic2,
 	&msm_device_smd_apq8064,
@@ -4492,9 +4245,7 @@ static struct platform_device *common_devices[] __initdata = {
 #endif
 #ifdef CONFIG_MSM_CAMERA
 #ifdef CONFIG_RAWCHIPII
-#if 1
 	&m7_msm_rawchip_device,
-#endif
 #endif
 #endif
 	&apq_pcm,
@@ -4595,19 +4346,6 @@ static struct msm_spi_platform_data m7_qup_spi_gsbi5_pdata = {
 };
 
 #define KS8851_IRQ_GPIO		43
-
-#if 0
-static struct spi_board_info spi_board_info[] __initdata = {
-	{
-		.modalias               = "ks8851",
-		.irq                    = MSM_GPIO_TO_INT(KS8851_IRQ_GPIO),
-		.max_speed_hz           = 19200000,
-		.bus_num                = 0,
-		.chip_select            = 2,
-		.mode                   = SPI_MODE_0,
-	},
-};
-#endif
 
 #ifdef CONFIG_MSM_CAMERA
 #ifdef CONFIG_RAWCHIPII
@@ -4764,31 +4502,6 @@ static void __init m7_i2c_init(void)
 	apq8064_device_qup_i2c_gsbi4.dev.platform_data =
 					&m7_i2c_qup_gsbi4_pdata;
 }
-
-#if defined(CONFIG_KS8851) || defined(CONFIG_KS8851_MODULE)
-static int ethernet_init(void)
-{
-	int ret;
-#if 0
-	ret = gpio_request(KS8851_IRQ_GPIO, "ks8851_irq");
-#else
-	ret = 0;
-#endif
-	if (ret) {
-		pr_err("ks8851 gpio_request failed: %d\n", ret);
-		goto fail;
-	}
-
-	return 0;
-fail:
-	return ret;
-}
-#else
-static int ethernet_init(void)
-{
-	return 0;
-}
-#endif
 
 #define DSPS_PIL_GENERIC_NAME          "dsps"
 static void __init m7_init_dsps(void)
@@ -5336,7 +5049,6 @@ static void __init m7_cdp_init(void)
 	m7_wifi_init();
 
 	pr_info("%s: Add MDM2 device\n", __func__);
-        // TEMP REMOVED
         mdm_m7_device.dev.platform_data = &mdm_platform_data;
         platform_device_register(&mdm_m7_device);
 
@@ -5344,11 +5056,6 @@ static void __init m7_cdp_init(void)
 	slim_register_board_info(m7_slim_devices,
 		ARRAY_SIZE(m7_slim_devices));
 	m7_init_dsps();
-#if 0
-	msm_pm_set_platform_data(msm_pm_data, ARRAY_SIZE(msm_pm_data));
-	msm_cpuidle_set_states(msm_cstates, ARRAY_SIZE(msm_cstates),
-				msm_pm_data);
-#endif
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
         //	msm_pm_init_sleep_status_data(&msm_pm_slp_sts_data);
 	properties_kobj = kobject_create_and_add("board_properties", NULL);
@@ -5362,18 +5069,13 @@ static void __init m7_cdp_init(void)
 #ifdef CONFIG_SUPPORT_USB_SPEAKER
 	pm_qos_add_request(&pm_qos_req_dma, PM_QOS_CPU_DMA_LATENCY, PM_QOS_DEFAULT_VALUE);
 #endif
-	ethernet_init();
 	msm_rotator_set_split_iommu_domain();
 	platform_add_devices(cdp_devices, ARRAY_SIZE(cdp_devices));
 
-#if 1
 #ifdef CONFIG_MSM_CAMERA
 #ifdef CONFIG_RAWCHIPII
 	spi_register_board_info(rawchip_spi_board_info, ARRAY_SIZE(rawchip_spi_board_info));
 #endif
-#endif
-#else
-	spi_register_board_info(spi_board_info, ARRAY_SIZE(spi_board_info));
 #endif
 
 	msm_rotator_update_bus_vectors(1920, 1080);

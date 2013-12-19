@@ -104,14 +104,6 @@ VREG_CONSUMERS(L21) = {
 VREG_CONSUMERS(L22) = {
 	REGULATOR_SUPPLY("8921_l22",		NULL),
 };
-#if 0
-VREG_CONSUMERS(L23) = {
-	REGULATOR_SUPPLY("8921_l23",		NULL),
-	REGULATOR_SUPPLY("pll_vdd",		"pil_qdsp6v4.1"),
-	REGULATOR_SUPPLY("pll_vdd",		"pil_qdsp6v4.2"),
-
-};
-#endif
 VREG_CONSUMERS(L24) = {
 	REGULATOR_SUPPLY("8921_l24",		NULL),
 	REGULATOR_SUPPLY("riva_vddmx",		"wcnss_wlan.0"),
@@ -131,12 +123,6 @@ VREG_CONSUMERS(L27) = {
 	REGULATOR_SUPPLY("8921_l27",		NULL),
 	REGULATOR_SUPPLY("core_vdd",		"pil_qdsp6v4.2"),
 };
-#if 0
-VREG_CONSUMERS(L28) = {
-	REGULATOR_SUPPLY("8921_l28",		NULL),
-	REGULATOR_SUPPLY("core_vdd",		"pil_qdsp6v4.1"),
-};
-#endif
 VREG_CONSUMERS(L29) = {
 	REGULATOR_SUPPLY("8921_l29",		NULL),
 };
@@ -239,21 +225,6 @@ VREG_CONSUMERS(EXT_5V) = {
 VREG_CONSUMERS(EXT_MPP8) = {
 	REGULATOR_SUPPLY("ext_mpp8",		NULL),
 };
-#if 0
-VREG_CONSUMERS(EXT_3P3V) = {
-	REGULATOR_SUPPLY("ext_3p3v",		NULL),
-	REGULATOR_SUPPLY("vdd_io",		"spi0.2"),
-	REGULATOR_SUPPLY("mhl_ext_3p3v",	"msm_otg"),
-	REGULATOR_SUPPLY("lvds_vccs_3p3v",      "lvds.0"),
-	REGULATOR_SUPPLY("dsi1_vccs_3p3v",      "mipi_dsi.1"),
-};
-#endif
-#if 0 
-VREG_CONSUMERS(EXT_TS_SW) = {
-	REGULATOR_SUPPLY("ext_ts_sw",		NULL),
-	REGULATOR_SUPPLY("vdd_ana",		"3-005b"),
-};
-#endif
 
 #define PM8XXX_VREG_INIT(_id, _name, _min_uV, _max_uV, _modes, _ops, \
 			 _apply_uV, _pull_down, _always_on, _supply_regulator, \
@@ -475,24 +446,17 @@ VREG_CONSUMERS(EXT_TS_SW) = {
 
 struct gpio_regulator_platform_data
 m7_gpio_regulator_pdata[] __devinitdata = {
-	
 	GPIO_VREG(EXT_5V, "ext_5v", "ext_5v_en", PM8921_MPP_PM_TO_SYS(7), NULL),
-	
-	
-	
-	
 	GPIO_VREG(EXT_MPP8, "ext_mpp8", "ext_mpp8_en",
 			PM8921_MPP_PM_TO_SYS(8), NULL),
 };
 
 struct regulator_init_data m7_saw_regulator_pdata_8921_s5 =
-	
 	SAW_VREG_INIT(S5, "8921_s5",	       850000, 1300000);
 struct regulator_init_data m7_saw_regulator_pdata_8921_s6 =
 	SAW_VREG_INIT(S6, "8921_s6",	       850000, 1300000);
 
 struct regulator_init_data m7_saw_regulator_pdata_8821_s0 =
-	
 	SAW_VREG_INIT(8821_S0, "8821_s0",       850000, 1300000);
 struct regulator_init_data m7_saw_regulator_pdata_8821_s1 =
 	SAW_VREG_INIT(8821_S1, "8821_s1",       850000, 1300000);
@@ -501,15 +465,12 @@ struct pm8xxx_regulator_platform_data
 m7_pm8921_regulator_pdata[] __devinitdata = {
 	PM8XXX_NLDO1200(L26, "8921_l26", 0, 1, 375000, 1050000, 200, "8921_s7",
 		0, 1),
-
-	
 	PM8XXX_VS300(USB_OTG,  "8921_usb_otg",  0, 0,         0, "ext_5v", 2),
 	PM8XXX_VS300(HDMI_MVS, "8921_hdmi_mvs", 0, 1,         0, "ext_5v", 3),
 };
 
 static struct rpm_regulator_init_data
 m7_rpm_regulator_init_data[] __devinitdata = {
-	
 	RPM_SMPS(S1, 1, 1, 0, 1225000, 1225000, NULL, 100000, 3p20, NONE, NONE),
 	RPM_SMPS(S2, 0, 1, 0, 1050000, 1200000, NULL, 100000, 1p60, NONE, NONE),
 	RPM_SMPS(S3, 0, 1, 1,  500000, 1150000, NULL, 100000, 4p80, NONE, NONE),

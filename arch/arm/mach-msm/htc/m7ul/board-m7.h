@@ -220,9 +220,8 @@ void m7_init_gpiomux(void);
 void m7_init_pmic(void);
 void m7_init_pmic_register_cam_cb(void *cam_vcm_on_cb, void *cam_vcm_off_cb);
 
-#if 1	
 extern struct platform_device m7_msm_rawchip_device;
-#endif
+
 void m7_init_cam(void);
 
 #define APQ_8064_GSBI1_QUP_I2C_BUS_ID 0
