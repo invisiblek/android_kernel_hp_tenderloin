@@ -69,6 +69,7 @@ config VIDEOBUF2_DMA_SG
 
 config VIDEOBUF2_MSM_MEM
 	tristate "MSM videobuf2 extensions"
+	default y
 	select VIDEOBUF2_DMA_SG
 	select VIDEOBUF2_DMA_CONTIG
 	select VIDEOBUF2_VMALLOC
@@ -871,7 +872,7 @@ endif # V4L_ISA_PARPORT_DRIVERS
 
 menuconfig V4L_PLATFORM_DRIVERS
 	bool "V4L platform devices"
-	default n
+	default y
 	---help---
 	  Say Y here to enable support for platform-specific V4L drivers.
 
@@ -1174,6 +1175,8 @@ config VIDEO_S5P_MIPI_CSIS
 
 source "drivers/media/video/s5p-tv/Kconfig"
 
+source "drivers/media/video/nmi/Kconfig"
+
 #
 # MSM camera configuration
 #
@@ -1262,4 +1265,3 @@ config VIDEO_MX2_EMMAPRP
 endif # V4L_MEM2MEM_DRIVERS
 
 source "drivers/media/video/msm_vidc/Kconfig"
-source "drivers/media/video/msm_wfd/Kconfig"

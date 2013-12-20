@@ -3,6 +3,12 @@
 #define PLATFORM_DRIVER_NAME "msm_camera_s5k6a2ya"
 #define s5k6a2ya_obj s5k6a2ya_##obj
 
+#ifdef CONFIG_RAWCHIPII
+#include "yushanII.h"
+#include "ilp0100_ST_api.h"
+#include "ilp0100_customer_sensor_config.h"
+#endif
+
 #define S5K6A2YA_REG_ORIENTATION 0x0216
 #define S5K6A2YA_ORIENTATION_NORMAL_MODE 0x00
 #define S5K6A2YA_ORIENTATION_MIRROR 0x01
@@ -11,13 +17,22 @@
 
 
 DEFINE_MUTEX(s5k6a2ya_mut);
+DEFINE_MUTEX(s5k6a2ya_sensor_init_mut);
 static struct msm_sensor_ctrl_t s5k6a2ya_s_ctrl;
 
 static struct msm_camera_i2c_reg_conf s5k6a2ya_start_settings[] = {
 	{0x0100, 0x01},
 };
 
+static struct msm_camera_i2c_reg_conf s5k6a2ya_start_settings_yushanii[] = {
+	{0x0100, 0x01},
+};
+
 static struct msm_camera_i2c_reg_conf s5k6a2ya_stop_settings[] = {
+	{0x0100, 0x00},
+};
+
+static struct msm_camera_i2c_reg_conf s5k6a2ya_stop_settings_yushanii[] = {
 	{0x0100, 0x00},
 };
 
@@ -158,6 +173,55 @@ static struct msm_camera_i2c_reg_conf s5k6a2ya_recommend_settings[] = {
 	{0x0800, 0x00}, 
 };
 
+static struct msm_camera_i2c_reg_conf s5k6a2ya_recommend_settings_yushanii[] = {
+	
+	
+	
+	{0x303E, 0x20}, 
+	{0x303F, 0x10}, 
+	{0x3040, 0x40}, 
+	{0x3041, 0x10}, 
+	{0x3310, 0x0C}, /* [3:2] nop_flob : must be written before streaming on */
+	{0x3074, 0x0E}, /* [3] f_lob_read_opt : must be written before streaming on */
+	{0x3017, 0x01}, 
+	{0x3E33, 0x3C}, 
+	{0x3029, 0x0E}, 
+	{0x300D, 0x14}, 
+	{0x300E, 0x8E}, 
+	{0x301B, 0x08}, 
+	{0x305B, 0x9C}, 
+	{0x3315, 0x5B}, 
+	{0x3148, 0x00}, 
+	{0x3149, 0x00}, 
+
+	
+	{0x3E84, 0x18}, 
+	{0x3E85, 0x00},
+
+	
+	
+	{0x0820, 0x06}, 
+	{0x0821, 0x00}, 
+	{0x0822, 0x9B}, 
+	{0x0823, 0x00}, 
+
+	
+	{0x082A, 0x0A}, 
+	{0x082B, 0x06}, 
+
+	
+	{0x0858, 0x02}, 
+	{0x0859, 0x6C}, 
+	{0x085A, 0x00}, 
+	{0x085B, 0x00}, 
+
+	
+	{0x0216, 0x00}, 
+
+	
+	{0x0800, 0x00}, 
+};
+
 static struct v4l2_subdev_info s5k6a2ya_subdev_info[] = {
 	{
 	.code   = V4L2_MBUS_FMT_SBGGR10_1X10,
@@ -173,13 +237,60 @@ static struct msm_camera_i2c_conf_array s5k6a2ya_init_conf[] = {
 	ARRAY_SIZE(s5k6a2ya_recommend_settings), 0, MSM_CAMERA_I2C_BYTE_DATA}
 };
 
+static struct msm_camera_i2c_conf_array s5k6a2ya_init_conf_yushanii[] = {
+	{&s5k6a2ya_recommend_settings_yushanii[0],
+	ARRAY_SIZE(s5k6a2ya_recommend_settings_yushanii), 0, MSM_CAMERA_I2C_BYTE_DATA}
+};
+
 static struct msm_camera_i2c_conf_array s5k6a2ya_confs[] = {
 	{&s5k6a2ya_snap_settings[0],
 	ARRAY_SIZE(s5k6a2ya_snap_settings), 0, MSM_CAMERA_I2C_BYTE_DATA},
 	{&s5k6a2ya_prev_settings[0],
 	ARRAY_SIZE(s5k6a2ya_prev_settings), 0, MSM_CAMERA_I2C_BYTE_DATA},
 };
+
 static struct msm_sensor_output_info_t s5k6a2ya_dimensions[] = {
+	{
+		.x_output = 0x5C0,
+		.y_output = 0x450,
+		.line_length_pclk = 0x067E,
+		.frame_length_lines = 0x04D6,
+		.vt_pixel_clk = 62000000,
+		.op_pixel_clk = 62000000,
+		.binning_factor = 1,
+		
+		.x_addr_start = 0,
+		.y_addr_start = 0,
+		.x_addr_end = 0x5BF,
+		.y_addr_end = 0x44F,
+		.x_even_inc = 1,
+		.x_odd_inc = 1,
+		.y_even_inc = 1,
+		.y_odd_inc = 1,
+		.binning_rawchip = 0x11,
+	},
+	{
+		.x_output = 0x5C0,
+		.y_output = 0x450,
+		.line_length_pclk = 0x067E,
+		.frame_length_lines = 0x04D6,
+		.vt_pixel_clk = 62000000,
+		.op_pixel_clk = 62000000,
+		.binning_factor = 1,
+		
+		.x_addr_start = 0,
+		.y_addr_start = 0,
+		.x_addr_end = 0x5BF,
+		.y_addr_end = 0x44F,
+		.x_even_inc = 1,
+		.x_odd_inc = 1,
+		.y_even_inc = 1,
+		.y_odd_inc = 1,
+		.binning_rawchip = 0x11,
+	},
+};
+
+static struct msm_sensor_output_info_t s5k6a2ya_dimensions_yushanii[] = {
 	{
 		.x_output = 0x5C0,
 		.y_output = 0x450,
@@ -363,7 +474,7 @@ int32_t s5k6a2ya_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 	}
 
 #ifndef CONFIG_DISABLE_MCLK_RAWCHIP_TO_MAINCAM
-	if (!sdata->use_rawchip) {
+	if (!sdata->use_rawchip && (sdata->htc_image != HTC_CAMERA_IMAGE_YUSHANII_BOARD)) {
 		rc = msm_camio_clk_enable(CAMIO_CAM_MCLK_CLK);
 		if (rc < 0) {
 			pr_err("%s: msm_camio_clk_enable failed:%d\n",
@@ -384,6 +495,11 @@ int32_t s5k6a2ya_power_up(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s msm_camio_clk_enable failed\n", __func__);
 		goto enable_mclk_failed;
 	}
+#endif
+
+#ifdef CONFIG_RAWCHIPII
+	Ilp0100_enableIlp0100SensorClock(SENSOR_1);
+	mdelay(35); 
 #endif
 
 	s5k6a2ya_sensor_open_init(sdata);
@@ -422,7 +538,7 @@ int32_t s5k6a2ya_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		return -EIO;
 	}
 #ifndef CONFIG_DISABLE_MCLK_RAWCHIP_TO_MAINCAM
-	if (!sdata->use_rawchip) {
+	if (!sdata->use_rawchip && (sdata->htc_image != HTC_CAMERA_IMAGE_YUSHANII_BOARD)) {
 		rc = msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
 		if (rc < 0)
 			pr_err("%s: msm_camio_clk_disable failed:%d\n",
@@ -434,16 +550,16 @@ int32_t s5k6a2ya_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 		pr_err("%s: msm_camio_clk_disable failed:%d\n", __func__, rc);
 #endif
 
-	rc = sdata->camera_power_off();
-	if (rc < 0) {
-		pr_err(" %s failed to disable power\n", __func__);
-	}
-
 #ifndef CONFIG_DISABLE_MCLK_RAWCHIP_TO_MAINCAM
+
 	rc = msm_sensor_set_power_down(s_ctrl);
 	if (rc < 0)
 		pr_err("%s msm_sensor_power_down failed\n", __func__);
 #endif
+	rc = sdata->camera_power_off();
+	if (rc < 0) {
+		pr_err(" %s failed to disable power\n", __func__);
+	}
 
 	return rc;  
 }
@@ -533,7 +649,9 @@ int32_t s5k6a2ya_sensor_setting(struct msm_sensor_ctrl_t *s_ctrl,
 		return (-1);
 	}
 
-	rc = msm_sensor_setting(s_ctrl, update_type, res);
+	
+	rc = msm_sensor_setting_parallel(s_ctrl, update_type, res);
+
 	if (update_type == MSM_SENSOR_UPDATE_PERIODIC) {
 		s5k6a2ya_mirror_flip_setting();
 	}
@@ -599,15 +717,24 @@ static struct msm_sensor_reg_t s5k6a2ya_regs = {
 	.start_stream_conf_size = ARRAY_SIZE(s5k6a2ya_start_settings),
 	.stop_stream_conf = s5k6a2ya_stop_settings,
 	.stop_stream_conf_size = ARRAY_SIZE(s5k6a2ya_stop_settings),
+	.start_stream_conf_yushanii = s5k6a2ya_start_settings_yushanii,
+	.start_stream_conf_size_yushanii =
+		ARRAY_SIZE(s5k6a2ya_start_settings_yushanii),
+	.stop_stream_conf_yushanii = s5k6a2ya_stop_settings_yushanii,
+	.stop_stream_conf_size_yushanii =
+		ARRAY_SIZE(s5k6a2ya_stop_settings_yushanii),
 	.group_hold_on_conf = s5k6a2ya_groupon_settings,
 	.group_hold_on_conf_size = ARRAY_SIZE(s5k6a2ya_groupon_settings),
 	.group_hold_off_conf = s5k6a2ya_groupoff_settings,
 	.group_hold_off_conf_size =
 		ARRAY_SIZE(s5k6a2ya_groupoff_settings),
 	.init_settings = &s5k6a2ya_init_conf[0],
+	.init_settings_yushanii = &s5k6a2ya_init_conf_yushanii[0],
 	.init_size = ARRAY_SIZE(s5k6a2ya_init_conf),
+	.init_size_yushanii = ARRAY_SIZE(s5k6a2ya_init_conf_yushanii),
 	.mode_settings = &s5k6a2ya_confs[0],
 	.output_settings = &s5k6a2ya_dimensions[0],
+	.output_settings_yushanii = &s5k6a2ya_dimensions_yushanii[0],
 	.num_conf = ARRAY_SIZE(s5k6a2ya_confs),
 };
 
@@ -626,6 +753,7 @@ static struct msm_sensor_ctrl_t s5k6a2ya_s_ctrl = {
 	.sensor_v4l2_subdev_info_size = ARRAY_SIZE(s5k6a2ya_subdev_info),
 	.sensor_v4l2_subdev_ops = &s5k6a2ya_subdev_ops,
 	.func_tbl = &s5k6a2ya_func_tbl,
+	.sensor_first_mutex = &s5k6a2ya_sensor_init_mut,
 };
 
 module_init(msm_sensor_init_module);

@@ -201,4 +201,22 @@ enum htc_camera_image_type_board {
 	HTC_CAMERA_IMAGE_MAX_BOARD,
 };
 
+enum msm_camera_pixel_order_default {
+	MSM_CAMERA_PIXEL_ORDER_GR,
+	MSM_CAMERA_PIXEL_ORDER_RG,
+	MSM_CAMERA_PIXEL_ORDER_BG,
+	MSM_CAMERA_PIXEL_ORDER_GB,
+};
+
+enum sensor_mount_angle {
+	ANGLE_90,
+	ANGLE_180,
+	ANGLE_270,
+};
+
+enum hdr_mode_type {
+	NON_HDR_MODE,
+	HDR_MODE,
+};
+
 #endif /* __ASM_ARCH_MSM_BOARD_EXT_HTC_H */
