@@ -45,15 +45,15 @@ static int oem_sensor_init(void *arg)
 	
 	pr_info("%s: E", __func__);
 	
-
+        pr_err("%s: 1\n", __func__);
 	v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
 		NOTIFY_ISPIF_STREAM, (void *)ISPIF_STREAM(
 		PIX_0, ISPIF_OFF_IMMEDIATELY));
 	s_ctrl->func_tbl->sensor_stop_stream(s_ctrl);
-
+        pr_err("%s: 2\n", __func__);
 	s_ctrl->curr_csi_params = NULL;
 	msm_sensor_enable_debugfs(s_ctrl);
-
+        pr_err("%s: 3\n", __func__);
 	res =0;
 	if (s_ctrl->curr_csi_params != s_ctrl->csi_params[res]) {
 		s_ctrl->curr_csi_params = s_ctrl->csi_params[res];
@@ -75,10 +75,10 @@ static int oem_sensor_init(void *arg)
 		mb();
 	}
 	msleep(30);
-
+        pr_err("%s: 4\n", __func__);
 	msm_sensor_write_init_settings(s_ctrl);
 	
-
+        pr_err("%s: 5\n", __func__);
 #ifdef CONFIG_RAWCHIP
 	if (s_ctrl->sensordata->use_rawchip) {
 		rawchip_data.sensor_name = s_ctrl->sensordata->sensor_name;
@@ -118,7 +118,7 @@ static int oem_sensor_init(void *arg)
 
 	}
 #endif
-
+        pr_err("%s: 6\n", __func__);
 	pr_info("%s: X", __func__);
 	mutex_unlock(s_ctrl->sensor_first_mutex);
 
@@ -217,16 +217,20 @@ int32_t msm_sensor_write_res_settings(struct msm_sensor_ctrl_t *s_ctrl,
 	if (s_ctrl->func_tbl->sensor_adjust_frame_lines)
 		rc = s_ctrl->func_tbl->sensor_adjust_frame_lines(s_ctrl, res);
 
-	if (s_ctrl->prev_dig_gain > 0 && s_ctrl->prev_line > 0){
-		if (s_ctrl->func_tbl->
-			sensor_write_exp_gain_ex != NULL){
-		    s_ctrl->func_tbl->
-		        sensor_write_exp_gain_ex(
-		        s_ctrl,
-		        SENSOR_PREVIEW_MODE,
-		        s_ctrl->prev_gain,
-		        s_ctrl->prev_dig_gain,
-		        s_ctrl->prev_line);
+	if (s_ctrl->func_tbl->sensor_yushanII_set_default_ae) {
+		s_ctrl->func_tbl->sensor_yushanII_set_default_ae(s_ctrl, res);
+	} else {
+		if (s_ctrl->prev_dig_gain > 0 && s_ctrl->prev_line > 0){
+			if (s_ctrl->func_tbl->
+				sensor_write_exp_gain_ex != NULL){
+			    s_ctrl->func_tbl->
+			        sensor_write_exp_gain_ex(
+			        s_ctrl,
+			        SENSOR_PREVIEW_MODE,
+			        s_ctrl->prev_gain,
+			        s_ctrl->prev_dig_gain,
+			        s_ctrl->prev_line);
+			}
 		}
 	}
 
@@ -317,6 +321,28 @@ void msm_sensor_group_hold_off(struct msm_sensor_ctrl_t *s_ctrl)
 		s_ctrl->sensor_i2c_client,
 		s_ctrl->msm_sensor_reg->group_hold_off_conf,
 		s_ctrl->msm_sensor_reg->group_hold_off_conf_size,
+		s_ctrl->msm_sensor_reg->default_data_type);
+}
+
+void msm_sensor_group_hold_on_hdr(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	CDBG("%s: called\n", __func__);
+
+	msm_camera_i2c_write_tbl(
+		s_ctrl->sensor_i2c_client,
+		s_ctrl->msm_sensor_reg->group_hold_on_conf_hdr,
+		s_ctrl->msm_sensor_reg->group_hold_on_conf_size_hdr,
+		s_ctrl->msm_sensor_reg->default_data_type);
+}
+
+void msm_sensor_group_hold_off_hdr(struct msm_sensor_ctrl_t *s_ctrl)
+{
+	CDBG("%s: called\n", __func__);
+
+	msm_camera_i2c_write_tbl(
+		s_ctrl->sensor_i2c_client,
+		s_ctrl->msm_sensor_reg->group_hold_off_conf_hdr,
+		s_ctrl->msm_sensor_reg->group_hold_off_conf_size_hdr,
 		s_ctrl->msm_sensor_reg->default_data_type);
 }
 
@@ -692,11 +718,9 @@ int32_t msm_sensor_setting_parallel(struct msm_sensor_ctrl_t *s_ctrl,
 		mutex_lock(s_ctrl->sensor_first_mutex);
 
 #ifdef CONFIG_RAWCHIPII
-        if (s_ctrl->sensordata->stop_yushanii_first) {
-    		if(YushanII_Get_reloadInfo() == 0){
-    			pr_info("stop YushanII first");
-    			Ilp0100_stop();
-    		}
+		if(YushanII_Get_reloadInfo() == 0){
+			pr_info("stop YushanII first");
+			Ilp0100_stop();
 		}
 #endif
 		v4l2_subdev_notify(&s_ctrl->sensor_v4l2_subdev,
@@ -1422,6 +1446,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			s_ctrl->prev_dig_gain= cdata.cfg.exp_gain.dig_gain;
 			break;
 
+#ifndef CONFIG_MSM8960_ONLY
 		case CFG_SET_HDR_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_hdr_exp_gain_ex == NULL) {
@@ -1451,7 +1476,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 					s_ctrl,
 					cdata.cfg.exp_gain.is_outdoor);
 			break;
-
+#endif
 		case CFG_SET_PICT_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_snapshot_exp_gain_ex == NULL) {
@@ -1869,7 +1894,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 #endif
 	}
 
-	
+	if (board_mfg_mode () || s_ctrl->sensordata->htc_image == HTC_CAMERA_IMAGE_YUSHANII_BOARD) {
 #ifdef CONFIG_RAWCHIPII
 		rc = YushanII_probe_init();
 		if (rc < 0) {
@@ -1887,7 +1912,7 @@ int32_t msm_sensor_i2c_probe(struct i2c_client *client,
 			}
 		}
 #endif
-	
+	}
 
 	if (s_ctrl->func_tbl && s_ctrl->func_tbl->sensor_power_up)
 		rc = s_ctrl->func_tbl->sensor_power_up(s_ctrl);
@@ -2099,3 +2124,74 @@ int msm_sensor_enable_debugfs(struct msm_sensor_ctrl_t *s_ctrl)
 
 	return 0;
 }
+
+#include <linux/fs.h>
+#include <linux/file.h>
+#include <linux/vmalloc.h>
+#include <asm/segment.h>
+#include <asm/uaccess.h>
+#include <linux/buffer_head.h>
+
+void msm_fclose(struct file* file) {
+    filp_close(file, NULL);
+}
+
+int msm_fwrite(struct file* file, unsigned long long offset, unsigned char* data, unsigned int size) {
+    mm_segment_t oldfs;
+    int ret;
+
+    oldfs = get_fs();
+    set_fs(get_ds());
+
+    ret = vfs_write(file, data, size, &offset);
+
+    set_fs(oldfs);
+    return ret;
+}
+
+struct file* msm_fopen(const char* path, int flags, int rights) {
+    struct file* filp = NULL;
+    mm_segment_t oldfs;
+    int err = 0;
+
+    oldfs = get_fs();
+    set_fs(get_ds());
+    filp = filp_open(path, flags, rights);
+    set_fs(oldfs);
+    if(IS_ERR(filp)) {
+        err = PTR_ERR(filp);
+    pr_err("[CAM]File Open Error:%s",path);
+        return NULL;
+    }
+    if(!filp->f_op){
+    pr_err("[CAM]File Operation Method Error!!");
+    return NULL;
+    }
+
+    return filp;
+}
+void msm_dump_otp_to_file(const char* sensor_name, const short* add, const uint8_t* data, size_t count)  
+{  
+    uint8_t *path= "/data/otp.txt";  
+    struct file* f = msm_fopen (path, O_CREAT|O_RDWR|O_TRUNC, 0666);  
+    char buf[512];  
+    int i=0;  
+    int len=0,offset=0;  
+    pr_info ("%s\n",__func__);  
+  
+    if (f) {  
+        len = sprintf (buf,"%s\n",sensor_name);  
+        msm_fwrite (f,offset,buf,len);  
+        offset += len;  
+  
+        for (i=0; i<count; ++i) {  
+            len = sprintf (buf,"0x%x 0x%x\n",add[i],data[i]);  
+            msm_fwrite (f,offset,buf,len);  
+            offset += len;  
+        }  
+        msm_fclose (f);  
+    } else {  
+        pr_err ("%s: fail to open file\n", __func__);  
+    }  
+}  
+

@@ -9,6 +9,13 @@ config MSM_CAMERA_V4L2
           native APIs are used through /dev/config0, /dev/frame0,
           and /dev/control0.
 
+config  MSM_CAMERA_HTC_HAL_VERSION
+        depends on MSM_CAMERA
+        int
+        default 1 if MSM8960_ONLY
+        default 2 if MACH_MONARUDO
+        default 3
+
 comment "Camera Sensor Selection"
 config MT9T013
 	bool "Sensor mt9t013 (BAYER 3M)"
@@ -54,22 +61,19 @@ config S5K6A1GX
 	  Support for S5K6A1GX samsung sensor driver.
 	  It is a Bayer 1.3MP sensor it supports one mipi lanes.
 
-config S5K4E5YX
-	bool "Sensor Sensor S5K4E5YX (Samsung 5M)"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	  Support for S5k4E5YX samsung sensor driver.
-	  It is a Bayer 5MP sensor with auto focus and it supports
-	  two mipi lanes, required for msm8930 platform.
-	  Say Y here if this is msm8930 variant platform.
-
 config AR0260
 	bool "Sensor ar0260"
 	depends on MSM_CAMERA
 	default n
 	---help---
 	  Support for AR0260 sensor driver.
+
+config AS0260
+	bool "Sensor as0260"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Support for AS0260 sensor driver.
 
 config OV2722
 	bool "Sensor ov2722"
@@ -177,13 +181,6 @@ config IMX074_ACT
 	depends on MSM_CAMERA
 	---help---
 	Actuator for SONY 13.5 MP Bayer Sensor
-
-config IMX105_ACT
-	bool "Actuator IMX105 (BAYER 8M)"
-	depends on MSM_CAMERA && ARCH_MSM8960
-	default n
-	---help---
-	Actuator for SONY 8 MP Bayer Sensor
 
 config S5K3H2YX_ACT
 	bool "Sensor s5k3h2yx actuator"
@@ -328,13 +325,6 @@ config IMX091
 	---help---
 	SONY 13 MP Bayer Sensor
 
-config IMX105
-	bool "Sensor IMX105 (BAYER 8M)"
-	depends on MSM_CAMERA && (ARCH_MSM8X60 || ARCH_MSM8960)
-	default n
-	---help---
-	SONY 8 MP Bayer Sensor
-
 config IMX175
 	bool "Sensor IMX175 (BAYER 8M)"
 	depends on MSM_CAMERA
@@ -415,13 +405,6 @@ config IMX175_2LANE
 	depends on MSM_CAMERA
 	---help---
 	SONY 8 MP Bayer Sensor for 2-lane hardware
-
-config S5K4E5YX_ACT
-	bool "Sensor S5K4E5YX actuator"
-	depends on MSM_CAMERA
-	default n
-	---help---
-	  Autofocus of s5k4e5yx actuator
 
 config OV5693_ACT
 	bool "Sensor OV5693 actuator"
