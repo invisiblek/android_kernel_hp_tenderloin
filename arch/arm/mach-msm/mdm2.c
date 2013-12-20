@@ -83,14 +83,16 @@ static void mdm_toggle_soft_reset(struct mdm_modem_drv *mdm_drv)
 		soft_reset_direction_assert = 1;
 		soft_reset_direction_de_assert = 0;
 	}
-	gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
-			soft_reset_direction_assert);
+	if (GPIO_IS_VALID(mdm_drv->ap2mdm_soft_reset_gpio))
+          gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
+                                soft_reset_direction_assert);
 	/* Use mdelay because this function can be called from atomic
 	 * context.
 	 */
 	mdelay(10);
-	gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
-			soft_reset_direction_de_assert);
+	if (GPIO_IS_VALID(mdm_drv->ap2mdm_soft_reset_gpio))
+          gpio_direction_output(mdm_drv->ap2mdm_soft_reset_gpio,
+                                soft_reset_direction_de_assert);
 }
 
 /* This function can be called from atomic context. */

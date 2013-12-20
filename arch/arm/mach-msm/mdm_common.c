@@ -1206,7 +1206,8 @@ static int mdm_configure_ipc(struct mdm_device *mdev)
           gpio_request(mdm_drv->ap2mdm_ipc1_gpio, "AP2MDM_IPC1");
         if (GPIO_IS_VALID(mdm_drv->mdm2ap_hsic_ready_gpio))
           gpio_request(mdm_drv->mdm2ap_hsic_ready_gpio, "MDM2AP_HSIC_READY");
-	gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 0);
+        if (GPIO_IS_VALID(mdm_drv->ap2mdm_ipc1_gpio))
+          gpio_direction_output(mdm_drv->ap2mdm_ipc1_gpio, 0);
 #endif
 
 	gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 0);
