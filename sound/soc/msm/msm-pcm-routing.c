@@ -30,6 +30,8 @@
 #include <sound/tlv.h>
 #include "msm-pcm-routing.h"
 #include "qdsp6/q6voice.h"
+#include <sound/asound.h>
+#include <sound/pcm_params.h>
 
 struct msm_pcm_routing_bdai_data {
 	u16 port_id; /* AFE port ID */
@@ -38,6 +40,7 @@ struct msm_pcm_routing_bdai_data {
 	unsigned long port_sessions; /* track Tx BE ports -> Rx BE */
 	unsigned int  sample_rate;
 	unsigned int  channel;
+	unsigned int  format;
 	bool perf_mode;
 };
 
@@ -360,11 +363,12 @@ void msm_pcm_routing_reg_phy_stream(int fedai_id, bool perf_mode, int dspst_id,
 				DEFAULT_COPP_TOPOLOGY, msm_bedais[i].perf_mode);
 			} else if ((stream_type == SNDRV_PCM_STREAM_PLAYBACK) &&
 				(channels > 2))
-				adm_multi_ch_copp_open(msm_bedais[i].port_id,
+				adm_multi_ch_copp_open_v2(msm_bedais[i].port_id,
 				path_type,
 				msm_bedais[i].sample_rate,
 				msm_bedais[i].channel,
-				DEFAULT_COPP_TOPOLOGY, msm_bedais[i].perf_mode);
+                                DEFAULT_COPP_TOPOLOGY, msm_bedais[i].perf_mode,
+                                (msm_bedais[i].format == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16));
 			else
 				adm_open(msm_bedais[i].port_id,
 				path_type,
@@ -500,12 +504,13 @@ static void msm_pcm_routing_process_audio(u16 reg, u16 val, int set)
 			if ((session_type == SESSION_TYPE_RX) &&
 				((channels == 1) || (channels == 2))
 				&& msm_bedais[reg].perf_mode) {
-				adm_multi_ch_copp_open(msm_bedais[reg].port_id,
+				adm_multi_ch_copp_open_v2(msm_bedais[reg].port_id,
 				path_type,
 				msm_bedais[reg].sample_rate,
 				channels,
 				DEFAULT_COPP_TOPOLOGY,
-				msm_bedais[reg].perf_mode);
+                                msm_bedais[reg].perf_mode,
+                                (msm_bedais[reg].format == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16));
 				pr_debug("%s:configure COPP to lowlatency mode",
 								 __func__);
 			} else if ((session_type == SESSION_TYPE_RX)
@@ -1314,6 +1319,9 @@ static const struct snd_kcontrol_new slimbus_rx_mixer_controls[] = {
 	SOC_SINGLE_EXT("MultiMedia8", MSM_BACKEND_DAI_SLIMBUS_0_RX,
 	MSM_FRONTEND_DAI_MULTIMEDIA8, 1, 0, msm_routing_get_audio_mixer,
 	msm_routing_put_audio_mixer),
+	SOC_SINGLE_EXT("MultiMedia Stub", MSM_BACKEND_DAI_SLIMBUS_0_RX,
+	MSM_FRONTEND_DAI_MULTIMEDIA_STUB, 1, 0, msm_routing_get_audio_mixer,
+	msm_routing_put_audio_mixer),
 };
 
 static const struct snd_kcontrol_new mi2s_rx_mixer_controls[] = {
@@ -1340,6 +1348,9 @@ static const struct snd_kcontrol_new mi2s_rx_mixer_controls[] = {
 	msm_routing_put_audio_mixer),
 	SOC_SINGLE_EXT("MultiMedia8", MSM_BACKEND_DAI_MI2S_RX,
 	MSM_FRONTEND_DAI_MULTIMEDIA8, 1, 0, msm_routing_get_audio_mixer,
+	msm_routing_put_audio_mixer),
+	SOC_SINGLE_EXT("MultiMedia Stub", MSM_BACKEND_DAI_MI2S_RX,
+	MSM_FRONTEND_DAI_MULTIMEDIA_STUB, 1, 0, msm_routing_get_audio_mixer,
 	msm_routing_put_audio_mixer),
 };
 
@@ -2311,6 +2322,7 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 	SND_SOC_DAPM_AIF_IN("MM_DL6", "MultiMedia6 Playback", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("MM_DL7", "MultiMedia7 Playback", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("MM_DL8", "MultiMedia8 Playback", 0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("MM_STUB_DL", "MM_STUB Playback", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_IN("VOIP_DL", "VoIP Playback", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("MM_UL1", "MultiMedia1 Capture", 0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("MM_UL2", "MultiMedia2 Capture", 0, 0, 0, 0),
@@ -2340,6 +2352,10 @@ static const struct snd_soc_dapm_widget msm_qdsp6_widgets[] = {
 	SND_SOC_DAPM_AIF_OUT("AUXPCM_UL_HL", "AUXPCM_HOSTLESS Capture",
 		0, 0, 0, 0),
 	SND_SOC_DAPM_AIF_OUT("MI2S_UL_HL", "MI2S_TX_HOSTLESS Capture",
+		0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_IN("PRI_I2S_DL_HL", "PRI_I2S_HOSTLESS Playback",
+		0, 0, 0, 0),
+	SND_SOC_DAPM_AIF_OUT("PRI_I2S_UL_HL", "PRI_I2S_HOSTLESS Capture",
 		0, 0, 0, 0),
 
 	/* Backend AIF */
@@ -2567,6 +2583,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"SLIMBUS_0_RX Audio Mixer", "MultiMedia6", "MM_DL6"},
 	{"SLIMBUS_0_RX Audio Mixer", "MultiMedia7", "MM_DL7"},
 	{"SLIMBUS_0_RX Audio Mixer", "MultiMedia8", "MM_DL8"},
+	{"SLIMBUS_0_RX Audio Mixer", "MultiMedia Stub", "MM_STUB_DL"},
 	{"SLIMBUS_0_RX", NULL, "SLIMBUS_0_RX Audio Mixer"},
 
 	{"HDMI Mixer", "MultiMedia1", "MM_DL1"},
@@ -2597,6 +2614,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"MI2S_RX Audio Mixer", "MultiMedia4", "MM_DL4"},
 	{"MI2S_RX Audio Mixer", "MultiMedia5", "MM_DL5"},
 	{"MI2S_RX Audio Mixer", "MultiMedia6", "MM_DL6"},
+	{"MI2S_RX Audio Mixer", "MultiMedia Stub", "MM_STUB_DL"},
 	{"MI2S_RX", NULL, "MI2S_RX Audio Mixer"},
 
 	{"MultiMedia1 Mixer", "PRI_TX", "PRI_I2S_TX"},
@@ -2752,6 +2770,8 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{"PCM_RX", NULL, "PCM_RX_DL_HL"},
 	{"MI2S_UL_HL", NULL, "MI2S_TX"},
 	{"SEC_I2S_RX", NULL, "SEC_I2S_DL_HL"},
+	{"PRI_I2S_RX", NULL, "PRI_I2S_DL_HL"},
+	{"PRI_I2S_UL_HL", NULL, "PRI_I2S_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "INTERNAL_FM_TX", "INT_FM_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "SLIM_0_TX", "SLIMBUS_0_TX"},
 	{"SLIMBUS_0_RX Port Mixer", "AUX_PCM_UL_TX", "AUX_PCM_TX"},
@@ -2889,6 +2909,7 @@ static int msm_pcm_routing_hw_params(struct snd_pcm_substream *substream,
 	mutex_lock(&routing_lock);
 	msm_bedais[be_id].sample_rate = params_rate(params);
 	msm_bedais[be_id].channel = params_channels(params);
+	msm_bedais[be_id].format = params_format(params);
 	mutex_unlock(&routing_lock);
 	return 0;
 }
@@ -2937,6 +2958,7 @@ static int msm_pcm_routing_prepare(struct snd_pcm_substream *substream)
 	struct msm_pcm_routing_bdai_data *bedai;
 	u32 channels;
 	bool playback, capture;
+        short bit_width = 16;
 	struct msm_pcm_routing_fdai_data *fdai;
 
 	if (be_id >= MSM_BACKEND_DAI_MAX) {
@@ -2985,23 +3007,25 @@ static int msm_pcm_routing_prepare(struct snd_pcm_substream *substream)
 			}
 
 			channels = bedai->channel;
+			if (bedai->format == SNDRV_PCM_FORMAT_S24_LE)
+				bit_width = 24;
 			if ((playback || capture)
 				&& ((channels == 2) || (channels == 1)) &&
 				bedai->perf_mode) {
-				adm_multi_ch_copp_open(bedai->port_id,
+				adm_multi_ch_copp_open_v2(bedai->port_id,
 				path_type,
 				bedai->sample_rate,
 				channels,
-				DEFAULT_COPP_TOPOLOGY, bedai->perf_mode);
+                                DEFAULT_COPP_TOPOLOGY, bedai->perf_mode, bit_width);
 				pr_debug("%s:configure COPP to lowlatency mode",
 								__func__);
 			} else if ((playback || capture)
 				&& (channels > 2))
-				adm_multi_ch_copp_open(bedai->port_id,
+				adm_multi_ch_copp_open_v2(bedai->port_id,
 				path_type,
 				bedai->sample_rate,
 				channels,
-				DEFAULT_COPP_TOPOLOGY, bedai->perf_mode);
+                                DEFAULT_COPP_TOPOLOGY, bedai->perf_mode, bit_width);
 			else
 				adm_open(bedai->port_id,
 				path_type,
