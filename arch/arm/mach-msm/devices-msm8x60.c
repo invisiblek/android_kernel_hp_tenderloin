@@ -98,6 +98,9 @@
 #define MSM_GSBI10_UARTDM_PHYS	(MSM_GSBI10_PHYS + 0x40000)
 #define MSM_GSBI11_UARTDM_PHYS  (MSM_GSBI11_PHYS + 0x40000)
 
+#define MSM_UART11DM_PHYS    (MSM_GSBI11_PHYS + 0x40000)
+#define INT_UART11DM_IRQ     GSBI11_UARTDM_IRQ
+
 /* PRNG device */
 #define MSM_PRNG_PHYS		0x16C00000
 #define MSM_UART9DM_PHYS    (MSM_GSBI9_PHYS + 0x40000)
@@ -383,6 +386,34 @@ struct platform_device msm_device_uart_dm3 = {
 	.id = 2,
 	.num_resources = ARRAY_SIZE(msm_uart3_dm_resources),
 	.resource = msm_uart3_dm_resources,
+};
+
+static struct resource msm_uart11_dm_resources[] = {
+	{
+		.start = MSM_UART11DM_PHYS,
+		.end   = MSM_UART11DM_PHYS + PAGE_SIZE - 1,
+		.name  = "uartdm_resource",
+		.flags = IORESOURCE_MEM,
+	},
+	{
+		.start = INT_UART11DM_IRQ,
+		.end   = INT_UART11DM_IRQ,
+		.flags = IORESOURCE_IRQ,
+	},
+	{
+		/* GSBI 11 is UART_GSBI11 */
+		.start = MSM_GSBI11_PHYS,
+		.end   = MSM_GSBI11_PHYS + PAGE_SIZE - 1,
+		.name  = "gsbi_resource",
+		.flags = IORESOURCE_MEM,
+	},
+};
+
+struct platform_device msm_device_uart_dm11 = {
+	.name = "msm_serial_hsl",
+	.id = 3,
+	.num_resources = ARRAY_SIZE(msm_uart11_dm_resources),
+	.resource = msm_uart11_dm_resources,
 };
 
 static struct resource msm_uart12_dm_resources[] = {
