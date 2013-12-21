@@ -3828,7 +3828,7 @@ CIFSSMBGetCIFSACL(const int xid, struct cifs_tcon *tcon, __u16 fid,
 {
 	int rc = 0;
 	int buf_type = 0;
-	QUERY_SEC_DESC_REQ *pSMB;
+	QUERY_SEC_DESC_REQ *pSMB = NULL;
 	struct kvec iov[1];
 
 	cFYI(1, "GetCifsACL");
