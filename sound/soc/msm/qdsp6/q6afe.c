@@ -698,6 +698,9 @@ int afe_open(u16 port_id, union afe_port_config *afe_config, int rate)
 	struct afe_audioif_config_command config;
 	int ret = 0;
 
+	memset(&start, 0, sizeof(start));
+	memset(&config, 0, sizeof(config));
+
 	if (!afe_config) {
 		pr_err("%s: Error, no configuration data\n", __func__);
 		ret = -EINVAL;

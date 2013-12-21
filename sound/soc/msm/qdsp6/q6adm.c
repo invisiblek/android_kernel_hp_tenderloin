@@ -662,6 +662,8 @@ int adm_open(int port_id, int path, int rate, int channel_mode, int topology)
 	int ret = 0;
 	int index;
 
+	memset(&open, 0, sizeof(open));
+
 	pr_debug("%s: port %d path:%d rate:%d mode:%d\n", __func__,
 				port_id, path, rate, channel_mode);
 
@@ -1083,6 +1085,8 @@ int adm_matrix_map(int session_id, int path, int num_copps,
 	/* Assumes port_ids have already been validated during adm_open */
 	int index = afe_get_port_index(copp_id);
 	int copp_cnt;
+
+	memset(&route, 0, sizeof(route));
 
 	if (index < 0 || index >= AFE_MAX_PORTS) {
 		pr_err("%s: invalid port idx %d token %d\n",
