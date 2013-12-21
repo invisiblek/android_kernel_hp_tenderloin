@@ -323,8 +323,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	union afe_port_config afe_config;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
 
-	pm_qos_update_request(&drv->rx_pm_qos_req,
-			      msm_cpuidle_get_deep_idle_latency());
+	memset(&afe_config, 0, sizeof(afe_config));
 
 	if (drv->snddev_vreg) {
 		if (!strcmp(icodec->data->name, "headset_stereo_rx"))

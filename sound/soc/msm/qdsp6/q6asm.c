@@ -2496,6 +2496,8 @@ int q6asm_media_format_block_pcm(struct audio_client *ac,
 	struct asm_stream_media_format_update fmt;
 	int rc = 0;
 
+	memset(&fmt, 0, sizeof(fmt));
+
 	pr_debug("%s:session[%d]rate[%d]ch[%d]\n", __func__, ac->session, rate,
 		channels);
 
@@ -3029,6 +3031,8 @@ int q6asm_memory_map(struct audio_client *ac, uint32_t buf_add, int dir,
 	struct asm_stream_cmd_memory_map mem_map;
 	int rc = 0;
 
+	memset(&mem_map, 0, sizeof(mem_map));
+
 	if (!ac || ac->apr == NULL || this_mmap.apr == NULL) {
 		pr_err("APR handle NULL\n");
 		return -EINVAL;
@@ -3081,6 +3085,8 @@ int q6asm_memory_unmap(struct audio_client *ac, uint32_t buf_add, int dir)
 {
 	struct asm_stream_cmd_memory_unmap mem_unmap;
 	int rc = 0;
+
+	memset(&mem_unmap, 0, sizeof(mem_unmap));
 
 	if (!ac || ac->apr == NULL || this_mmap.apr == NULL) {
 		pr_err("APR handle NULL\n");
@@ -3959,6 +3965,8 @@ int q6asm_write_nolock(struct audio_client *ac, uint32_t len, uint32_t msw_ts,
 	struct audio_port_data *port;
 	struct audio_buffer    *ab;
 	int dsp_buf = 0;
+
+	memset(&write, 0, sizeof(write));
 
 	if (!ac || ac->apr == NULL) {
 		pr_err("APR handle NULL\n");
