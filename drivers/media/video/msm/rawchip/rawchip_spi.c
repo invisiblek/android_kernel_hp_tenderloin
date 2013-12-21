@@ -171,9 +171,7 @@ static void yushan_spi_complete(void *arg)
 static int yushan_spi_transaction(struct spi_message *msg)
 {
 	DECLARE_COMPLETION_ONSTACK(yushan_done);
-	
-	static int status = 0;
-	
+	int status;
 
 	msg->complete = yushan_spi_complete;
 	msg->context = &yushan_done;

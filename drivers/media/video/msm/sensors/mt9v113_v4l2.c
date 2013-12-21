@@ -2197,6 +2197,10 @@ int32_t mt9v113_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *arg
 	switch (cfg_data.cfgtype) {
 	case CFG_GET_OUTPUT_INFO:
 		rc = mt9v113_get_output_info(&cfg_data.cfg.output_info);
+		if (copy_to_user((void *)argp,
+			&cfg_data,
+			sizeof(struct sensor_cfg_data)))
+			rc = -EFAULT;
 		break;
 	case CFG_SET_MODE:
 		rc = mt9v113_set_sensor_mode(s_ctrl, cfg_data.mode);

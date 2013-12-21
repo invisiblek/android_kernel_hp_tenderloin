@@ -492,6 +492,20 @@ static struct resource resources_qup_i2c_gsbi4[] = {
 		.end	= GSBI4_QUP_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+#ifdef CONFIG_MACH_M7_UL
+	{
+		.name	= "i2c_clk",
+		.start	= 13,
+		.end	= 13,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "i2c_sda",
+		.start	= 12,
+		.end	= 12,
+		.flags	= IORESOURCE_IO,
+	},
+#else
 	{
 		.name	= "i2c_clk",
 		.start	= 11,
@@ -504,6 +518,7 @@ static struct resource resources_qup_i2c_gsbi4[] = {
 		.end	= 10,
 		.flags	= IORESOURCE_IO,
 	},
+#endif
 };
 
 struct platform_device apq8064_device_qup_i2c_gsbi4 = {
@@ -3356,6 +3371,26 @@ struct platform_device coresight_etm3_device = {
 };
 
 struct msm_iommu_domain_name apq8064_iommu_ctx_names[] = {
+	/* Camera */
+	{
+		.name = "vpe_src",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vpe_dst",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vfe_imgwr",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vfe_misc",
+		.domain = CAMERA_DOMAIN,
+	},
 	/* Camera */
 	{
 		.name = "ijpeg_src",

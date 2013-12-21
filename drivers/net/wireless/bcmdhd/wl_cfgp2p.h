@@ -21,7 +21,7 @@
  * software in any way with any other Broadcom software provided under a license
  * other than the GPL, without Broadcom's express prior written consent.
  *
- * $Id: wl_cfgp2p.h 415640 2013-07-31 02:43:28Z $
+ * $Id: wl_cfgp2p.h 401719 2013-05-13 12:47:24Z $
  */
 #ifndef _wl_cfgp2p_h_
 #define _wl_cfgp2p_h_
@@ -42,17 +42,6 @@ typedef enum {
 	P2PAPI_BSSCFG_CONNECTION, /* maps to driver's P2P connection bsscfg */
 	P2PAPI_BSSCFG_MAX
 } p2p_bsscfg_type_t;
-
-typedef enum {
-	P2P_SCAN_PURPOSE_MIN,
-	P2P_SCAN_SOCIAL_CHANNEL, /* scan for social channel */
-	P2P_SCAN_AFX_PEER_NORMAL, /* scan for action frame search */
-	P2P_SCAN_AFX_PEER_REDUCED, /* scan for action frame search with short time */
-	P2P_SCAN_DURING_CONNECTED, /* scan during connected status */
-	P2P_SCAN_CONNECT_TRY, /* scan for connecting */
-	P2P_SCAN_NORMAL, /* scan during not-connected status */
-	P2P_SCAN_PURPOSE_MAX
-} p2p_scan_purpose_t;
 
 /* vendor ies max buffer length for probe response or beacon */
 #define VNDR_IES_MAX_BUF_LEN	1400
@@ -188,25 +177,20 @@ enum wl_cfgp2p_status {
 		add_timer(timer); \
 	} while (0);
 
-#if !defined(WL_CFG80211_P2P_DEV_IF) && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
+#if !0 && (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0))
 #define WL_CFG80211_P2P_DEV_IF
-#endif /* !WL_CFG80211_P2P_DEV_IF && (LINUX_VERSION >= VERSION(3, 8, 0)) */
+#endif 
 
-#if defined(WL_ENABLE_P2P_IF) && (defined(WL_CFG80211_P2P_DEV_IF) || \
-	(LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)))
+#if defined(WL_ENABLE_P2P_IF) && (0 || (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 8, 0)))
 #error Disable 'WL_ENABLE_P2P_IF', if 'WL_CFG80211_P2P_DEV_IF' is enabled \
 	or kernel version is 3.8.0 or above
-#endif /* WL_ENABLE_P2P_IF && (WL_CFG80211_P2P_DEV_IF || (LINUX_VERSION >= VERSION(3, 8, 0))) */
+#endif 
 
-#if !defined(WLP2P) && (defined(WL_ENABLE_P2P_IF) || defined(WL_CFG80211_P2P_DEV_IF))
+#if !defined(WLP2P) && defined(WL_ENABLE_P2P_IF)
 #error WLP2P not defined
 #endif 
 
-#if defined(WL_CFG80211_P2P_DEV_IF)
-#define bcm_struct_cfgdev	struct wireless_dev
-#else
 #define bcm_struct_cfgdev	struct net_device
-#endif /* WL_CFG80211_P2P_DEV_IF */
 
 extern void
 wl_cfgp2p_listen_expired(unsigned long data);
@@ -216,8 +200,6 @@ extern bool
 wl_cfgp2p_is_p2p_action(void *frame, u32 frame_len);
 extern bool
 wl_cfgp2p_is_gas_action(void *frame, u32 frame_len);
-extern bool
-wl_cfgp2p_find_gas_subtype(u8 subtype, u8* data, u32 len);
 extern void
 wl_cfgp2p_print_actframe(bool tx, void *frame, u32 frame_len, u32 channel);
 extern s32
@@ -251,8 +233,7 @@ wl_cfgp2p_disable_discovery(struct wl_priv *wl);
 extern s32
 wl_cfgp2p_escan(struct wl_priv *wl, struct net_device *dev, u16 active, u32 num_chans,
 	u16 *channels,
-	s32 search_state, u16 action, u32 bssidx, struct ether_addr *tx_dst_addr,
-	p2p_scan_purpose_t p2p_scan_purpose);
+	s32 search_state, u16 action, u32 bssidx, struct ether_addr *tx_dst_addr);
 
 extern s32
 wl_cfgp2p_act_frm_search(struct wl_priv *wl, struct net_device *ndev,
@@ -345,20 +326,6 @@ wl_cfgp2p_unregister_ndev(struct wl_priv *wl);
 
 extern bool
 wl_cfgp2p_is_ifops(const struct net_device_ops *if_ops);
-
-#if defined(WL_CFG80211_P2P_DEV_IF)
-extern struct wireless_dev *
-wl_cfgp2p_add_p2p_disc_if(void);
-
-extern int
-wl_cfgp2p_start_p2p_device(struct wiphy *wiphy, struct wireless_dev *wdev);
-
-extern void
-wl_cfgp2p_stop_p2p_device(struct wiphy *wiphy, struct wireless_dev *wdev);
-
-extern int
-wl_cfgp2p_del_p2p_disc_if(struct wireless_dev *wdev);
-#endif /* WL_CFG80211_P2P_DEV_IF */
 
 /* WiFi Direct */
 #define SOCIAL_CHAN_1 1

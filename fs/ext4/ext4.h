@@ -1265,6 +1265,11 @@ struct ext4_sb_info {
 
 	/* record the last minlen when FITRIM is called. */
 	atomic_t s_last_trim_minblks;
+
+#ifdef CONFIG_EXT4_E2FSCK_RECOVER
+	struct work_struct reboot_work;
+	struct workqueue_struct *recover_wq;
+#endif
 };
 
 static inline struct ext4_sb_info *EXT4_SB(struct super_block *sb)
@@ -2298,6 +2303,10 @@ extern int ext4_fiemap(struct inode *inode, struct fiemap_extent_info *fieinfo,
 extern int ext4_move_extents(struct file *o_filp, struct file *d_filp,
 			     __u64 start_orig, __u64 start_donor,
 			     __u64 len, __u64 *moved_len);
+
+#ifdef CONFIG_EXT4_E2FSCK_RECOVER
+extern void ext4_e2fsck(struct super_block *sb);
+#endif
 
 /* page-io.c */
 extern int __init ext4_init_pageio(void);

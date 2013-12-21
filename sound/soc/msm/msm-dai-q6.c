@@ -207,8 +207,8 @@ static int msm_dai_q6_mi2s_hw_params(struct snd_pcm_substream *substream,
 		goto error_invalid_data;
 	}
 	dai_data->rate = params_rate(params);
-	dai_data->port_config.mi2s.bitwidth = 16;
-	dai_data->bitwidth = 16;
+	dai_data->port_config.mi2s.bitwidth = (params_format(params)  == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16);
+	dai_data->bitwidth = (params_format(params)  == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16);
 	if (!mi2s_dai_data->rate_constraint.list) {
 		mi2s_dai_data->rate_constraint.list = &dai_data->rate;
 		mi2s_dai_data->bitwidth_constraint.list = &dai_data->bitwidth;
@@ -483,7 +483,7 @@ static int msm_dai_q6_cdc_hw_params(struct snd_pcm_hw_params *params,
 	dai_data->channels, dai_data->rate);
 
 	/* Q6 only supports 16 as now */
-	dai_data->port_config.mi2s.bitwidth = 16;
+	dai_data->port_config.mi2s.bitwidth = (params_format(params)  == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16);
 	dai_data->port_config.mi2s.line = 1;
 	return 0;
 }
@@ -516,7 +516,7 @@ static int msm_dai_q6_slim_bus_hw_params(struct snd_pcm_hw_params *params,
 	dai_data->rate = params_rate(params);
 
 	/* Q6 only supports 16 as now */
-	dai_data->port_config.slim_sch.bit_width = 16;
+	dai_data->port_config.slim_sch.bit_width = (params_format(params)  == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16);
 	dai_data->port_config.slim_sch.data_format = 0;
 	dai_data->port_config.slim_sch.num_channels = dai_data->channels;
 	dai_data->port_config.slim_sch.reserved = 0;
@@ -648,7 +648,7 @@ static int msm_dai_q6_afe_rtproxy_hw_params(struct snd_pcm_hw_params *params,
 	pr_debug("channel %d entered,dai_id: %d,rate: %d\n",
 	dai_data->port_config.rtproxy.num_ch, dai->id, dai_data->rate);
 
-	dai_data->port_config.rtproxy.bitwidth = 16; /* Q6 only supports 16 */
+	dai_data->port_config.rtproxy.bitwidth = (params_format(params)  == SNDRV_PCM_FORMAT_S24_LE ? 24 : 16);
 	dai_data->port_config.rtproxy.interleaved = 1;
 	dai_data->port_config.rtproxy.frame_sz = params_period_bytes(params);
 	dai_data->port_config.rtproxy.jitter =

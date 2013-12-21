@@ -561,6 +561,7 @@ struct adm_copp_open_command {
 #define ADM_CMD_COPP_CLOSE                               0x00010305
 
 #define ADM_CMD_MULTI_CHANNEL_COPP_OPEN                  0x00010310
+#define ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V2               0x00010319
 #define ADM_CMD_MULTI_CHANNEL_COPP_OPEN_V3               0x00010333
 struct adm_multi_ch_copp_open_command {
 	struct apr_hdr hdr;
@@ -749,6 +750,7 @@ struct adm_copp_open_respond {
 } __attribute__ ((packed));
 
 #define ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN               0x00010311
+#define ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN_V2            0x0001031A
 #define ADM_CMDRSP_MULTI_CHANNEL_COPP_OPEN_V3            0x00010334
 
 
@@ -1188,6 +1190,7 @@ struct asm_stream_cmd_open_read_compressed {
 } __packed;
 
 #define ASM_STREAM_CMD_OPEN_WRITE                        0x00010BCA
+#define ASM_STREAM_CMD_OPEN_WRITE_V2                     0x00010D8F
 #define ASM_STREAM_CMD_OPEN_WRITE_V2_1                   0x00010DB1
 struct asm_stream_cmd_open_write {
 	struct apr_hdr hdr;

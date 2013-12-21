@@ -355,7 +355,7 @@ static struct mmc_platform_data m7_wifi_data = {
 	             MMC_CAP_UHS_SDR50 | MMC_CAP_UHS_DDR50 |
 	             MMC_CAP_UHS_SDR104 | MMC_CAP_MAX_CURRENT_800),
 	.msm_bus_voting_data = &wifi_sps_to_ddr_bus_voting_data,
-	.nonremovable   = 0,
+	.nonremovable   = 1,
 };
 
 
