@@ -280,6 +280,7 @@ typedef unsigned int uint32_t;
 #define TIME_10MS				2
 #define TIME_20MS				3
 #define TIME_50MS				4
+#define TIME_100MS				5
 
 
 #define YUSHAN_FRAME_FORMAT_NORMAL_MODE		0	

@@ -68,7 +68,7 @@ bool_t	Yushan_Init_LDO(bool_t	bUseExternalLDO)
 
 		
 		DEBUGLOG("[CAM] %s: Waiting for EVENT_LDO_STABLE Interrupt\n", __func__);
-		fStatus &= Yushan_WaitForInterruptEvent(EVENT_LDO_STABLE, TIME_20MS);
+		fStatus &= Yushan_WaitForInterruptEvent(EVENT_LDO_STABLE, TIME_100MS);
 
 		if (!fStatus) {
 			ERRORLOG("[CAM] %s:LDO Interrupt Failed\n", __func__);
@@ -290,7 +290,7 @@ bool_t Yushan_Init_Clocks(Yushan_Init_Struct_t *sInitStruct, Yushan_SystemStatus
 	}
 
 	DEBUGLOG("[CAM] %s:Waiting for YUSHAN_PLL_CTRL_MAIN interrupt Starts here\n", __func__);
-	fStatus &= Yushan_WaitForInterruptEvent(EVENT_PLL_STABLE, TIME_20MS);
+	fStatus &= Yushan_WaitForInterruptEvent(EVENT_PLL_STABLE, TIME_100MS);
 
 	DEBUGLOG("[CAM] %s:YUSHAN_PLL_CTRL_MAIN interrupt received\n", __func__);
 
@@ -417,7 +417,7 @@ bool_t	Yushan_Init_Dxo(Yushan_Init_Dxo_Struct_t *sDxoStruct, bool_t fBypassDxoUp
 
 	DEBUGLOG("[CAM] %s:Waiting for EVENT_DOP7_BOOT interrupt Starts here\n", __func__);
 	
-	fStatus &= Yushan_WaitForInterruptEvent2 (EVENT_DOP7_BOOT, TIME_10MS);
+	fStatus &= Yushan_WaitForInterruptEvent2 (EVENT_DOP7_BOOT, TIME_100MS);
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s: EVENT_DOP7_BOOT not received. Exiting ...\n", __func__);
 		return fStatus;
@@ -443,7 +443,7 @@ bool_t	Yushan_Init_Dxo(Yushan_Init_Dxo_Struct_t *sDxoStruct, bool_t fBypassDxoUp
 
 	DEBUGLOG("[CAM] %s:Waiting for EVENT_DPP_BOOT interrupt Starts here\n", __func__);
 	
-	fStatus &= Yushan_WaitForInterruptEvent (EVENT_DPP_BOOT, TIME_10MS);
+	fStatus &= Yushan_WaitForInterruptEvent (EVENT_DPP_BOOT, TIME_100MS);
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s: EVENT_DPP_BOOT not received. Exiting ...\n", __func__);
 		return fStatus;
@@ -473,7 +473,7 @@ bool_t	Yushan_Init_Dxo(Yushan_Init_Dxo_Struct_t *sDxoStruct, bool_t fBypassDxoUp
 
 	DEBUGLOG("[CAM] %s:Waiting for EVENT_PDP_BOOT interrupt Starts here\n", __func__);
 	
-	fStatus &= Yushan_WaitForInterruptEvent (EVENT_PDP_BOOT, TIME_10MS);
+	fStatus &= Yushan_WaitForInterruptEvent (EVENT_PDP_BOOT, TIME_100MS);
 
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s: EVENT_PDP_BOOT not received. Exiting ...\n", __func__);
@@ -1049,21 +1049,21 @@ bool_t Yushan_Update_Commit(uint8_t  bPdpMode, uint8_t  bDppMode, uint8_t  bDopM
 	DEBUGLOG("[CAM] %s:Waiting for EOF_EXECCMD interrupt Starts here\n", __func__);
 	
 	
-	fStatus = Yushan_WaitForInterruptEvent(EVENT_PDP_EOF_EXECCMD, TIME_10MS);
+	fStatus = Yushan_WaitForInterruptEvent(EVENT_PDP_EOF_EXECCMD, TIME_100MS);
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s:Failed in EVENT_PDP_EOF_EXECCMD interrupt\n", __func__);
 		return FAILURE;
 	}
 	DEBUGLOG("[CAM] %s:DXO PDP commited now\n", __func__);
 
-	fStatus = Yushan_WaitForInterruptEvent2(EVENT_DOP7_EOF_EXECCMD, TIME_10MS);
+	fStatus = Yushan_WaitForInterruptEvent2(EVENT_DOP7_EOF_EXECCMD, TIME_100MS);
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s:Failed in EVENT_DOP7_EOF_EXECCMD interrupt\n", __func__);
 		return FAILURE;
 	}
 	DEBUGLOG("[CAM] %s:DXO DOP7 commited now\n", __func__);
 
-	fStatus = Yushan_WaitForInterruptEvent(EVENT_DPP_EOF_EXECCMD, TIME_10MS);
+	fStatus = Yushan_WaitForInterruptEvent(EVENT_DPP_EOF_EXECCMD, TIME_100MS);
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s:Failed in EVENT_DPP_EOF_EXECCMD interrupt\n", __func__);
 		return FAILURE;
@@ -1713,7 +1713,9 @@ bool_t	Yushan_Context_Config_Update(Yushan_New_Context_Config_t	*sYushanNewConte
 
 	
 	uint8_t		bVfStillIndex, bVFIndex, bStillIndex, bVFMask=0;
-	uint8_t		bDataType, bCurrentDataType=0, bActiveDatatype=1, bRawFormat=0, bWCAlreadyPresent = 0;
+	
+	uint8_t		bDataType=0, bCurrentDataType=0, bActiveDatatype=1, bRawFormat=0, bWCAlreadyPresent = 0;
+	
 	uint8_t		bPixClkDiv=0, bDxoClkDiv=0, bCount=0;
 	uint16_t	uwNewHSize=0, uwLecci=0;
 	uint32_t	udwSpiData = 0;
@@ -2013,7 +2015,7 @@ bool_t Yushan_Exit_Standby_Mode(Yushan_Init_Struct_t * sInitStruct)
 	bSpiData &= 0xFE;	
 	SPI_Write(YUSHAN_PLL_CTRL_MAIN, 1, (uint8_t*)(&bSpiData));
 
-	fStatus &= Yushan_WaitForInterruptEvent(EVENT_PLL_STABLE, TIME_20MS);
+	fStatus &= Yushan_WaitForInterruptEvent(EVENT_PLL_STABLE, TIME_100MS);
 	
 	if (!fStatus) {
 		ERRORLOG("[CAM] %s: Error: EVENT_PLL_STABLE not received. Exiting...\n", __func__);

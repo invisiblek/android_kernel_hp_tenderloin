@@ -113,7 +113,8 @@ extern struct yushan_reg_clib_t yushan_regs_clib_imx175;
 extern struct yushan_reg_clib_t yushan_regs_clib_ov8838;
 extern struct yushan_reg_clib_t yushan_regs_clib_ar0260;
 extern struct yushan_reg_clib_t yushan_regs_clib_ov2722;
-
+extern struct yushan_reg_clib_t yushan_regs_clib_ov5693;
+extern struct yushan_reg_clib_t yushan_regs_clib_s5k6a2ya;
 
 struct rawchip_sensor_init_data {
 	const char *sensor_name;
@@ -196,7 +197,7 @@ void Yushan_dump_register(void);
 void Yushan_dump_all_register(void);
 void Yushan_dump_Dxo(void);
 
-bool_t	Yushan_ContextUpdate_Wrapper(Yushan_New_Context_Config_t	sYushanNewContextConfig, Yushan_ImageChar_t	sImageNewChar_context);
+int Yushan_ContextUpdate_Wrapper(Yushan_New_Context_Config_t	sYushanNewContextConfig, Yushan_ImageChar_t	sImageNewChar_context);
 int Yushan_Get_Version(rawchip_dxo_version* dxo_version);
 int Yushan_Set_AF_Strategy(uint8_t afStrategy);
 bool_t Yushan_Dxo_Dop_Af_Run(Yushan_AF_ROI_t	*sYushanAfRoi, uint32_t *pAfStatsGreen, uint8_t	bRoiActiveNumber);

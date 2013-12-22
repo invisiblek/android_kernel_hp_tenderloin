@@ -55,6 +55,10 @@ struct rawchip_ctrl {
 	int rawchip_init;
 	atomic_t check_intr0;
 	atomic_t check_intr1;
+
+	int error_interrupt_times[TOTAL_INTERRUPT_COUNT];
+	int total_error_interrupt_times;
+
 };
 
 struct rawchip_sensor_data {

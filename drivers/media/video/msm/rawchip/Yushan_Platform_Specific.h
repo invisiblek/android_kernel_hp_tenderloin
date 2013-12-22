@@ -21,10 +21,9 @@
 #define RAWCHIP_INT_TYPE_DPP_EOF_EXECCMD (0x01<<3)
 #define RAWCHIP_INT_TYPE_DOP_EOF_EXECCMD (0x01<<4)
 
-
 bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut);
 bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut);
-uint8_t Yushan_parse_interrupt(int intr_pad);
+uint8_t Yushan_parse_interrupt(int intr_pad, int error_times[TOTAL_INTERRUPT_COUNT]);
 void Yushan_Interrupt_Manager_Pad0(void);
 void Yushan_Interrupt_Manager_Pad1(void);
 

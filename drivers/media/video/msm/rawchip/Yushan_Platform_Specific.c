@@ -28,14 +28,14 @@ extern int rawchip_intr0, rawchip_intr1;
 extern atomic_t interrupt, interrupt2;
 extern struct yushan_int_t yushan_int;
 
-
 bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut)
 {
 
 	int					 counterLimit;
 	
 	bool_t				fStatus = 0; 
-	
+	int rc = 0;
+	int i;
 
 	switch ( udwTimeOut )
 	{
@@ -50,6 +50,9 @@ bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut)
 			break;
 		case TIME_50MS :
 			counterLimit=1000 ;
+			break;
+		case TIME_100MS :
+			counterLimit=2000 ;
 			break;
 		default :
 			counterLimit=50 ;
@@ -66,13 +69,14 @@ bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut)
 		return SUCCESS;
 	}
 
+	for (i = 0; i < 10; i++) {
 	CDBG("[CAM] %s begin interrupt wait\n",__func__);
 	
 	
-	wait_event_timeout(yushan_int.yushan_wait,
+	rc = wait_event_timeout(yushan_int.yushan_wait,
 	atomic_read(&interrupt),
 		counterLimit/200);
-	CDBG("[CAM] %s end interrupt: %d; interrupt id:%d wait\n",__func__, atomic_read(&interrupt), bInterruptId);
+	CDBG("[CAM] %s end interrupt: %d; interrupt id:%d wait rc=%d\n",__func__, atomic_read(&interrupt), bInterruptId, rc);
 	if(atomic_read(&interrupt))
 	{
 		
@@ -80,15 +84,18 @@ bool_t Yushan_WaitForInterruptEvent (uint8_t bInterruptId ,uint32_t udwTimeOut)
 		Yushan_Interrupt_Manager_Pad0();
 		fStatus = Yushan_CheckForInterruptIDInList(bInterruptId, udwProtoInterruptList_Pad0);		
 		CDBG("[CAM] %s Yushan_CheckForInterruptIDInList:%d \n",__func__, fStatus);
+		if (fStatus) {
 		
 		Yushan_AddnRemoveIDInList(bInterruptId, udwProtoInterruptList_Pad0, DEL_INTR_FROM_LIST); 
 		
 		CDBG("[CAM] %s Del Yushan_CheckForInterruptIDInList:%d \n",__func__, fStatus);
-	}
-	if ((fStatus))
 		return SUCCESS;
-	else
-		return FAILURE;
+		}
+	}
+	mdelay(1);
+	pr_info("retry getting interrupt\n");
+	}
+	return FAILURE;
 }
 
 bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut)
@@ -97,7 +104,8 @@ bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut)
 	int					 counterLimit;
 	
 	bool_t				fStatus = 0; 
-	
+	int rc = 0;
+	int i;
 
 	switch ( udwTimeOut )
 	{
@@ -112,6 +120,9 @@ bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut)
 			break;
 		case TIME_50MS :
 			counterLimit=1000 ;
+			break;
+		case TIME_100MS :
+			counterLimit=2000 ;
 			break;
 		default :
 			counterLimit=50 ;
@@ -128,13 +139,14 @@ bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut)
 		return SUCCESS;
 	}
 
+	for (i = 0; i < 10; i++) {
 	CDBG("[CAM] %s begin interrupt wait\n",__func__);
 	
 	
-	wait_event_timeout(yushan_int.yushan_wait,
+	rc = wait_event_timeout(yushan_int.yushan_wait,
 	atomic_read(&interrupt2),
 		counterLimit/200);
-	CDBG("[CAM] %s end interrupt: %d; interrupt id:%d wait\n",__func__, atomic_read(&interrupt2), bInterruptId);
+	CDBG("[CAM] %s end interrupt: %d; interrupt id:%d wait  rc=%d\n",__func__, atomic_read(&interrupt2), bInterruptId, rc);
 	if(atomic_read(&interrupt2))
 	{
 		
@@ -142,20 +154,23 @@ bool_t Yushan_WaitForInterruptEvent2 (uint8_t bInterruptId ,uint32_t udwTimeOut)
 		Yushan_Interrupt_Manager_Pad1();
 		fStatus = Yushan_CheckForInterruptIDInList(bInterruptId, udwProtoInterruptList_Pad1);		
 		CDBG("[CAM] %s Yushan_CheckForInterruptIDInList:%d \n",__func__, fStatus);
+		if (fStatus) {
 		
 		Yushan_AddnRemoveIDInList(bInterruptId, udwProtoInterruptList_Pad1, DEL_INTR_FROM_LIST); 
 		
 		CDBG("[CAM] %s Del Yushan_CheckForInterruptIDInList:%d \n",__func__, fStatus);
-	}
-	if ((fStatus))
 		return SUCCESS;
-	else
-		return FAILURE;
+		}
+	}
+	mdelay(1);
+	pr_info("retry getting interrupt\n");
+	}
+	return FAILURE;
 }
 
 
 
-uint8_t Yushan_parse_interrupt(int intr_pad)
+uint8_t Yushan_parse_interrupt(int intr_pad, int error_times[TOTAL_INTERRUPT_COUNT])
 {
 
 	uint8_t		bCurrentInterruptID = 0;
@@ -202,22 +217,30 @@ uint8_t Yushan_parse_interrupt(int intr_pad)
 				break;
 
 			case EVENT_CSI2RX_ECC_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2RX_ECC_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_CSI2RX_CHKSUM_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2RX_CHKSUM_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_CSI2RX_SYNCPULSE_MISSED :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2RX_SYNCPULSE_MISSED\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_DXOPDP_NEWFRAME_ERR :
 				SPI_Read(DXO_PDP_BASE_ADDR+DxOPDP_error_code_7_0, 1, &bSpiData);
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_DXOPDP_NEWFRAME_ERR, error code =%d\n", __func__, bSpiData);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
@@ -228,6 +251,8 @@ uint8_t Yushan_parse_interrupt(int intr_pad)
 				SPI_Write(YUSHAN_HOST_IF_SPI_BASE_ADDRESS, 4, (uint8_t *)(&udwSpiBaseIndex));
 
 				SPI_Read(DXO_DPP_BASE_ADDR+DxODPP_error_code_7_0-0x8000, 1, &bSpiData);
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_DXODPP_NEWFRAME_ERR, error code =%d\n", __func__, bSpiData);
 
 				udwSpiBaseIndex = 0x08000;
@@ -238,239 +263,331 @@ uint8_t Yushan_parse_interrupt(int intr_pad)
 
 			case EVENT_DXODOP7_NEWFRAME_ERR :
 				SPI_Read(DXO_DOP_BASE_ADDR+DxODOP_error_code_7_0, 1, &bSpiData);
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_DXODOP7_NEWFRAME_ERR, error code =%d\n", __func__, bSpiData);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_CSI2TX_SP_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2TX_SP_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_CSI2TX_LP_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2TX_LP_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_CSI2TX_DATAINDEX_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_CSI2TX_DATAINDEX_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_SOFT_DL1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_SOFT_DL1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_HARD_DL1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_HARD_DL1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_EOT_DL1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_EOT_DL1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_ESC_DL1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_ESC_DL1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_CTRL_DL1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_CTRL_DL1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_SOFT_DL2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_SOFT_DL2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_HARD_DL2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_HARD_DL2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_EOT_DL2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_EOT_DL2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_ESC_DL2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_ESC_DL2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_CTRL_DL2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_CTRL_DL2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_SOFT_DL3 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_SOFT_DL3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_HARD_DL3 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_HARD_DL3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_EOT_DL3 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_EOT_DL3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_ESC_DL3 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_ESC_DL3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_CTRL_DL3:
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_CTRL_DL3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_SOFT_DL4 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_SOFT_DL4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_SOT_HARD_DL4 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_SOT_HARD_DL4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_EOT_DL4:
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_EOT_DL4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_ESC_DL4:
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_ESC_DL4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_PHY_ERR_CTRL_DL4 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_PHY_ERR_CTRL_DL4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TXPHY_CTRL_ERR_D1 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TXPHY_CTRL_ERR_D1\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TXPHY_CTRL_ERR_D2 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TXPHY_CTRL_ERR_D2\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TXPHY_CTRL_ERR_D3 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TXPHY_CTRL_ERR_D3\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TXPHY_CTRL_ERR_D4 :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TXPHY_CTRL_ERR_D4\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_UNMATCHED_IMAGE_SIZE_ERROR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_UNMATCHED_IMAGE_SIZE_ERROR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case PRE_DXO_WRAPPER_PROTOCOL_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]PRE_DXO_WRAPPER_PROTOCOL_ERR\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case PRE_DXO_WRAPPER_FIFO_OVERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]PRE_DXO_WRAPPER_FIFO_OVERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_BAD_FRAME_DETECTION :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_BAD_FRAME_DETECTION\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TX_DATA_FIFO_OVERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TX_DATA_FIFO_OVERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TX_INDEX_FIFO_OVERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TX_INDEX_FIFO_OVERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_0_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_0_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_1_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_1_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_2_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_2_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_3_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_3_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_4_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_4_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_5_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_5_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_6_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_6_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_RX_CHAR_COLOR_BAR_7_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_RX_CHAR_COLOR_BAR_7_ERR\n", __func__);
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_POST_DXO_WRAPPER_PROTOCOL_ERR :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_POST_DXO_WRAPPER_PROTOCOL_ERR\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_POST_DXO_WRAPPER_FIFO_OVERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_POST_DXO_WRAPPER_FIFO_OVERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TX_DATA_UNDERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TX_DATA_UNDERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
 				break;
 
 			case EVENT_TX_INDEX_UNDERFLOW :
+				error_times[bCurrentInterruptID]++;
+				if (error_times[bCurrentInterruptID] <= 10 || error_times[bCurrentInterruptID] % 1000 == 0)
 				pr_err("[CAM] %s:[ERR]EVENT_TX_INDEX_UNDERFLOW\n", __func__);
 				
 				interrupt_type |= RAWCHIP_INT_TYPE_ERROR;
