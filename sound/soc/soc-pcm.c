@@ -617,7 +617,6 @@ static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 		}
 	}
 
-#ifndef CONFIG_MFD_WM8994
 	if (codec_dai->driver->ops->hw_params) {
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			ret = codec_dai->driver->ops->hw_params(substream,
@@ -639,7 +638,6 @@ static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 			}
 		}
 	}
-#endif
 
 	if (cpu_dai->driver->ops->hw_params) {
 		ret = cpu_dai->driver->ops->hw_params(substream, params, cpu_dai);
