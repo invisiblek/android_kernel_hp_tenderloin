@@ -1312,6 +1312,21 @@ static int msm_soc_dai_init(
 	if (ret < 0)
 		pr_err("%s: ALSA MSM Mixer Fail\n", __func__);
 
+
+	// permanently disable pin
+		snd_soc_dapm_nc_pin(dapm, "SPKOUTRN");
+		snd_soc_dapm_nc_pin(dapm, "SPKOUTRP");
+		snd_soc_dapm_nc_pin(dapm, "SPKOUTLN");
+		snd_soc_dapm_nc_pin(dapm, "SPKOUTLP");
+		snd_soc_dapm_nc_pin(dapm, "HPOUT2P");
+		snd_soc_dapm_nc_pin(dapm, "HPOUT2N");
+		snd_soc_dapm_nc_pin(dapm, "IN2RP:VXRP");
+		snd_soc_dapm_nc_pin(dapm, "IN2RN");
+		snd_soc_dapm_nc_pin(dapm, "IN2LN");
+		snd_soc_dapm_nc_pin(dapm, "IN1RN");
+		snd_soc_dapm_nc_pin(dapm, "IN1RP");
+		snd_soc_dapm_nc_pin(dapm, "IN1LN");
+
 	return ret;
 }
 

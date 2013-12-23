@@ -4145,19 +4145,6 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 
 		wm8958_dsp2_init(codec);
 
-		// permanently disable pin
-			snd_soc_dapm_nc_pin(&codec->dapm, "SPKOUTRN");
-			snd_soc_dapm_nc_pin(&codec->dapm, "SPKOUTRP");
-			snd_soc_dapm_nc_pin(&codec->dapm, "SPKOUTLN");
-			snd_soc_dapm_nc_pin(&codec->dapm, "SPKOUTLP");
-			snd_soc_dapm_nc_pin(&codec->dapm, "HPOUT2P");
-			snd_soc_dapm_nc_pin(&codec->dapm, "HPOUT2N");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN2RP:VXRP");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN2RN");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN2LN");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN1RN");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN1RP");
-			snd_soc_dapm_nc_pin(&codec->dapm, "IN1LN");
 		break;
 	case WM1811:
 		snd_soc_dapm_add_routes(dapm, wm8994_lateclk_intercon,
