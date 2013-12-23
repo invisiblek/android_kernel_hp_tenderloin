@@ -746,9 +746,9 @@ static int msm_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret = 0;
 	struct snd_card *card = rtd->card->snd_card;
+#ifndef CONFIG_MFD_WM8994
 	struct snd_pcm *pcm = rtd->pcm;
 
-#ifndef CONFIG_MFD_WM8994
 	ret = snd_pcm_new_stream(pcm, SNDRV_PCM_STREAM_PLAYBACK, 2);
 	if (ret)
 		return ret;
