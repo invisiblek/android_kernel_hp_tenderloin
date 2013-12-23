@@ -365,7 +365,7 @@ void tenderloin_probe_wifi(int id, struct mmc_host *mmc)
 	wifi_mmc = mmc;
 
        //TODO: hook up to PM later
-//       board_sdio_wifi_enable(0);
+	board_sdio_wifi_enable(0);
 }
 
 void tenderloin_remove_wifi(int id, struct mmc_host *mmc)
@@ -374,7 +374,7 @@ void tenderloin_remove_wifi(int id, struct mmc_host *mmc)
 	wifi_mmc = NULL;
 
        //TODO: hook up to PM later
-//       board_sdio_wifi_disable(0);
+	board_sdio_wifi_disable(0);
 }
 
 /*
