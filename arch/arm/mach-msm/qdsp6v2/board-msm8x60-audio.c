@@ -722,6 +722,73 @@ static struct platform_device msm_fluid_ispkr_mic_device = {
 	.dev = { .platform_data = &snddev_fluid_ispkr_mic_data },
 };
 
+static struct adie_codec_action_unit phone_rx_8KHz_osr256_actions[] =
+	SPEAKER_PRI_STEREO_48000_OSR_256;
+
+static struct adie_codec_hwsetting_entry phone_rx_settings[] = {
+	{
+		.freq_plan = 8000,
+		.osr = 256,
+		.actions = phone_rx_8KHz_osr256_actions,
+		.action_sz = ARRAY_SIZE(phone_rx_8KHz_osr256_actions),
+	}
+};
+
+static struct adie_codec_dev_profile phone_rx_profile = {
+	.path_type = ADIE_CODEC_RX,
+	.settings = phone_rx_settings,
+	.setting_sz = ARRAY_SIZE(phone_rx_settings),
+};
+
+static struct snddev_icodec_data snddev_phone_rx_data = {
+	.capability = (SNDDEV_CAP_RX | SNDDEV_CAP_VOICE),
+	.name = "phone_rx",
+	.copp_id = PRIMARY_I2S_RX,
+	.profile = &phone_rx_profile,
+	.channel_mode = 1,
+	.default_sample_rate = 48000,
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+};
+
+static struct platform_device msm_phone_rx_device = {
+	.name = "snddev_icodec",
+	.dev = { .platform_data = &snddev_phone_rx_data },
+};
+
+static struct adie_codec_action_unit phone_tx_8KHz_osr256_actions[] =
+	DMIC1_PRI_MONO_OSR_256;
+
+static struct adie_codec_hwsetting_entry phone_tx_settings[] = {
+	{
+		.freq_plan = 8000,
+		.osr = 256,
+		.actions = phone_tx_8KHz_osr256_actions,
+		.action_sz = ARRAY_SIZE(phone_tx_8KHz_osr256_actions),
+	}
+};
+
+static struct adie_codec_dev_profile phone_tx_profile = {
+	.path_type = ADIE_CODEC_TX,
+	.settings = phone_tx_settings,
+	.setting_sz = ARRAY_SIZE(phone_tx_settings),
+};
+
+static struct snddev_icodec_data snddev_phone_tx_data = {
+	.capability = (SNDDEV_CAP_TX | SNDDEV_CAP_VOICE),
+	.name = "phone_tx",
+	.copp_id = PRIMARY_I2S_TX,
+	.profile = &phone_tx_profile,
+	.channel_mode = 1,
+	.default_sample_rate = 48000,
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+};
+
+static struct platform_device msm_phone_tx_device = {
+	.name = "snddev_icodec",
+	.dev = { .platform_data = &snddev_phone_tx_data },
+};
 
 static struct adie_codec_action_unit headset_ab_cpls_48KHz_osr256_actions[] =
 	HEADSET_AB_CPLS_48000_OSR_256;
@@ -2687,8 +2754,8 @@ static struct platform_device *snd_devices_common[] __initdata = {
 static struct platform_device *snd_devices_tenderloin[] __initdata = {
 	&msm_ispkr_stereo_device,
 	&msm_ispkr_mic_device,
-//	&msm_phone_rx_device,
-//	&msm_phone_tx_device,
+	&msm_phone_rx_device,
+	&msm_phone_tx_device,
 	&msm_bt_sco_earpiece_device,
 	&msm_bt_sco_mic_device,
 };
