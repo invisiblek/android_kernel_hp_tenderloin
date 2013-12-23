@@ -821,6 +821,9 @@ unsigned int res_trk_get_ion_flags(void)
 			else if (res_trk_is_cp_enabled())
 				flags |= ION_SECURE;
 		}
+                else {
+                        flags |= ION_FORCE_CONTIGUOUS;
+                     }
 	}
 	return flags;
 }
