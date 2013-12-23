@@ -2491,6 +2491,88 @@ static int wm8994_ldo_power(int enable)
 
 }
 
+static struct regulator *vreg_wm8958;
+static unsigned int msm_wm8958_setup_power(void)
+{
+		static struct regulator *tp_5v0 = NULL;
+		int rc=0;
+
+		pr_err("%s: codec power setup\n", __func__);
+
+		if (!tp_5v0) {
+			tp_5v0 = regulator_get(NULL, "vdd50_boost");
+			if (IS_ERR(tp_5v0)) {
+				pr_err("failed to get regulator 'vdd50_boost' with %ld\n",
+					PTR_ERR(tp_5v0));
+				tp_5v0 = NULL;
+			}
+		}
+
+		if (tp_5v0) {
+			rc = regulator_enable(tp_5v0);
+			if (rc < 0) {
+				pr_err("failed to enable regulator 'vdd50_boost' with %d\n", rc);
+			}
+		}
+
+		vreg_wm8958 = regulator_get(NULL, "8058_s3");
+		if (IS_ERR(vreg_wm8958)) {
+				pr_err("%s: Unable to get 8058_s3\n", __func__);
+				return -ENODEV;
+		}
+
+		if(regulator_set_voltage(vreg_wm8958, 1800000, 1800000))
+		{
+				pr_err("%s: Unable to set regulator voltage:"
+								" votg_8058_s3\n", __func__);
+		}
+		rc = regulator_enable(vreg_wm8958);
+
+		if (rc) {
+				pr_err("%s: Enable regulator 8058_s3 failed\n", __func__);
+
+		}
+		wm8994_ldo_power(1);
+		mdelay(30);
+		return rc;
+}
+
+static void msm_wm8958_shutdown_power(void)
+{
+#if 1
+		static struct regulator *tp_5v0 = NULL;
+		int rc;
+
+		pr_err("%s: codec power shutdown\n", __func__);
+
+		if (!tp_5v0) {
+			tp_5v0 = regulator_get(NULL, "vdd50_boost");
+			if (IS_ERR(tp_5v0)) {
+				pr_err("failed to get regulator 'vdd50_boost' with %ld\n",
+					PTR_ERR(tp_5v0));
+				tp_5v0 = NULL;
+			}
+		}
+
+		if (tp_5v0) {
+			rc = regulator_disable(tp_5v0);
+			if (rc < 0) {
+				pr_err("failed to disable regulator 'vdd50_boost' with %d\n", rc);
+			}
+		}
+
+		wm8994_ldo_power(0);
+		rc = regulator_disable(vreg_wm8958);
+		if (rc)
+				pr_err("%s: Disable regulator 8058_s3 failed\n", __func__);
+
+		regulator_put(vreg_wm8958);
+#else
+		pr_err("%s: codec power shutdown - NOPE\n", __func__);
+		return;
+#endif
+}
+#if 0
 static unsigned int msm_wm8958_setup_power(void)
 {
 	int rc=0;
@@ -2533,7 +2615,7 @@ static void msm_wm8958_shutdown_power(void)
 
 	regulator_put(vreg_wm8958);
 }
-
+#endif
 static struct wm8994_pdata wm8958_pdata = {
 	.gpio_defaults = { 	0x0001, //GPIO1 AUDIO_AMP_EN write 0x41 to enable AMP
 						0x8001, //GPIO2 MCLK2 Pull Control
