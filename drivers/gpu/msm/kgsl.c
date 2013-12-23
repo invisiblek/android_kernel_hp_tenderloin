@@ -98,9 +98,12 @@ void kgsl_hang_check(struct work_struct *work)
 	if (device->state == KGSL_STATE_ACTIVE) {
 
 		/* Check to see if the GPU is hung */
-		if (adreno_ft_detect(device, prev_reg_val))
-			adreno_dump_and_exec_ft(device);
-
+		/*Hung detection should only be done on 2d device*/
+		if (device->id == KGSL_DEVICE_3D0 )
+		{
+			if(adreno_ft_detect(device, prev_reg_val))
+				adreno_dump_and_exec_ft(device);
+		}
 		mod_timer(&device->hang_timer,
 			(jiffies + msecs_to_jiffies(KGSL_TIMEOUT_HANG_DETECT)));
 	}

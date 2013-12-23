@@ -1530,7 +1530,7 @@ static int kgsl_iommu_start(struct kgsl_mmu *mmu)
 	 * changing pagetables we can use this lsb value of the pagetable w/o
 	 * having to read it again
 	 */
-	msm_iommu_lock();
+
 	for (i = 0; i < iommu->unit_count; i++) {
 		struct kgsl_iommu_unit *iommu_unit = &iommu->iommu_units[i];
 		for (j = 0; j < iommu_unit->dev_count; j++) {
@@ -1542,7 +1542,6 @@ static int kgsl_iommu_start(struct kgsl_mmu *mmu)
 		}
 	}
 	kgsl_iommu_lock_rb_in_tlb(mmu);
-	msm_iommu_unlock();
 
 	/* For complete CFF */
 	kgsl_cffdump_setmem(mmu->setstate_memory.gpuaddr +
@@ -1660,12 +1659,10 @@ static void kgsl_iommu_stop(struct kgsl_mmu *mmu)
 				for (j = 0; j < iommu_unit->dev_count; j++) {
 					if (iommu_unit->dev[j].fault) {
 						kgsl_iommu_enable_clk(mmu, j);
-						msm_iommu_lock();
 						KGSL_IOMMU_SET_CTX_REG(iommu,
 						iommu_unit,
 						iommu_unit->dev[j].ctx_id,
 						RESUME, 1);
-						msm_iommu_unlock();
 						iommu_unit->dev[j].fault = 0;
 					}
 				}
@@ -1769,9 +1766,6 @@ static void kgsl_iommu_default_setstate(struct kgsl_mmu *mmu,
 	if (msm_soc_version_supports_iommu_v1())
 		kgsl_idle(mmu->device);
 
-	/* Acquire GPU-CPU sync Lock here */
-	msm_iommu_lock();
-
 	if (flags & KGSL_MMUFLAGS_PTUPDATE) {
 		if (!msm_soc_version_supports_iommu_v1())
 			kgsl_idle(mmu->device);
@@ -1801,7 +1795,6 @@ static void kgsl_iommu_default_setstate(struct kgsl_mmu *mmu,
 	}
 
 	/* Release GPU-CPU sync Lock here */
-	msm_iommu_unlock();
 
 	/* Disable smmu clock */
 	kgsl_iommu_disable_clk_on_ts(mmu, 0, false);

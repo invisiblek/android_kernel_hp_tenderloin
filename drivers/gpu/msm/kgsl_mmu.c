@@ -990,6 +990,9 @@ void kgsl_mmu_set_mmutype(char *mmutype)
 		kgsl_mmu_type = KGSL_MMU_TYPE_IOMMU;
 	if (mmutype && !strncmp(mmutype, "nommu", 5))
 		kgsl_mmu_type = KGSL_MMU_TYPE_NONE;
+
+	kgsl_mmu_type = KGSL_MMU_TYPE_GPU;
+
 }
 EXPORT_SYMBOL(kgsl_mmu_set_mmutype);
 
