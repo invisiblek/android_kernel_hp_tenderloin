@@ -1317,6 +1317,13 @@ static int msm_soc_dai_init(
 
 #if defined(CONFIG_MACH_TENDERLOIN)
 
+static struct snd_soc_codec_conf wm8994_codec_conf[] = {
+	{
+		.dev_name = "wm8994",
+		.name_prefix = "Sub",
+	},
+};
+
 static struct snd_soc_dai_link msm_dai[] = {
 	{
 		.name = "Media Playback",
@@ -1326,7 +1333,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.platform_name = "msm-dsp-audio.0",
 		.codec_name = "wm8994-codec",
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
-						| SND_SOC_DAIFMT_CBM_CFM,
+						| SND_SOC_DAIFMT_CBS_CFS,
 		.init   = msm_soc_dai_init,
 	},
 	{
@@ -1337,7 +1344,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.platform_name = "msm-dsp-audio.0",
 		.codec_name = "wm8994-codec",
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
-								| SND_SOC_DAIFMT_CBM_CFM,
+								| SND_SOC_DAIFMT_CBS_CFS,
 	},
 };
 
@@ -1374,6 +1381,8 @@ static struct snd_soc_card snd_soc_card_msm = {
 	.dai_link	= msm_dai,
 	.num_links = ARRAY_SIZE(msm_dai),
 #if defined(CONFIG_MACH_TENDERLOIN)
+	.codec_conf = wm8994_codec_conf,
+	.num_configs = ARRAY_SIZE(wm8994_codec_conf),
 	.dapm_widgets = tenderloin_dapm_widgets,
 	.num_dapm_widgets = ARRAY_SIZE(tenderloin_dapm_widgets),
 	.dapm_routes = tenderloin_dapm_routes,
