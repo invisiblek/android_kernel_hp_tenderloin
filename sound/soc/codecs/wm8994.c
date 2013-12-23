@@ -1488,6 +1488,22 @@ static int wm8994_put_class_w(struct snd_kcontrol *kcontrol,
 	return ret;
 }
 
+#ifdef CONFIG_MACH_TENDERLOIN
+static int wm8994_en_pwr_amp(struct snd_soc_dapm_widget *w,
+	struct snd_kcontrol *k, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+
+	if( SND_SOC_DAPM_EVENT_ON(event) ){
+		snd_soc_write(codec, WM8994_GPIO_1, 0x41);
+	}
+	else{
+		snd_soc_write(codec, WM8994_GPIO_1, 0x1);
+	}
+	return 0;
+}
+#endif
+
 static const struct snd_kcontrol_new dac1l_mix[] = {
 WM8994_CLASS_W_SWITCH("Right Sidetone Switch", WM8994_DAC1_LEFT_MIXER_ROUTING,
 		      5, 1, 0),
@@ -1785,6 +1801,9 @@ SND_SOC_DAPM_ADC("ADCL", NULL, SND_SOC_NOPM, 1, 0),
 SND_SOC_DAPM_ADC("ADCR", NULL, SND_SOC_NOPM, 0, 0),
 
 SND_SOC_DAPM_POST("Debug log", post_ev),
+#ifdef CONFIG_MACH_TENDERLOIN
+SND_SOC_DAPM_SPK("Speaker", wm8994_en_pwr_amp),
+#endif
 };
 
 static const struct snd_soc_dapm_widget wm8994_specific_dapm_widgets[] = {
