@@ -147,6 +147,7 @@ static int msm_snddev_rx_mclk_request(void)
 	the_msm_cdcclk_ctl_state.rx_mclk_requested = 1;
 	return rc;
 }
+#if defined(CONFIG_MARIMBA_CODEC)
 static int msm_snddev_tx_mclk_request(void)
 {
 	int rc = 0;
@@ -160,6 +161,7 @@ static int msm_snddev_tx_mclk_request(void)
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 1;
 	return rc;
 }
+#endif
 static void msm_snddev_rx_mclk_free(void)
 {
 	if (the_msm_cdcclk_ctl_state.rx_mclk_requested) {
@@ -167,6 +169,7 @@ static void msm_snddev_rx_mclk_free(void)
 		the_msm_cdcclk_ctl_state.rx_mclk_requested = 0;
 	}
 }
+#if defined(CONFIG_MARIMBA_CODEC)
 static void msm_snddev_tx_mclk_free(void)
 {
 	if (the_msm_cdcclk_ctl_state.tx_mclk_requested) {
@@ -174,6 +177,7 @@ static void msm_snddev_tx_mclk_free(void)
 		the_msm_cdcclk_ctl_state.tx_mclk_requested = 0;
 	}
 }
+#endif
 static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -417,7 +421,9 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return 0;
 
+#if defined(CONFIG_MARIMBA_CODEC)
 error_pamp:
+#endif
 error_adie:
 	clk_disable_unprepare(drv->rx_osrclk);
 error_invalid_freq:
@@ -537,7 +543,9 @@ error_invalid_freq:
 		icodec->data->pamp_off();
 
 	pr_err("%s: encounter error\n", __func__);
+#if defined(CONFIG_MARIMBA_CODEC)
 error_pamp:
+#endif
 	pm_qos_update_request(&drv->tx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return -ENODEV;
 }
