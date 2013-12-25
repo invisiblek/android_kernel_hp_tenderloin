@@ -1598,6 +1598,22 @@ unsigned val, unsigned reg)
 	return -1;
 }
 
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
+static int usb_ulpi_write_with_reset(struct usb_phy *xceiv, u32 val, u32 reg)
+{
+	struct msm_otg *dev = container_of(xceiv, struct msm_otg, phy);
+
+	return ulpi_write_with_reset(dev, val, reg);
+}
+
+static int usb_ulpi_read_with_reset(struct usb_phy *xceiv, u32 reg)
+{
+	struct msm_otg *dev = container_of(xceiv, struct msm_otg, phy);
+
+	return ulpi_read_with_reset(dev, reg);
+}
+#endif
+
 /* some of the older targets does not turn off the PLL
  * if onclock bit is set and clocksuspendM bit is on,
  * hence clear them too and initiate the suspend mode
@@ -2780,6 +2796,10 @@ static void otg_debugfs_cleanup(void)
 struct usb_phy_io_ops msm_otg_io_ops = {
 	.read = usb_ulpi_read,
 	.write = usb_ulpi_write,
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
+	.read_with_reset = usb_ulpi_read_with_reset,
+	.write_with_reset = usb_ulpi_write_with_reset,
+#endif
 };
 
 static int __init msm_otg_probe(struct platform_device *pdev)

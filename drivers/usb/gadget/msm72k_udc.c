@@ -192,6 +192,10 @@ struct usb_info {
 	unsigned chg_current;
 	unsigned chg_type_retry_cnt;
 	bool proprietary_chg;
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
+	// this flag is to indicate if USB Y-cable(charger + data) is attached.
+	unsigned is_cdp;
+#endif
 	struct delayed_work chg_det;
 	struct delayed_work chg_stop;
 	struct msm_hsusb_gadget_platform_data *pdata;
@@ -237,6 +241,26 @@ static int msm72k_set_halt(struct usb_ep *_ep, int value);
 static void flush_endpoint(struct msm_endpoint *ept);
 static void usb_reset(struct usb_info *ui);
 static int usb_ept_set_halt(struct usb_ep *_ep, int value);
+
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
+static int usb_multi_chg_detect(struct usb_info *ui);
+
+static unsigned ulpi_read_with_reset(struct usb_info *ui, unsigned reg)
+{
+	if (ui->xceiv->io_ops->read_with_reset) {
+		return ui->xceiv->io_ops->read_with_reset(ui->xceiv, reg);
+	}
+	return 0;
+}
+
+static int ulpi_write_with_reset(struct usb_info *ui, unsigned val, unsigned reg)
+{
+	if (ui->xceiv->io_ops->write_with_reset) {
+		return ui->xceiv->io_ops->write_with_reset(ui->xceiv, val, reg);
+	}
+	return 0;
+}
+#endif
 
 static void msm_hsusb_set_speed(struct usb_info *ui)
 {
@@ -328,14 +352,30 @@ static int usb_get_max_power(struct usb_info *ui)
 	spin_lock_irqsave(&ui->lock, flags);
 	suspended = ui->usb_state == USB_STATE_SUSPENDED ? 1 : 0;
 	configured = atomic_read(&ui->configured);
+#ifndef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 	bmaxpow = ui->b_max_pow;
+#else
+	if (ui->is_cdp != 0) {
+		bmaxpow = ui->chg_current;
+		//printk("UDC: it is CDP\n");
+	}
+	else
+	{
+		bmaxpow = ui->b_max_pow;
+		//printk("UDC: it is SDP\n");
+	}
+#endif
 	spin_unlock_irqrestore(&ui->lock, flags);
 
 	if (temp == USB_CHG_TYPE__INVALID)
 		return -ENODEV;
 
 	if (temp == USB_CHG_TYPE__WALLCHARGER && !ui->proprietary_chg)
+#ifndef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 		return USB_WALLCHARGER_CHG_CURRENT;
+#else
+		return ui->chg_current;
+#endif
 	else
 		return USB_PROPRIETARY_CHG_CURRENT;
 
@@ -441,7 +481,7 @@ static void usb_chg_detect(struct work_struct *w)
 		spin_unlock_irqrestore(&ui->lock, flags);
 		return;
 	}
-
+#ifndef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 	temp = usb_get_chg_type(ui);
 	if (temp != USB_CHG_TYPE__WALLCHARGER && temp != USB_CHG_TYPE__SDP
 					&& !ui->chg_type_retry_cnt) {
@@ -469,7 +509,18 @@ static void usb_chg_detect(struct work_struct *w)
 			ui->xceiv->notify_charger(CONNECT_TYPE_UNKNOWN);
 	}
 #endif
+#else
+	spin_unlock_irqrestore(&ui->lock, flags);
 
+	maxpower = usb_multi_chg_detect(ui);
+	msm72k_pullup_internal(&ui->gadget, 1);
+
+	temp = atomic_read(&otg->chg_type);
+	printk("%s: temp = %d\n", __func__, temp);
+
+	if (maxpower > 0 && temp != USB_CHG_TYPE__SDP )
+		usb_phy_set_power(ui->xceiv, maxpower);
+#endif
 	/* USB driver prevents idle and suspend power collapse(pc)
 	 * while USB cable is connected. But when dedicated charger is
 	 * connected, driver can vote for idle and suspend pc.
@@ -481,6 +532,106 @@ static void usb_chg_detect(struct work_struct *w)
 		pm_runtime_put_sync(&ui->pdev->dev);
 		wake_unlock(&ui->wlock);
 	}
+}
+
+static int usb_multi_chg_detect(struct usb_info *ui)
+{
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
+	struct msm_otg *otg = to_msm_otg(ui->xceiv);
+	enum chg_type temp = USB_CHG_TYPE__INVALID;
+	int maxpower = -EINVAL;
+
+	ui->is_cdp = 0; // not CDP
+
+	//disconnect all pull-up and pull-down resistors on D+ and D-
+	writel(readl(USB_USBCMD) & ~USBCMD_RS, USB_USBCMD);
+	/* S/W workaround, Issue#1 */
+	ulpi_write_with_reset(ui, 0x0f, 0x34);
+	//ulpi_write_with_reset(ui, 0x48, 0x04);
+
+	msleep(10);
+
+	ulpi_write_with_reset(ui,0x4d, 0x04);
+	ulpi_write_with_reset(ui,0x06, 0x0c);
+	msleep(20/*10*/);  // this delay must be here !!
+
+	if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 11)) { //D+ : high
+		if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 10)) { //D+ : high, D- : high
+			ulpi_write_with_reset(ui, 0x45, 0x04);
+			ulpi_write_with_reset(ui, 0x2, 0x0b); //pull-down D+
+			msleep(10/*100*/);
+//			printk("UDC-CHG (2-1): %s (%d) : D+/D- = 0x%x\n", __func__, __LINE__, (readl(USB_PORTSC) & PORTSC_LS));
+			if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 10)) { //D+ : high, D- : high
+				printk("UDC-CHG (2-1-1-1): %s (%d) : HP Phone Adaptor(900mA)!\n", __func__, __LINE__);
+				temp = USB_CHG_TYPE__WALLCHARGER;
+				maxpower = 900;//500;
+			} else { //D+ : high, D- : low
+				printk("UDC-CHG (2-1-1-2): %s (%d) : 10W Adaptor(2000mA)!\n", __func__, __LINE__);
+				temp = USB_CHG_TYPE__WALLCHARGER;
+				maxpower = 2000; //usb_get_max_power(ui);
+
+			}
+		} else { //D+ : high, D- : low
+			printk("UDC-CHG (2-1-2): %s (%d) : Unknown type Adaptor(100mA)!\n", __func__, __LINE__);
+			temp = USB_CHG_TYPE__WALLCHARGER;
+			maxpower = 100;
+
+		}
+	} else { //D+ : low,
+		if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 10)) { //D+ : low, D- : high
+			printk("UDC-CHG (2-2): %s (%d) : Unknown type Adaptor(100mA)!\n", __func__, __LINE__);
+			temp = USB_CHG_TYPE__WALLCHARGER;
+			maxpower = 100;
+
+		} else { //D+ : low, D- : low
+			ulpi_write_with_reset(ui, 0x25, 0x34); //Aplly current source on D+
+			msleep(10/*100*/);
+//			printk("UDC-CHG (2-2): %s (%d) : D+/D- = 0x%x\n", __func__, __LINE__, (readl(USB_PORTSC) & PORTSC_LS));
+
+			if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 11)) { //D+ : high
+				if ((readl(USB_PORTSC) & PORTSC_LS) & (1 << 10)) { //D+ : high, D- : high
+					printk("UDC-CHG (2-2-1-1): %s (%d) : OMTP Phone Adaptor(900mA)!\n", __func__, __LINE__);
+					temp = USB_CHG_TYPE__WALLCHARGER;
+					maxpower = 900;
+				} else { //D+ : high, D- : low
+					printk("UDC-CHG (2-2-1-2): %s (%d) : Unknown type Adaptor(100mA)!\n", __func__, __LINE__);
+					temp = USB_CHG_TYPE__WALLCHARGER;
+					maxpower = 100;
+				}
+			} else { //D+ : low
+				ulpi_write_with_reset(ui, 0x24, 0x34);
+				msleep(10);
+				if (ulpi_read_with_reset(ui, 0x34) & (1 << 4)) {
+					ulpi_write_with_reset(ui, 0x0f, 0x34);
+					writel(readl(USB_USBCMD) & ~USBCMD_RS, USB_USBCMD);
+					msleep(10);
+					writel(readl(USB_USBCMD) | USBCMD_RS, USB_USBCMD);
+					printk("UDC-CHG (2-2-2-1): %s (%d) : USB host Charging Downstream Port(1400mA)!\n", __func__, __LINE__);
+					//temp = USB_CHG_TYPE__WALLCHARGER;
+					temp = USB_CHG_TYPE__SDP;
+					ui->is_cdp = 1;
+					maxpower = 1400;
+
+				} else {
+					ulpi_write_with_reset(ui, 0x0f, 0x34);
+					writel(readl(USB_USBCMD) & ~USBCMD_RS, USB_USBCMD);
+					msleep(10);
+					writel(readl(USB_USBCMD) | USBCMD_RS, USB_USBCMD);
+					printk("UDC-CHG (2-2-2): %s (%d) : USB host Adaptor(500mA)!\n", __func__, __LINE__);
+					temp = USB_CHG_TYPE__SDP;
+					maxpower = 500;//usb_get_max_power(ui);
+				}
+			}
+			ulpi_write_with_reset(ui,0x0F, 0x34); // clean up current source on D+
+		}
+	}
+
+	atomic_set(&otg->chg_type, temp);
+
+	ui->chg_current = maxpower;
+
+	return maxpower;
+#endif //CONFIG_USB_MULTIPLE_CHARGER_DETECT
 }
 
 static int usb_ep_get_stall(struct msm_endpoint *ept)
@@ -1595,9 +1746,9 @@ static void usb_do_work(struct work_struct *w)
 
 				if (!atomic_read(&ui->softconnect))
 					break;
-
+#ifndef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 				msm72k_pullup_internal(&ui->gadget, 1);
-
+#endif
 				if (!ui->gadget.is_a_peripheral)
 					schedule_delayed_work(
 							&ui->chg_det,
@@ -1746,8 +1897,9 @@ static void usb_do_work(struct work_struct *w)
 
 				if (!atomic_read(&ui->softconnect))
 					break;
+#ifndef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 				msm72k_pullup_internal(&ui->gadget, 1);
-
+#endif
 				if (!ui->gadget.is_a_peripheral)
 					schedule_delayed_work(
 							&ui->chg_det,
