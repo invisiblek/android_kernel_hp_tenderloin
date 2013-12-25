@@ -586,6 +586,12 @@ config USB_GADGET_SUPERSPEED
 	 indicate if the device should operate in superspeed(=y)
 	 or not.
 
+config USB_MULTIPLE_CHARGER_DETECT
+	boolean "Multiple USB Wall charger support"
+	depends on USB_GADGET && USB_MSM_72K
+	help
+	  Detect multiple types of USB wall charger
+
 #
 # USB Gadget Drivers
 #
