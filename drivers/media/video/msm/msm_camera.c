@@ -62,6 +62,7 @@ static uint32_t sensor_mount_angle[MSM_MAX_CAMERA_SENSORS];
 
 struct ion_client *client_for_ion;
 
+#ifdef CONFIG_MSM_CAMERA_DEBUG
 static const char *vfe_config_cmd[] = {
 	"CMD_GENERAL",  /* 0 */
 	"CMD_AXI_CFG_OUT1",
@@ -107,6 +108,7 @@ static const char *vfe_config_cmd[] = {
 	"CMD_VPE",
 	"CMD_AXI_CFG_VPE"
 };
+#endif
 #define __CONTAINS(r, v, l, field) ({				\
 	typeof(r) __r = r;					\
 	typeof(v) __v = v;					\
@@ -3241,6 +3243,11 @@ static int msm_tear_down_cdev(struct msm_cam_device *msm, dev_t devno)
 	return 0;
 }
 
+static int __msm_v4l2_open(struct msm_sync *sync, const char *apps_id, int is_controlnode)
+{
+	return __msm_open(g_pmsm, apps_id, is_controlnode);
+}
+
 int msm_v4l2_register(struct msm_v4l2_driver *drv)
 {
 	/* FIXME: support multiple sensors */
@@ -3248,7 +3255,7 @@ int msm_v4l2_register(struct msm_v4l2_driver *drv)
 		return -ENODEV;
 
 	drv->sync = list_first_entry(&msm_sensors, struct msm_sync, list);
-	drv->open      = __msm_open;
+	drv->open      = __msm_v4l2_open;
 	drv->release   = __msm_release;
 	drv->ctrl      = __msm_v4l2_control;
 	drv->reg_pmem  = __msm_register_pmem;

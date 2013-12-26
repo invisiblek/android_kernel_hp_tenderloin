@@ -107,9 +107,8 @@ static struct regulator *fs_vpe;
 #ifndef HP_DISABLE
 static struct regulator *ldo15;
 static struct regulator *lvs0;
-#endif
-
 static struct regulator *ldo25;
+#endif
 
 static struct msm_camera_io_ext camio_ext;
 static struct msm_camera_io_clk camio_clk;
