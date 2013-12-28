@@ -13,6 +13,7 @@
 #ifndef _ARCH_IOMMU_DOMAINS_H
 #define _ARCH_IOMMU_DOMAINS_H
 
+#include <linux/errno.h>
 #include <linux/memory_alloc.h>
 
 enum {

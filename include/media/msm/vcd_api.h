@@ -12,6 +12,7 @@
  */
 #ifndef _VCD_API_H_
 #define _VCD_API_H_
+#include <linux/types.h>
 #include "vcd_property.h"
 #include "vcd_status.h"
 
