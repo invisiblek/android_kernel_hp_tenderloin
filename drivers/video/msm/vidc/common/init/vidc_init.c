@@ -30,7 +30,7 @@
 #include <linux/debugfs.h>
 #include <mach/clk.h>
 #include <linux/pm_runtime.h>
-#include <mach/msm_subsystem_map.h>
+#include <mach/iommu_domains.h>
 #include <media/msm/vcd_api.h>
 #include <media/msm/vidc_init.h>
 #include "vidc_init_internal.h"
@@ -407,12 +407,12 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 	if (buffer == BUFFER_TYPE_INPUT) {
 		buf_addr_table = client_ctx->input_buf_addr_table;
 		num_of_buffers = &client_ctx->num_of_input_buffers;
-		DBG("%s(): buffer = INPUT\n", __func__);
+		printk("%s(): buffer = INPUT\n", __func__);
 
 	} else {
 		buf_addr_table = client_ctx->output_buf_addr_table;
 		num_of_buffers = &client_ctx->num_of_output_buffers;
-		DBG("%s(): buffer = OUTPUT\n", __func__);
+		printk("%s(): buffer = OUTPUT\n", __func__);
 	}
 
 	if (!*num_of_buffers)
@@ -420,12 +420,6 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 	if (!client_ctx->user_ion_client)
 		goto bail_out_cleanup;
 	for (i = 0; i < *num_of_buffers; ++i) {
-		if (buf_addr_table[i].client_data) {
-			msm_subsystem_unmap_buffer(
-			(struct msm_mapped_buffer *)
-			buf_addr_table[i].client_data);
-			buf_addr_table[i].client_data = NULL;
-		}
 		if (!IS_ERR_OR_NULL(buf_addr_table[i].buff_ion_handle)) {
 			if (!IS_ERR_OR_NULL(client_ctx->user_ion_client)) {
 				if (!res_trk_check_for_sec_session() &&
@@ -448,14 +442,6 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 	len = sizeof(client_ctx->recon_buffer)/
 		sizeof(struct vcd_property_enc_recon_buffer);
 	for (i = 0; i < len; i++) {
-		if (!vcd_get_ion_status()) {
-			if (client_ctx->recon_buffer[i].client_data) {
-				msm_subsystem_unmap_buffer(
-				(struct msm_mapped_buffer *)
-				client_ctx->recon_buffer[i].client_data);
-				client_ctx->recon_buffer[i].client_data = NULL;
-			}
-		} else  {
 			if (!IS_ERR_OR_NULL(
 				client_ctx->recon_buffer_ion_handle[i])) {
 				ion_unmap_kernel(client_ctx->user_ion_client,
@@ -474,14 +460,8 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 				client_ctx->recon_buffer_ion_handle[i]);
 				client_ctx->recon_buffer_ion_handle[i] = NULL;
 			}
-		}
 	}
 
-	if (client_ctx->vcd_h264_mv_buffer.client_data) {
-		msm_subsystem_unmap_buffer((struct msm_mapped_buffer *)
-		client_ctx->vcd_h264_mv_buffer.client_data);
-		client_ctx->vcd_h264_mv_buffer.client_data = NULL;
-	}
 	if (!IS_ERR_OR_NULL(client_ctx->h264_mv_ion_handle)) {
 		if (!IS_ERR_OR_NULL(client_ctx->user_ion_client)) {
 			ion_unmap_kernel(client_ctx->user_ion_client,
@@ -499,9 +479,6 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 		}
 	}
 
-	if (client_ctx->vcd_meta_buffer.client_data)
-		msm_subsystem_unmap_buffer((struct msm_mapped_buffer *)
-		client_ctx->vcd_meta_buffer.client_data);
 	if (!IS_ERR_OR_NULL(client_ctx->meta_buffer_ion_handle)) {
 			ion_unmap_kernel(client_ctx->user_ion_client,
 				client_ctx->meta_buffer_ion_handle);
@@ -517,9 +494,6 @@ void vidc_cleanup_addr_table(struct video_client_ctx *client_ctx,
 		client_ctx->meta_buffer_ion_handle = NULL;
 	}
 
-	if (client_ctx->vcd_meta_buffer.client_data_iommu)
-		msm_subsystem_unmap_buffer((struct msm_mapped_buffer *)
-		client_ctx->vcd_meta_buffer.client_data_iommu);
 	if (!IS_ERR_OR_NULL(client_ctx->meta_buffer_iommu_ion_handle)) {
 		ion_unmap_kernel(client_ctx->user_ion_client,
 			client_ctx->meta_buffer_iommu_ion_handle);
@@ -691,7 +665,7 @@ u32 vidc_insert_addr_table(struct video_client_ctx *client_ctx,
 	} else {
 		if (!vcd_get_ion_status()) {
 			pr_err("PMEM not available\n");
-			return false;
+			goto bail_out_add;
 		} else {
 			buff_ion_handle = ion_import_dma_buf(
 				client_ctx->user_ion_client, pmem_fd);
@@ -880,11 +854,7 @@ u32 vidc_delete_addr_table(struct video_client_ctx *client_ctx,
 			__func__, client_ctx, user_vaddr);
 		goto bail_out_del;
 	}
-	if (buf_addr_table[i].client_data) {
-		msm_subsystem_unmap_buffer(
-		(struct msm_mapped_buffer *)buf_addr_table[i].client_data);
-		buf_addr_table[i].client_data = NULL;
-	}
+
 	*kernel_vaddr = buf_addr_table[i].kernel_vaddr;
 	if (buf_addr_table[i].buff_ion_handle) {
 		if (!res_trk_check_for_sec_session() &&
