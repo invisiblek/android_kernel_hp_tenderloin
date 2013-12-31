@@ -1,6 +1,7 @@
 config MACH_TENDERLOIN
 	depends on ARCH_MSM8X60
 	select MACH_HP
+        select REMOVE_SMI_2X_CLK
 	bool "HP Tenderloin"
 	help
 	  Support for the HTC TENDERLOIN device.
