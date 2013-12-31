@@ -2733,4 +2733,8 @@ config REMOVE_EBI1_FIXED_CLK
 	help
 		use for 2x Radio
 
+config REMOVE_SMI_2X_CLK
+       bool "remove 2x_axi_clk for SMI"
+       default n
+
 endif
