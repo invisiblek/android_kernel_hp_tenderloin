@@ -722,6 +722,12 @@ config SIG_MOTION
 	help
 	  Enable BMA250 (M7) significant motion support
 
+config INPUT_CAPELLA_CM3628
+	tristate "CM3629 proximity and light sensor"
+	help
+	  Say Y here to enable the CM3629 short distance proximity
+	  sensor with ambient light sensor.
+
 config INPUT_CAPELLA_CM3629
 	tristate "CM3629 proximity and light sensor"
 	help
