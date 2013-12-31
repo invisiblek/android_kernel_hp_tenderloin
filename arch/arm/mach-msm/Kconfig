@@ -2677,4 +2677,8 @@ config MSM_UARTDM
 	help
 	  Provides access to the high speed uart ports.
 
+config REMOVE_SMI_2X_CLK
+       bool "remove 2x_axi_clk for SMI"
+       default n
+
 endif
