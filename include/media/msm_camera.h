@@ -444,7 +444,7 @@ struct msm_camera_cfg_cmd {
 #define CMD_VFE_BUFFER_RELEASE 51
 #define CMD_VFE_PROCESS_IRQ 52
 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
 #define CMD_AXI_CFG_PRIM		BIT(8)
 #define CMD_AXI_CFG_PRIM_ALL_CHNLS	BIT(9)
 #define CMD_AXI_CFG_SEC			BIT(10)
@@ -567,7 +567,7 @@ struct outputCfg {
 #define OUTPUT_ZSL_ALL_CHNLS 10
 #define LAST_AXI_OUTPUT_MODE_ENUM = OUTPUT_ZSL_ALL_CHNLS
 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
 #define OUTPUT_PRIM		BIT(8)
 #define OUTPUT_PRIM_ALL_CHNLS 	BIT(9)
 #define OUTPUT_SEC		BIT(10)
@@ -716,7 +716,7 @@ struct msm_stats_buf {
 	int length;
 	struct ion_handle *handle;
 	uint32_t frame_id;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	struct stats_htc_af htc_af_info;
 #endif
 };
@@ -1102,7 +1102,7 @@ struct sensor_pict_fps {
 struct exp_gain_cfg {
 	uint16_t gain;
 	uint32_t line;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint32_t long_line;
 	uint32_t short_line;
 	uint16_t long_dig_gain;
@@ -1218,7 +1218,7 @@ struct msm_sensor_output_info_t {
 	uint16_t y_even_inc;
 	uint16_t y_odd_inc;
 	uint8_t binning_rawchip;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint8_t is_hdr;
 	
 	uint8_t yushan_status_line_enable;
@@ -1388,7 +1388,7 @@ struct sensor_cfg_data {
 	int mode;
 	int rs;
 	uint8_t max_steps;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	int8_t sensor_ver;
 	af_value_t af_value;
 #endif
@@ -1554,7 +1554,7 @@ struct msm_actuator_set_info_t {
 	uint32_t total_steps; 
 	uint16_t gross_steps; 
 	uint16_t fine_steps; 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint16_t ois_mfgtest_in_progress_reload; 
 #endif
 	struct msm_actuator_params_t actuator_params;
@@ -1610,7 +1610,7 @@ struct msm_actuator_get_ois_cal_info_t {
 	int8_t cal_method;
 	int8_t cal_current_point;
 	int8_t cal_max_point;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION >= 2)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION >= 2)
 	int8_t bypass_ois_cal;
 #endif
 };
@@ -1675,9 +1675,9 @@ struct msm_actuator_cfg_data {
 	int cfgtype;
 	uint8_t is_af_supported;
 	uint8_t is_ois_supported;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
     uint8_t is_cal_supported; 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION >= 3)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION >= 3)
 	int8_t enable_focus_step_log;
 	uint8_t small_step_damping;
 	uint8_t medium_step_damping;
@@ -1693,7 +1693,7 @@ struct msm_actuator_cfg_data {
 		int16_t curr_step_pos; 
 		af_algo_t af_algo; 
 		int16_t ois_mode; 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 		struct msm_actuator_get_ois_info_t get_ois_info;
 		struct msm_actuator_get_ois_tbl_t get_ois_tbl;
 		af_value_t af_value;
@@ -1789,15 +1789,15 @@ struct msm_camsensor_info {
 	int mount_angle;
 	uint32_t max_width;
 	uint32_t max_height;
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	enum htc_camera_image_type htc_image;	
 	uint8_t hdr_mode;	
 #endif
 	uint8_t use_rawchip; 
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint8_t video_hdr_capability;
 #endif
-#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
+#if defined(CONFIG_MSM_CAMERA) && defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION == 4)
 	int dual_camera;
 #endif
 };

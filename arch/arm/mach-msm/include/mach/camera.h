@@ -355,7 +355,7 @@ struct msm_actuator_ctrl {
 	int (*a_config)(void __user *);
 	int is_ois_supported;
 	int is_cal_supported; 
-#if (CONFIG_HTC_CAMERA_HAL_VERSION >= 3)
+#if defined(CONFIG_MSM_CAMERA_HTC_HAL_VERSION) && (CONFIG_HTC_CAMERA_HAL_VERSION >= 3)
 	int small_step_damping;
 	int medium_step_damping;
 	int big_step_damping;
