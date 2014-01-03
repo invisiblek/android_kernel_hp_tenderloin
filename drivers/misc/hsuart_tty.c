@@ -1733,6 +1733,12 @@ hsuart_write(struct tty_struct *tty, const unsigned char *buf, int count)
 
 //	p_context = container_of(file->f_op, struct dev_ctxt, fops);
 	p_context = tty->driver_data;
+
+	if (!p_context->is_opened) {
+		printk(KERN_ERR "%s: ignoring write on closed device\n", __func__);
+		return -ENODEV;
+	}
+
 	HSUART_DEBUG("%s: %s called, count %d\n",
 			p_context->dev_name, __PRETTY_FUNCTION__, count);
 
