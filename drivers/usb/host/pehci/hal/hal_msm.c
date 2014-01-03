@@ -256,7 +256,7 @@ isp1763_mem_read(struct isp1763_dev *dev, u32 start_add,
 	u8 *one = (u8 *) buffer;
 	u16 *two = (u16 *) buffer;
 	u32 a = (u32) length;
-	u32 w;
+	u32 w = 0;
 	u32 w2;
 
 	if (buffer == 0) {
