@@ -691,20 +691,30 @@ hsuart_tx_buf_get_empty(struct rxtx_lists* io_p_lists,
 		spin_lock_irqsave(&(io_p_lists->lock), flags);
 /*
  * TODO: optimize by adding support for 'used' buffers when writing.
-		empty = list_empty(&(io_p_lists->used));
-		if (!empty) {
-			p_buffer = list_first_entry(&(io_p_lists->used),
-						    struct buffer_item,
-						    list_item);
-			list_del(&(p_buffer->list_item));
-			if (min_free_bytes > (p_buffer->size - p_buffer->fullness)) {
-panic("%s %d\n",__FUNCTION__, __LINE__);
-				list_add_tail(&(p_buffer->list_item),
-					      &(io_p_lists->full));
-				p_buffer = NULL;
+ *
+ * As a compromise, only attempt to use buffers from the 'used' list
+ * if the write length is below certain threshold.
+ *
+ * Need to experiment for appropriate value for that threshold.
+ * -JCS
+ */
+
+		if (min_free_bytes <= 16) {
+			empty = list_empty(&(io_p_lists->used));
+			if (!empty) {
+				p_buffer = list_first_entry(&(io_p_lists->used),
+								struct buffer_item,
+								list_item);
+				list_del(&(p_buffer->list_item));
+				if (min_free_bytes > (p_buffer->size - p_buffer->fullness)) {
+	panic("%s %d\n",__FUNCTION__, __LINE__);
+					list_add_tail(&(p_buffer->list_item),
+							  &(io_p_lists->full));
+					p_buffer = NULL;
+				}
 			}
 		}
-*/		
+
 		if (NULL == p_buffer) {
 			empty = list_empty(&(io_p_lists->empty));
 			if (!empty) {
@@ -1757,17 +1767,19 @@ hsuart_write(struct tty_struct *tty, const unsigned char *buf, int count)
 						flags);
 			/*
 			 * future optimization...
+			 */
 				if (p_buffer->fullness == p_buffer->size) {
-					printk(KERN_ERR"the buffer is full\n");
-					list_add_tail(&(p_buffer->list_item), &(p_contxt->tx_lists.full));
+					// printk(KERN_ERR"the buffer is full\n");
+					list_add_tail(&(p_buffer->list_item), &(p_context->tx_lists.full));
 				}
 				else {
-					printk(KERN_ERR"the buffer is not full yet - move it to used list\n");
-					list_add_tail(&(p_buffer->list_item), &(p_contxt->tx_lists.used));
+					// printk(KERN_ERR"the buffer is not full yet - move it to used list\n");
+					list_add_tail(&(p_buffer->list_item), &(p_context->tx_lists.used));
 				}
-			*/
+				/*
 				list_add_tail(&(p_buffer->list_item), 
 						&(p_context->tx_lists.full));
+				*/
 				spin_unlock_irqrestore(&(p_context->tx_lists.lock), 
 							flags);
 
