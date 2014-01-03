@@ -2,7 +2,7 @@ config ATH6KL
 	tristate "Atheros mobile chipsets support"
 
 config ATH6KL_SDIO
-	tristate "Atheros ath6kl SDIO support"
+	bool "Atheros ath6kl SDIO support"
 	depends on ATH6KL
 	depends on MMC
 	depends on CFG80211
