@@ -158,8 +158,14 @@ static void __msm_power_off(int lower_pshold)
 
 static void msm_power_off(void)
 {
+#if defined(CONFIG_MACH_TENDERLOIN)
+	/* use HPalm bootloader to shutdown/poweroff */
+	printk(KERN_INFO "%s: Initiating poweroff via bootloader\n", __func__);
+	msm_restart(0, "shutdown");
+#else
 	/* MSM initiated power off, lower ps_hold */
 	__msm_power_off(1);
+#endif
 }
 
 static void cpu_power_off(void *data)
@@ -293,11 +299,20 @@ void msm_restart(char mode, const char *cmd)
 			__raw_writel(RESTART_REASON_UPDATE, restart_reason);
 			// Palm specific end
 		} else {
-			__raw_writel(0x77665501, restart_reason);
+#if defined(CONFIG_MACH_TENDERLOIN)
+		/* use HPalm bootloader to reboot */
+		printk(KERN_INFO "%s: Initiating reboot via bootloader\n", __func__);
+		__raw_writel(RESTART_REASON_REBOOT, restart_reason);
+#else
+		__raw_writel(0x77665501, restart_reason);
+#endif
 		}
 	} else {
+#ifndef CONFIG_MACH_TENDERLOIN
 		__raw_writel(0x77665501, restart_reason);
+#endif
 	}
+
 #ifdef CONFIG_LGE_CRASH_HANDLER
 	if (in_panic == 1)
 		set_kernel_crash_magic_number();
