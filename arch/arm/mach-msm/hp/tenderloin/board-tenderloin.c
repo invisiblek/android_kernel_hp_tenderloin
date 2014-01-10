@@ -2403,12 +2403,21 @@ static struct lsm303dlh_acc_platform_data lsm303dlh_acc_pdata = {
 	.poll_interval = 100,
 	.min_interval = LSM303DLH_ACC_MIN_POLL_PERIOD_MS,
 	.g_range = LSM303DLH_ACC_G_2G,
-	.axis_map_x = 0,
-	.axis_map_y = 1,
-	.axis_map_z = 2,
-	.negate_x = 0,
-	.negate_y = 0,
-	.negate_z = 0,
+#ifdef CONFIG_MACH_TENDERLOIN
+    .axis_map_x = 1,
+    .axis_map_y = 0,
+    .axis_map_z = 2,
+    .negate_x = 1,
+    .negate_y = 0,
+    .negate_z = 0,
+#else
+    .axis_map_x = 0,
+    .axis_map_y = 1,
+    .axis_map_z = 2,
+    .negate_x = 0,
+    .negate_y = 0,
+    .negate_z = 0,
+#endif
 	.gpio_int1 = LSM303DLH_ACC_DEFAULT_INT1_GPIO,
 	.gpio_int2 = LSM303DLH_ACC_DEFAULT_INT2_GPIO,
 };
@@ -2417,12 +2426,21 @@ static struct lsm303dlh_mag_platform_data lsm303dlh_mag_pdata = {
 	.poll_interval = 100,
 	.min_interval = LSM303DLH_MAG_MIN_POLL_PERIOD_MS,
 	.h_range = LSM303DLH_MAG_H_8_1G,
-	.axis_map_x = 0,
-	.axis_map_y = 1,
-	.axis_map_z = 2,
-	.negate_x = 0,
-	.negate_y = 0,
-	.negate_z = 0,
+#ifdef CONFIG_MACH_TENDERLOIN
+    .axis_map_x = 1,
+    .axis_map_y = 0,
+    .axis_map_z = 2,
+    .negate_x = 1,
+    .negate_y = 0,
+    .negate_z = 0,
+#else
+    .axis_map_x = 0,
+    .axis_map_y = 1,
+    .axis_map_z = 2,
+    .negate_x = 0,
+    .negate_y = 0,
+    .negate_z = 0,
+#endif
 };
 
 static struct mpu3050_platform_data mpu3050_data = {
