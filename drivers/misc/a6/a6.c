@@ -50,7 +50,7 @@ void max8903b_set_connected_ps(unsigned connected);
 
 #define A6_DEBUG
 #define A6_PQ
-//#define A6_I2C_RETRY
+#define A6_I2C_RETRY
 
 #ifdef A6_DEBUG
 #define ASSERT(i)  BUG_ON(!(i))
