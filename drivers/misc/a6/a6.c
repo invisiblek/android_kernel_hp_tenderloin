@@ -4952,7 +4952,7 @@ static int a6_i2c_probe(struct i2c_client *client, const struct i2c_device_id *d
 		goto err9;
 	}
 
-#if 0
+#if 1
 	/* register as misc device */
 	memcpy(&state->fops, &a6_fops, sizeof(struct file_operations));
 	state->mdev.minor = MISC_DYNAMIC_MINOR;
@@ -5033,12 +5033,12 @@ static int a6_i2c_probe(struct i2c_client *client, const struct i2c_device_id *d
 	return 0;
 
 err13:
-#if 0
+#if 1
 	a6_remove_dev_files(state, &client->dev);
 err12:
 	 misc_register(&state->pmem_mdev);
 err11:
-	misc_unregister(&state->mdev);
+	misc_deregister(&state->mdev);
 err10:
 #endif
 	free_irq(gpio_to_irq(plat_data->pwr_gpio), state);
@@ -5078,7 +5078,7 @@ static int a6_i2c_remove(struct i2c_client *client)
 		a6_dock_remove(state);
 	}
 
-#if 0
+#if 1
 	a6_remove_dev_files(state, &client->dev);
 #endif
 
