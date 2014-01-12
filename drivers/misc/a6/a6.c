@@ -69,6 +69,7 @@ static int a6_debug_mask = 0x0;
 static int a6_tp_irq_count = 0;
 static int a6_t2s_dup_correct = 0;
 static int a6_disable_dock_switch = 0;
+static int a6_simulate_error = 0;
 
 static int param_set_disable_dock_switch(const char *val, struct kernel_param *kp);
 param_check_int(disable_dock_switch, &(a6_disable_dock_switch));
@@ -77,6 +78,14 @@ module_param_call(disable_dock_switch, param_set_disable_dock_switch,
 	S_IRUGO | S_IWUSR | S_IWGRP
 	);
 __MODULE_PARM_TYPE(disable_dock_switch, int);
+
+static int param_set_simulate_error(const char *val, struct kernel_param *kp);
+param_check_int(simulate_error, &(a6_simulate_error));
+module_param_call(simulate_error, param_set_simulate_error,
+	param_get_int, &a6_simulate_error,
+	S_IRUGO | S_IWUSR | S_IWGRP
+	);
+__MODULE_PARM_TYPE(simulate_error, int);
 
 module_param_named(
 		   debug_mask, a6_debug_mask, int, S_IRUGO | S_IWUSR | S_IWGRP
@@ -4512,6 +4521,8 @@ static int a6_fish_power_get_property(struct power_supply *psy,
 {
 	unsigned connected;
 
+	if (a6_simulate_error) return -a6_simulate_error;
+
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
 		connected = a6_calc_connected_ps();
@@ -4557,6 +4568,8 @@ static int a6_fish_battery_get_property(struct power_supply *psy,
 {
 	int temp_val = 0;
 	unsigned connected;
+
+	if (a6_simulate_error) return -a6_simulate_error;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
@@ -4776,6 +4789,13 @@ static int param_set_disable_dock_switch(const char *val,
 	param_set_int(val, kp);
 	a6_dock_update_state(state);
 
+	return 0;
+}
+
+static int param_set_simulate_error(const char *val,
+		struct kernel_param *kp)
+{
+	param_set_int(val, kp);
 	return 0;
 }
 
