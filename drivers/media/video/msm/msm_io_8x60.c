@@ -99,9 +99,7 @@ static struct clk *camio_jpeg_clk;
 static struct clk *camio_jpeg_pclk;
 static struct clk *camio_vpe_clk;
 static struct clk *camio_vpe_pclk;
-#ifndef HP_DISABLE
 static struct regulator *fs_vfe;
-#endif
 static struct regulator *fs_ijpeg;
 static struct regulator *fs_vpe;
 #ifndef HP_DISABLE
@@ -369,7 +367,7 @@ static void msm_camera_vreg_enable(void)
 		pr_err("%s: VREG LDO25 enable failed\n", __func__);
 		goto ldo25_put;
 	}
-
+#endif
 	fs_vfe = regulator_get(NULL, "fs_vfe");
 	if (IS_ERR(fs_vfe)) {
 		CDBG("%s: Regulator FS_VFE get failed %ld\n", __func__,
@@ -380,7 +378,7 @@ static void msm_camera_vreg_enable(void)
 		regulator_put(fs_vfe);
 	}
 	return;
-
+#if 0
 ldo25_disable:
 	regulator_disable(ldo25);
 ldo25_put:
@@ -413,12 +411,11 @@ static void msm_camera_vreg_disable(void)
 		regulator_disable(ldo25);
 		regulator_put(ldo25);
 	}
-
+#endif
 	if (fs_vfe) {
 		regulator_disable(fs_vfe);
 		regulator_put(fs_vfe);
 	}
-#endif	
 }
 
 int msm_camio_clk_enable(enum msm_camio_clk_type clktype)
