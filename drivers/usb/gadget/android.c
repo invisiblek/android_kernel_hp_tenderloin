@@ -2565,6 +2565,32 @@ static void free_android_config(struct android_dev *dev,
 	kfree(conf);
 }
 
+#if defined(CONFIG_MACH_HTC) && defined(CONFIG_ARCH_MSM8X60)
+static ssize_t show_usb_function_switch(struct device *dev,
+		struct device_attribute *attr, char *buf)
+{
+  return sprintf(buf, "ether:disable\nrndis:disable\n");
+}
+
+static ssize_t store_usb_function_switch(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count)
+{
+        return 0;
+}
+
+static DEVICE_ATTR(usb_function_switch, 0664,
+		show_usb_function_switch, store_usb_function_switch);
+
+static struct attribute *android_htc_usb_attributes[] = {
+	&dev_attr_usb_function_switch.attr,
+	NULL
+};
+
+static const struct attribute_group android_usb_attr_group = {
+	.attrs = android_htc_usb_attributes,
+};
+#endif
+
 static int __devinit android_probe(struct platform_device *pdev)
 {
 	struct android_usb_platform_data *pdata = pdev->dev.platform_data;
@@ -2576,6 +2602,11 @@ static int __devinit android_probe(struct platform_device *pdev)
 		if (IS_ERR(android_class))
 			return PTR_ERR(android_class);
 	}
+
+#if defined(CONFIG_MACH_HTC) && defined(CONFIG_ARCH_MSM8X60)
+	if (sysfs_create_group(&pdev->dev.kobj, &android_usb_attr_group))
+		pr_err("%s: fail to create sysfs\n", __func__);
+#endif
 
 	android_dev = kzalloc(sizeof(*android_dev), GFP_KERNEL);
 	if (!android_dev) {
