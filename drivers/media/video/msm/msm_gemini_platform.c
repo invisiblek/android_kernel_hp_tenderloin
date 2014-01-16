@@ -30,6 +30,8 @@
 #include "msm_gemini_common.h"
 #include "msm_gemini_hw.h"
 
+#undef CONFIG_MSM_MULTIMEDIA_USE_ION
+
 #ifdef CONFIG_MSM_NPA_SYSTEM_BUS
 /* NPA Flow ID */
 #define MSM_SYSTEM_BUS_RATE	MSM_AXI_FLOW_JPEG_12MP
