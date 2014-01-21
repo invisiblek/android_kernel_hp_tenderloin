@@ -149,8 +149,13 @@ static bool is_msm_otg_support_power_collapse(struct msm_otg *motg)
 
 #define ID_TIMER_FREQ		(jiffies + msecs_to_jiffies(500))
 #define ULPI_IO_TIMEOUT_USEC	(10 * 1000)
+#ifdef CONFIG_ARCH_MSM8X60
+#define USB_PHY_3P3_VOL_MIN	3450000 /* uV */
+#define USB_PHY_3P3_VOL_MAX	3450000 /* uV */
+#else
 #define USB_PHY_3P3_VOL_MIN	3050000 /* uV */
 #define USB_PHY_3P3_VOL_MAX	3300000 /* uV */
+#endif
 #define USB_PHY_3P3_HPM_LOAD	50000	/* uA */
 #define USB_PHY_3P3_LPM_LOAD	4000	/* uA */
 
@@ -969,7 +974,8 @@ static int msm_otg_suspend(struct msm_otg *motg)
 
 	if (motg->pdata->phy_type == CI_45NM_INTEGRATED_PHY) {
 		ulpi_read(phy, 0x14);
-		if (pdata->otg_control == OTG_PHY_CONTROL)
+		if (pdata->otg_control == OTG_PHY_CONTROL ||
+                    pdata->otg_control == OTG_PMIC_CONTROL)
 			ulpi_write(phy, 0x01, 0x30);
 		ulpi_write(phy, 0x08, 0x09);
 	}
@@ -1065,7 +1071,9 @@ static int msm_otg_suspend(struct msm_otg *motg)
 		motg->lpm_flags |= PHY_PWR_COLLAPSED;
 	}
 
-	if (motg->lpm_flags & PHY_RETENTIONED) {
+	if ((motg->lpm_flags & PHY_RETENTIONED) ||
+            (motg->pdata->phy_type == CI_45NM_INTEGRATED_PHY &&
+             !host_bus_suspend && !device_bus_suspend && !dcp)) {
 		msm_hsusb_config_vddcx(0);
 		msm_hsusb_mhl_switch_enable(motg, 0);
 	}
@@ -1139,6 +1147,11 @@ static int msm_otg_resume(struct msm_otg *motg)
 		motg->lpm_flags &= ~PHY_PWR_COLLAPSED;
 		USBH_DEBUG("exit phy power collapse...\n");
 	}
+
+        if (motg->pdata->phy_type == CI_45NM_INTEGRATED_PHY) {
+		msm_hsusb_mhl_switch_enable(motg, 1);
+		msm_hsusb_config_vddcx(1);
+        }
 
 	if (motg->lpm_flags & PHY_RETENTIONED) {
 		msm_hsusb_mhl_switch_enable(motg, 1);
