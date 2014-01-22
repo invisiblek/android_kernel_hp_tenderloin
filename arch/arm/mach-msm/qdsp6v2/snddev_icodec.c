@@ -34,6 +34,7 @@
 #include <sound/q6afe.h>
 #include <sound/apr_audio.h>
 #include "snddev_icodec.h"
+#include <linux/spi_aic3254.h>
 
 #define SNDDEV_ICODEC_PCM_SZ 32 /* 16 bit / sample stereo mode */
 #define SNDDEV_ICODEC_MUL_FACTOR 3 /* Multi by 8 Shift by 3  */
@@ -50,13 +51,27 @@
 
 bool msm_codec_i2s_slave_mode;
 
-/* Context for each internal codec sound device */
-struct snddev_icodec_state {
-	struct snddev_icodec_data *data;
-	struct adie_codec_path *adie_path;
-	u32 sample_rate;
-	u32 enabled;
-};
+static int support_adie = 1;
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+static int support_aic3254 = 0;
+static int support_aic3254_use_mclk = 0;
+static int aic3254_use_mclk_counter = 0;
+static struct q6v2audio_icodec_ops default_audio_ops;
+static struct q6v2audio_icodec_ops *audio_ops = &default_audio_ops;
+static struct q6v2audio_aic3254_ops default_aic3254_ops;
+static struct q6v2audio_aic3254_ops *aic3254_ops = &default_aic3254_ops;
+
+void htc_8x60_register_icodec_ops(struct q6v2audio_icodec_ops *ops)
+{
+	audio_ops = ops;
+}
+
+void htc_8x60_register_aic3254_ops(struct q6v2audio_aic3254_ops *ops)
+{
+	aic3254_ops = ops;
+}
+#endif
 
 /* Global state for the driver */
 struct snddev_icodec_drv_state {
@@ -75,6 +90,9 @@ struct snddev_icodec_drv_state {
 
 	/* handle to pmic8058 regulator smps4 */
 	struct regulator *snddev_vreg;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	struct mutex rx_mclk_lock;
+#endif
 };
 
 static struct snddev_icodec_drv_state snddev_icodec_drv;
@@ -138,6 +156,7 @@ static int msm_snddev_rx_mclk_request(void)
 {
 	int rc = 0;
 
+#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
 	rc = gpio_request(the_msm_cdcclk_ctl_state.rx_mclk,
 		"MSM_SNDDEV_RX_MCLK");
 	if (rc < 0) {
@@ -145,12 +164,14 @@ static int msm_snddev_rx_mclk_request(void)
 		return rc;
 	}
 	the_msm_cdcclk_ctl_state.rx_mclk_requested = 1;
+#endif
 	return rc;
 }
 static int msm_snddev_tx_mclk_request(void)
 {
 	int rc = 0;
 
+#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
 	rc = gpio_request(the_msm_cdcclk_ctl_state.tx_mclk,
 		"MSM_SNDDEV_TX_MCLK");
 	if (rc < 0) {
@@ -158,21 +179,26 @@ static int msm_snddev_tx_mclk_request(void)
 		return rc;
 	}
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 1;
+#endif
 	return rc;
 }
 static void msm_snddev_rx_mclk_free(void)
 {
+#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
 	if (the_msm_cdcclk_ctl_state.rx_mclk_requested) {
 		gpio_free(the_msm_cdcclk_ctl_state.rx_mclk);
 		the_msm_cdcclk_ctl_state.rx_mclk_requested = 0;
 	}
+#endif
 }
 static void msm_snddev_tx_mclk_free(void)
 {
+#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
 	if (the_msm_cdcclk_ctl_state.tx_mclk_requested) {
 		gpio_free(the_msm_cdcclk_ctl_state.tx_mclk);
 		the_msm_cdcclk_ctl_state.tx_mclk_requested = 0;
 	}
+#endif
 }
 static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 {
@@ -294,9 +320,67 @@ static struct platform_driver msm_icodec_gpio_driver = {
 	.driver = { .name = "msm_icodec_gpio"}
 };
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+static int snddev_icodec_rxclk_enable(struct snddev_icodec_state *icodec,
+		int en)
+{
+	int trc;
+	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+
+	mutex_lock(&drv->rx_mclk_lock);
+	if (en) {
+		if (aic3254_use_mclk_counter == 0) {
+			drv->rx_osrclk = clk_get(0, "i2s_spkr_osr_clk");
+			if (IS_ERR(drv->rx_osrclk)) {
+				pr_err("%s turning on RX MCLK Error\n", \
+					__func__);
+				goto error_invalid_osrclk;
+			}
+
+			trc = clk_set_rate(drv->rx_osrclk, \
+					SNDDEV_ICODEC_CLK_RATE(\
+					icodec->sample_rate));
+			if (IS_ERR_VALUE(trc)) {
+				pr_err("ERROR setting RX m clock1\n");
+				goto error_invalid_freq;
+			}
+			clk_prepare_enable(drv->rx_osrclk);
+		}
+
+		aic3254_use_mclk_counter++;
+
+	} else {
+		if (aic3254_use_mclk_counter > 0) {
+			aic3254_use_mclk_counter--;
+			if (aic3254_use_mclk_counter == 0)
+				clk_disable_unprepare(drv->rx_osrclk);
+		} else
+			pr_info("%s: counter error!\n", __func__);
+	}
+
+	mutex_unlock(&drv->rx_mclk_lock);
+
+	pr_info("%s: en: %d counter: %d\n", __func__, en, \
+			aic3254_use_mclk_counter);
+
+	return 0;
+
+error_invalid_osrclk:
+error_invalid_freq:
+	pr_err("%s: encounter error\n", __func__);
+	msm_snddev_rx_mclk_free();
+
+	mutex_unlock(&drv->rx_mclk_lock);
+	return -ENODEV;
+}
+#endif
+
 static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 {
 	int trc;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	int rc_clk;
+#endif
 	int afe_channel_mode;
 	union afe_port_config afe_config;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
@@ -312,20 +396,34 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 			vreg_mode_vote(drv->snddev_vreg, 1,
 					SNDDEV_HIGH_POWER_MODE);
 	}
-	msm_snddev_rx_mclk_request();
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254_use_mclk) {
+		rc_clk = snddev_icodec_rxclk_enable(icodec, 1);
+		if (IS_ERR_VALUE(rc_clk)) {
+			pr_err("%s Enable RX master clock Error\n", \
+					__func__);
+			goto error_invalid_freq;
+		}
+	} else {
+#endif
+          msm_snddev_rx_mclk_request();
 
-	drv->rx_osrclk = clk_get_sys(NULL, "i2s_spkr_osr_clk");
-	if (IS_ERR(drv->rx_osrclk))
-		pr_err("%s master clock Error\n", __func__);
+          drv->rx_osrclk = clk_get_sys(NULL, "i2s_spkr_osr_clk");
+          if (IS_ERR(drv->rx_osrclk))
+            pr_err("%s master clock Error\n", __func__);
 
-	trc =  clk_set_rate(drv->rx_osrclk,
-			SNDDEV_ICODEC_CLK_RATE(icodec->sample_rate));
-	if (IS_ERR_VALUE(trc)) {
-		pr_err("ERROR setting m clock1\n");
-		goto error_invalid_freq;
-	}
+          trc =  clk_set_rate(drv->rx_osrclk,
+                              SNDDEV_ICODEC_CLK_RATE(icodec->sample_rate));
+          if (IS_ERR_VALUE(trc)) {
+            pr_err("ERROR setting m clock1\n");
+            goto error_invalid_freq;
+          }
 
-	clk_prepare_enable(drv->rx_osrclk);
+          clk_prepare_enable(drv->rx_osrclk);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+        }
+#endif
+
 	drv->rx_bitclk = clk_get_sys(NULL, "i2s_spkr_bit_clk");
 	if (IS_ERR(drv->rx_bitclk))
 		pr_err("%s clock Error\n", __func__);
@@ -350,16 +448,31 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	if (icodec->data->voltage_on)
 		icodec->data->voltage_on();
 
-	/* Configure ADIE */
-	trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
-	if (IS_ERR_VALUE(trc))
-		pr_err("%s: adie codec open failed\n", __func__);
-	else
-		adie_codec_setpath(icodec->adie_path,
-					icodec->sample_rate, 256);
-	/* OSR default to 256, can be changed for power optimization
-	 * If OSR is to be changed, need clock API for setting the divider
-	 */
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254) {
+		if (aic3254_ops->aic3254_set_mode) {
+			if (msm_get_call_state() == 1)
+				aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_RX,
+					icodec->data->aic3254_voc_id);
+			else
+				aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_RX,
+					icodec->data->aic3254_id);
+		}
+	}
+#endif
+
+	if (support_adie) {
+          /* Configure ADIE */
+          trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
+          if (IS_ERR_VALUE(trc))
+            pr_err("%s: adie codec open failed\n", __func__);
+          else
+            adie_codec_setpath(icodec->adie_path,
+                               icodec->sample_rate, 256);
+          /* OSR default to 256, can be changed for power optimization
+           * If OSR is to be changed, need clock API for setting the divider
+           */
+        }
 
 	switch (icodec->data->channel_mode) {
 	case 2:
@@ -384,18 +497,20 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	if (trc < 0)
 		pr_err("%s: afe open failed, trc = %d\n", __func__, trc);
 
-	/* Enable ADIE */
-	if (icodec->adie_path) {
-		adie_codec_proceed_stage(icodec->adie_path,
-					ADIE_CODEC_DIGITAL_READY);
-		adie_codec_proceed_stage(icodec->adie_path,
-					ADIE_CODEC_DIGITAL_ANALOG_READY);
-	}
+	if (support_adie) {
+          /* Enable ADIE */
+          if (icodec->adie_path) {
+            adie_codec_proceed_stage(icodec->adie_path,
+                                     ADIE_CODEC_DIGITAL_READY);
+            adie_codec_proceed_stage(icodec->adie_path,
+                                     ADIE_CODEC_DIGITAL_ANALOG_READY);
+          }
 
-	if (msm_codec_i2s_slave_mode)
-		adie_codec_set_master_mode(icodec->adie_path, 1);
-	else
-		adie_codec_set_master_mode(icodec->adie_path, 0);
+          if (msm_codec_i2s_slave_mode)
+            adie_codec_set_master_mode(icodec->adie_path, 1);
+          else
+            adie_codec_set_master_mode(icodec->adie_path, 0);
+        }
 
 	/* Enable power amplifier */
 	if (icodec->data->pamp_on) {
@@ -424,6 +539,9 @@ error_invalid_freq:
 static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 {
 	int trc;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	int rc_clk;
+#endif
 	int afe_channel_mode;
 	union afe_port_config afe_config;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;;
@@ -441,6 +559,16 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 			goto error_pamp;
 		}
 	}
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254_use_mclk) {
+		rc_clk = snddev_icodec_rxclk_enable(icodec, 1);
+		if (IS_ERR_VALUE(rc_clk)) {
+			pr_err("%s Enable RX master clock Error\n", \
+					__func__);
+		}
+	}
+#endif
 
 	msm_snddev_tx_mclk_request();
 
@@ -473,13 +601,28 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	clk_prepare_enable(drv->tx_bitclk);
 
-	/* Enable ADIE */
-	trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
-	if (IS_ERR_VALUE(trc))
-		pr_err("%s: adie codec open failed\n", __func__);
-	else
-		adie_codec_setpath(icodec->adie_path,
-					icodec->sample_rate, 256);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254) {
+		if (aic3254_ops->aic3254_set_mode) {
+			if (msm_get_call_state() == 1)
+				aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_TX,
+					icodec->data->aic3254_voc_id);
+			else
+				aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_TX,
+					icodec->data->aic3254_id);
+		}
+	}
+#endif
+
+	if (support_adie) {
+          /* Enable ADIE */
+          trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
+          if (IS_ERR_VALUE(trc))
+            pr_err("%s: adie codec open failed\n", __func__);
+          else
+            adie_codec_setpath(icodec->adie_path,
+                               icodec->sample_rate, 256);
+        }
 
 	switch (icodec->data->channel_mode) {
 	case 2:
@@ -494,24 +637,26 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	afe_config.mi2s.bitwidth = 16;
 	afe_config.mi2s.line = 1;
 	afe_config.mi2s.format = MSM_AFE_I2S_FORMAT_LPCM;
-	if (msm_codec_i2s_slave_mode)
+        if (msm_codec_i2s_slave_mode)
 		afe_config.mi2s.ws = 0;
-	else
+        else
 		afe_config.mi2s.ws = 1;
 
 	trc = afe_open(icodec->data->copp_id, &afe_config, icodec->sample_rate);
 
-	if (icodec->adie_path) {
-		adie_codec_proceed_stage(icodec->adie_path,
-					ADIE_CODEC_DIGITAL_READY);
-		adie_codec_proceed_stage(icodec->adie_path,
-					ADIE_CODEC_DIGITAL_ANALOG_READY);
-	}
+        if (support_adie) {
+          if (icodec->adie_path) {
+            adie_codec_proceed_stage(icodec->adie_path,
+                                     ADIE_CODEC_DIGITAL_READY);
+            adie_codec_proceed_stage(icodec->adie_path,
+                                     ADIE_CODEC_DIGITAL_ANALOG_READY);
+          }
 
-	if (msm_codec_i2s_slave_mode)
-		adie_codec_set_master_mode(icodec->adie_path, 1);
-	else
-		adie_codec_set_master_mode(icodec->adie_path, 0);
+          if (msm_codec_i2s_slave_mode)
+            adie_codec_set_master_mode(icodec->adie_path, 1);
+          else
+            adie_codec_set_master_mode(icodec->adie_path, 0);
+        }
 
 	icodec->enabled = 1;
 
@@ -556,6 +701,7 @@ static int snddev_icodec_close_lb(struct snddev_icodec_state *icodec)
 static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+	struct snddev_icodec_data *data = icodec->data;
 
 	pm_qos_update_request(&drv->rx_pm_qos_req,
 			      msm_cpuidle_get_deep_idle_latency());
@@ -567,8 +713,19 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 	if (icodec->data->pamp_off)
 		icodec->data->pamp_off();
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254) {
+		/* Restore default id for A3254 */
+		if (data->aic3254_id != data->default_aic3254_id)
+			data->aic3254_id = data->default_aic3254_id;
+		/* Disable External Codec A3254 */
+		if (aic3254_ops->aic3254_set_mode)
+			aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_RX, DOWNLINK_OFF);
+	}
+#endif
+
 	/* Disable ADIE */
-	if (icodec->adie_path) {
+	if (support_adie && icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
 			ADIE_CODEC_DIGITAL_OFF);
 		adie_codec_close(icodec->adie_path);
@@ -581,7 +738,12 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 		icodec->data->voltage_off();
 
 	clk_disable_unprepare(drv->rx_bitclk);
-	clk_disable_unprepare(drv->rx_osrclk);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254_use_mclk)
+		snddev_icodec_rxclk_enable(icodec, 0);
+	else
+#endif
+                clk_disable_unprepare(drv->rx_osrclk);
 
 	msm_snddev_rx_mclk_free();
 
@@ -594,6 +756,7 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+	struct snddev_icodec_data *data = icodec->data;
 
 	pm_qos_update_request(&drv->tx_pm_qos_req,
 			      msm_cpuidle_get_deep_idle_latency());
@@ -601,8 +764,19 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 0, SNDDEV_HIGH_POWER_MODE);
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254) {
+		/* Restore default id for A3254 */
+		if (data->aic3254_id != data->default_aic3254_id)
+			data->aic3254_id = data->default_aic3254_id;
+		/* Disable External Codec A3254 */
+		if (aic3254_ops->aic3254_set_mode)
+			aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_TX, UPLINK_OFF);
+	}
+#endif
+
 	/* Disable ADIE */
-	if (icodec->adie_path) {
+	if (support_adie && icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
 					ADIE_CODEC_DIGITAL_OFF);
 		adie_codec_close(icodec->adie_path);
@@ -613,6 +787,11 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 
 	clk_disable_unprepare(drv->tx_bitclk);
 	clk_disable_unprepare(drv->tx_osrclk);
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254_use_mclk)
+		snddev_icodec_rxclk_enable(icodec, 0);
+#endif
 
 	msm_snddev_tx_mclk_free();
 
@@ -687,7 +866,7 @@ static int snddev_icodec_open(struct msm_snddev_info *dev_info)
 		rc = snddev_icodec_open_rx(icodec);
 
 		if (!IS_ERR_VALUE(rc)) {
-			if ((icodec->data->dev_vol_type & (
+			if (support_adie && (icodec->data->dev_vol_type & (
 				SNDDEV_DEV_VOL_DIGITAL |
 				SNDDEV_DEV_VOL_ANALOG)))
 				rc = snddev_icodec_set_device_volume_impl(
@@ -724,7 +903,7 @@ static int snddev_icodec_open(struct msm_snddev_info *dev_info)
 		rc = snddev_icodec_open_tx(icodec);
 
 		if (!IS_ERR_VALUE(rc)) {
-			if ((icodec->data->dev_vol_type & (
+			if (support_adie && (icodec->data->dev_vol_type & (
 				SNDDEV_DEV_VOL_DIGITAL |
 				SNDDEV_DEV_VOL_ANALOG)))
 				rc = snddev_icodec_set_device_volume_impl(
@@ -820,7 +999,7 @@ static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 	}
 
 	icodec = dev_info->private_data;
-	if (adie_codec_freq_supported(icodec->data->profile, rate) != 0) {
+	if (support_adie && adie_codec_freq_supported(icodec->data->profile, rate) != 0) {
 		pr_err("%s: adie_codec_freq_supported() failed\n", __func__);
 		rc = -EINVAL;
 		goto error;
@@ -850,6 +1029,12 @@ static int snddev_icodec_enable_sidetone(struct msm_snddev_info *dev_info,
 	int rc = 0;
 	struct snddev_icodec_state *icodec;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	/*3254 sidetone will be binded with dsp image.*/
+	if (support_aic3254 || !support_adie)
+		goto error;
+#endif
 
 	if (!dev_info) {
 		pr_err("invalid dev_info\n");
@@ -888,6 +1073,11 @@ static int snddev_icodec_enable_anc(struct msm_snddev_info *dev_info,
 	struct acdb_cal_block cal_block;
 	struct snddev_icodec_state *icodec;
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (support_aic3254 || !support_adie)
+		goto error;
+#endif
 
 	pr_info("%s: enable=%d\n", __func__, enable);
 
@@ -982,6 +1172,9 @@ static int snddev_icodec_probe(struct platform_device *pdev)
 	struct snddev_icodec_data *pdata;
 	struct msm_snddev_info *dev_info;
 	struct snddev_icodec_state *icodec;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+        static int first_time = 1;
+#endif
 
 	if (!pdev || !pdev->dev.platform_data) {
 		printk(KERN_ALERT "Invalid caller\n");
@@ -1032,6 +1225,43 @@ static int snddev_icodec_probe(struct platform_device *pdev)
 	} else {
 		dev_info->dev_ops.enable_anc = NULL;
 	}
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (first_time) {
+		if (audio_ops->support_aic3254)
+			support_aic3254 = audio_ops->support_aic3254();
+		else
+			support_aic3254 = 0;
+
+		pr_info("%s: support_aic3254 = %d\n",
+			__func__, support_aic3254);
+
+		if (audio_ops->support_adie)
+			support_adie = audio_ops->support_adie();
+		else
+			support_adie = 1;
+
+		pr_info("%s: support_adie = %d\n",
+			__func__, support_adie);
+
+		if (audio_ops->is_msm_i2s_slave)
+			msm_codec_i2s_slave_mode = audio_ops->is_msm_i2s_slave();
+		else
+			msm_codec_i2s_slave_mode = 0;
+
+		pr_info("%s: msm_codec_i2s_slave_mode = %d\n",
+			__func__, msm_codec_i2s_slave_mode);
+
+		if (audio_ops->support_aic3254_use_mclk)
+			support_aic3254_use_mclk = \
+					audio_ops->support_aic3254_use_mclk();
+		else
+			support_aic3254_use_mclk = 0;
+		pr_info("%s: support_aic3254_use_mclk = %d\n",
+			__func__, support_aic3254_use_mclk);
+
+		first_time = 0;
+	}
+#endif
 error:
 	return rc;
 }
@@ -1046,6 +1276,30 @@ static struct platform_driver snddev_icodec_driver = {
   .remove = snddev_icodec_remove,
   .driver = { .name = "snddev_icodec" }
 };
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+int update_aic3254_info(struct aic3254_info *info)
+{
+	struct msm_snddev_info *dev_info;
+	int rc = 0;
+
+	dev_info = audio_dev_ctrl_find_dev(info->dev_id);
+	if (IS_ERR(dev_info))
+		rc = -ENODEV;
+	else {
+		if ((dev_info->copp_id == PRIMARY_I2S_RX) ||
+			(dev_info->copp_id == PRIMARY_I2S_TX)) {
+			struct snddev_icodec_state *icodec;
+			icodec = dev_info->private_data;
+			icodec->data->aic3254_id = info->path_id;
+			pr_info("%s: update aic3254 id of device %s as %d\n",
+				__func__, dev_info->name, icodec->data->aic3254_id);
+		}
+	}
+
+	return rc;
+}
+#endif
 
 module_param(msm_codec_i2s_slave_mode, bool, 0);
 MODULE_PARM_DESC(msm_codec_i2s_slave_mode, "Set MSM to I2S slave clock mode");
@@ -1079,6 +1333,9 @@ static int __init snddev_icodec_init(void)
 	mutex_init(&icodec_drv->rx_lock);
 	mutex_init(&icodec_drv->lb_lock);
 	mutex_init(&icodec_drv->tx_lock);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	mutex_init(&icodec_drv->rx_mclk_lock);
+#endif
 	icodec_drv->rx_active = 0;
 	icodec_drv->tx_active = 0;
 	icodec_drv->snddev_vreg = vreg_init();

@@ -56,7 +56,19 @@ static int aux_pcm_gpios_request(void)
 {
 	int rc = 0;
 
-	pr_debug("%s\n", __func__);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	uint32_t bt_config_gpio[] = {
+		GPIO_CFG(the_aux_pcm_state.dout, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.din, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.syncout, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.clkin_a, 1, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	};
+
+	gpio_tlmm_config(bt_config_gpio[0], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(bt_config_gpio[1], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(bt_config_gpio[2], GPIO_CFG_ENABLE);
+	gpio_tlmm_config(bt_config_gpio[3], GPIO_CFG_ENABLE);
+#else
 	rc = gpio_request(the_aux_pcm_state.dout, "AUX PCM DOUT");
 	if (rc < 0) {
 		pr_err("%s: GPIO request for AUX PCM DOUT failed\n", __func__);
@@ -88,17 +100,32 @@ static int aux_pcm_gpios_request(void)
 		gpio_free(the_aux_pcm_state.syncout);
 		return rc;
 	}
+#endif
 
+	pr_debug("%s\n", __func__);
 	return rc;
 }
 
 static void aux_pcm_gpios_free(void)
 {
-	pr_debug("%s\n", __func__);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	uint32_t bt_config_gpio[] = {
+		GPIO_CFG(the_aux_pcm_state.dout, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.din, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.syncout, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+		GPIO_CFG(the_aux_pcm_state.clkin_a, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA),
+	};
+	gpio_tlmm_config(bt_config_gpio[0], GPIO_CFG_DISABLE);
+	gpio_tlmm_config(bt_config_gpio[1], GPIO_CFG_DISABLE);
+	gpio_tlmm_config(bt_config_gpio[2], GPIO_CFG_DISABLE);
+	gpio_tlmm_config(bt_config_gpio[3], GPIO_CFG_DISABLE);
+#else
 	gpio_free(the_aux_pcm_state.dout);
 	gpio_free(the_aux_pcm_state.din);
 	gpio_free(the_aux_pcm_state.syncout);
 	gpio_free(the_aux_pcm_state.clkin_a);
+#endif
+	pr_debug("%s\n", __func__);
 }
 
 static int get_aux_pcm_gpios(struct platform_device *pdev)
