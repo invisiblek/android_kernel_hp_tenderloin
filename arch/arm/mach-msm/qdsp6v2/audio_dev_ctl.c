@@ -48,6 +48,11 @@ struct audio_dev_ctrl_state {
 static struct audio_dev_ctrl_state audio_dev_ctrl;
 struct event_listner event;
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+static int voc_rx_freq = 0;
+static int voc_tx_freq = 0;
+#endif
+
 struct session_freq {
 	int freq;
 	int evt;
@@ -68,6 +73,9 @@ struct audio_routing_info {
 	int tx_mute;
 	int rx_mute;
 	int voice_state;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	int call_state;
+#endif
 	struct mutex copp_list_mutex;
 	struct mutex adm_mutex;
 };
@@ -251,6 +259,15 @@ int msm_get_voice_state(void)
 	return routing_info.voice_state;
 }
 EXPORT_SYMBOL(msm_get_voice_state);
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+int msm_get_call_state(void)
+{
+	pr_debug("call state %d\n", routing_info.call_state);
+	return routing_info.call_state;
+}
+EXPORT_SYMBOL(msm_get_call_state);
+#endif
 
 int msm_set_voice_mute(int dir, int mute, u32 session_id)
 {
@@ -652,11 +669,27 @@ EXPORT_SYMBOL(msm_snddev_get_enc_freq);
 
 int msm_get_voc_freq(int *tx_freq, int *rx_freq)
 {
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	*tx_freq = (0 == voc_tx_freq ? routing_info.voice_tx_sample_rate
+				: voc_tx_freq);
+	*rx_freq = (0 == voc_rx_freq ? routing_info.voice_rx_sample_rate
+				: voc_rx_freq);
+#else
 	*tx_freq = routing_info.voice_tx_sample_rate;
 	*rx_freq = routing_info.voice_rx_sample_rate;
+#endif
 	return 0;
 }
 EXPORT_SYMBOL(msm_get_voc_freq);
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+void msm_set_voc_freq(int tx_freq, int rx_freq)
+{
+	voc_tx_freq = tx_freq;
+	voc_rx_freq = rx_freq;
+}
+EXPORT_SYMBOL(msm_set_voc_freq);
+#endif
 
 int msm_get_voc_route(u32 *rx_id, u32 *tx_id)
 {
@@ -1405,6 +1438,13 @@ void broadcast_event(u32 evt_id, u32 dev_id, u64 session_id)
 		clnt_id = callback->clnt_id;
 		memset(evt_payload, 0, sizeof(union auddev_evt_data));
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+		if (evt_id == AUDDEV_EVT_START_VOICE)
+			routing_info.call_state = 1;
+		if (evt_id == AUDDEV_EVT_END_VOICE)
+			routing_info.call_state = 0;
+#endif
+
 		if ((evt_id == AUDDEV_EVT_START_VOICE)
 			|| (evt_id == AUDDEV_EVT_END_VOICE)
 			|| evt_id == AUDDEV_EVT_DEVICE_VOL_MUTE_CHG)
@@ -1710,6 +1750,9 @@ static int __init audio_dev_ctrl_init(void)
 	audio_dev_ctrl.voice_tx_dev = NULL;
 	audio_dev_ctrl.voice_rx_dev = NULL;
 	routing_info.voice_state = VOICE_STATE_INVALID;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	routing_info.call_state = 0;
+#endif
 
 	mutex_init(&adm_tx_topology_tbl.lock);
 	mutex_init(&routing_info.copp_list_mutex);
