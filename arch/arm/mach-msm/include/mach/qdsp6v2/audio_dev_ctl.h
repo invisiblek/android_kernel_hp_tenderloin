@@ -106,6 +106,10 @@ void msm_release_voc_thread(void);
 
 int snddev_voice_set_volume(int vol, int path);
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+int msm_get_call_state(void);
+#endif
+
 struct auddev_evt_voc_devinfo {
 	u32 dev_type; /* Rx or Tx */
 	u32 acdb_dev_id; /* acdb id of device */
@@ -218,4 +222,7 @@ int msm_get_voice_state(void);
 int msm_enable_incall_recording(int popp_id, int rec_mode, int rate,
 				int channel_mode);
 int msm_disable_incall_recording(uint32_t popp_id, uint32_t rec_mode);
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+void msm_set_voc_freq(int tx_freq, int rx_freq);
+#endif
 #endif
