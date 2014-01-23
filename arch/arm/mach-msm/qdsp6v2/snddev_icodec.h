@@ -14,6 +14,7 @@
 #define __MACH_QDSP6V2_SNDDEV_ICODEC_H
 #include <linux/mfd/msm-adie-codec.h>
 #include <mach/qdsp6v2/audio_def.h>
+#include <linux/spi_aic3254.h>
 #include <mach/pmic.h>
 
 struct snddev_icodec_data {
@@ -80,6 +81,7 @@ struct aic3254_info {
 int update_aic3254_info(struct aic3254_info *info);
 void htc_8x60_register_analog_ops(struct q6v2audio_analog_ops *ops);
 void htc_8x60_register_icodec_ops(struct q6v2audio_icodec_ops *ops);
+void htc_8x60_register_aic3254_ops(struct q6v2audio_aic3254_ops *ops);
 #endif
 
 #endif
