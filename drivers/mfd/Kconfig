@@ -959,6 +959,15 @@ config MFD_TPS65090
 	  additional drivers must be enabled in order to use the
 	  functionality of the device.
 
+config MFD_TPS65200
+        tristate "tps65200 Driver"
+        depends on I2C
+        help
+         TPS65200 Switch charger implemented by HTC.
+         This could enable battery driver to set
+         Charging current 100mA~500mA or 500mA~1000mA
+         by GPIO or Register
+
 config MFD_AAT2870_CORE
 	bool "Support for the AnalogicTech AAT2870"
 	select MFD_CORE
