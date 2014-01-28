@@ -336,6 +336,7 @@ int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 					((pll_divider_config.dsi_clk_divider)
 					* (mnd_entry->pclk_n)));
 	}
+        *expected_dsi_pclk *= 2;
 	return 0;
 }
 
