@@ -1014,6 +1014,11 @@ config TOUCHSCREEN_ATMEL_224E
 	help
 	  This enables support for Atmel over I2C based touchscreens.
 
+config TOUCHSCREEN_CYPRESS_TMA
+        tristate "Cypress TMA300 based touchscreens"
+        depends on I2C
+        default n
+
 config TOUCHSCREEN_CYPRESS_CS
 	tristate "Cypress CY8C20x34 based touchkey"
 	depends on I2C
