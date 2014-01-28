@@ -779,6 +779,7 @@ static ssize_t htc_battery_show_property(struct device *dev,
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery_core_info.rep.overload);
 		break;
+#ifndef CONFIG_HTC_BATT_8x60
 	case PJ_EXIST:
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery_core_info.rep.pj_src);
@@ -802,6 +803,7 @@ static ssize_t htc_battery_show_property(struct device *dev,
 		i += scnprintf(buf + i, PAGE_SIZE - i, "%d\n",
 				battery_core_info.rep.pj_level);
 		break;
+#endif
 	default:
 		i = -EINVAL;
 	}
@@ -955,10 +957,14 @@ int htc_battery_core_update_changed(void)
 		((battery_core_info.rep.level != new_batt_info_rep.level) ||
 		(battery_core_info.rep.batt_vol != new_batt_info_rep.batt_vol) ||
 		(battery_core_info.rep.over_vchg != new_batt_info_rep.over_vchg) ||
-		(battery_core_info.rep.batt_temp != new_batt_info_rep.batt_temp) ||
+                 (battery_core_info.rep.batt_temp != new_batt_info_rep.batt_temp)
+#ifndef CONFIG_HTC_BATT_8x60
+                 ||
 		(battery_core_info.rep.pj_full!= new_batt_info_rep.pj_full) ||
 		(battery_core_info.rep.pj_src!= new_batt_info_rep.pj_src) ||
-		(battery_core_info.rep.pj_chg_status!= new_batt_info_rep.pj_chg_status))) {
+                 (battery_core_info.rep.pj_chg_status!= new_batt_info_rep.pj_chg_status)
+#endif
+            )) {
 		is_send_batt_uevent = 1;
 	}
 
@@ -1062,8 +1068,13 @@ int htc_battery_core_update_changed(void)
 			battery_core_info.rep.batt_current,
 			battery_core_info.rep.charging_source,
 			battery_core_info.rep.charging_enabled,
+#ifndef CONFIG_HTC_BATT_8x60
 			battery_core_info.rep.pj_src,
 			battery_core_info.rep.pj_level,
+#else
+                 0,
+                 0,
+#endif
 			battery_core_info.rep.full_bat,
 			battery_core_info.rep.over_vchg,
 			battery_core_info.rep.batt_state,
@@ -1176,7 +1187,9 @@ int htc_battery_core_register(struct device *dev,
 	battery_core_info.rep.level_raw = 0;
 	battery_core_info.rep.full_bat = 1580000;
 	battery_core_info.rep.full_level = 100;
+#ifndef CONFIG_HTC_BATT_8x60
 	battery_core_info.rep.full_level_dis_batt_chg = 100;
+#endif
 	
 	battery_core_info.rep.temp_fault = -1;
 	

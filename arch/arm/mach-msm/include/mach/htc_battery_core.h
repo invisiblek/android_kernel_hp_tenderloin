@@ -64,6 +64,25 @@ enum htc_batt_rt_attr {
 	HTC_PJ_RT_VOLTAGE,
 };
 
+#ifdef CONFIG_HTC_BATT_8x60
+struct battery_info_reply {
+	u32 batt_vol;
+	u32 batt_id;
+	s32 batt_temp;
+	s32 batt_current;
+	u32 batt_discharg_current;
+	u32 level;
+	u32 level_raw;
+	u32 charging_source;
+	u32 charging_enabled;
+	u32 full_bat;
+	u32 full_level;
+	u32 over_vchg;
+	s32 temp_fault;
+	u32 batt_state;
+	u32 overload;
+};
+#else
 struct battery_info_reply {
 	u32 batt_vol;
 	u32 pj_vol;
@@ -87,6 +106,23 @@ struct battery_info_reply {
 	s32 temp_fault;
 	u32 batt_state;
 	u32 overload;
+};
+#endif
+
+struct battery_info_reply_compat {
+	u32 batt_vol;
+	u32 batt_id;
+	s32 batt_temp;
+	s32 batt_current;
+	u32 batt_discharg_current;
+	u32 level;
+	u32 charging_source;
+	u32 charging_enabled;
+	u32 full_bat;
+	u32 full_level;
+	u32 over_vchg;
+	s32 temp_fault;
+	u32 batt_state;
 };
 
 struct htc_battery_core {
