@@ -241,6 +241,23 @@ bail:
 }
 EXPORT_SYMBOL(pm8xxx_batt_alarm_disable);
 
+int pm8xxx_batt_alarm_state_set(int enable_lower_comparator,
+				int enable_upper_comparator)
+{
+	if (enable_lower_comparator)
+		pm8xxx_batt_alarm_enable(PM8XXX_BATT_ALARM_LOWER_COMPARATOR);
+	else
+		pm8xxx_batt_alarm_disable(PM8XXX_BATT_ALARM_LOWER_COMPARATOR);
+
+	if (enable_upper_comparator)
+		pm8xxx_batt_alarm_enable(PM8XXX_BATT_ALARM_UPPER_COMPARATOR);
+	else
+		pm8xxx_batt_alarm_disable(PM8XXX_BATT_ALARM_UPPER_COMPARATOR);
+
+	return 0;
+}
+EXPORT_SYMBOL(pm8xxx_batt_alarm_state_set);
+
 /**
  * pm8xxx_batt_alarm_threshold_set - set the lower and upper alarm thresholds
  * @comparator:		selects which comparator to set the threshold of
