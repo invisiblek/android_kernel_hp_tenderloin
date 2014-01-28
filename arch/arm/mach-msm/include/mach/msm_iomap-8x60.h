@@ -134,8 +134,15 @@
 #define MSM_DEBUG_UART_PHYS	0x19C40000
 #endif
 
+#if defined(CONFIG_MACH_HTC)
+#define MSM_HTC_RAM_CONSOLE_PHYS	0x40300000
+#define MSM_HTC_RAM_CONSOLE_SIZE	(SZ_1M - SZ_128K)
+#endif
+
 #ifndef __ASSEMBLY__
 extern void msm_map_msm8x60_io(void);
 #endif
+
+#define MSM_SHARED_RAM_PHYS		0x40000000
 
 #endif

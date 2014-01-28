@@ -34,7 +34,11 @@ initrd_phys-$(CONFIG_ARCH_QSD8X50)	:= 0x24000000
 endif
 
 # MSM8x60
+ifeq ($(CONFIG_MACH_HTC),y)
+   zreladdr-$(CONFIG_ARCH_MSM8X60)	:= 0x48008000
+else
    zreladdr-$(CONFIG_ARCH_MSM8X60)	:= 0x40208000
+endif
 
 # MSM8960
 ifeq ($(CONFIG_MACH_HTC),y)
