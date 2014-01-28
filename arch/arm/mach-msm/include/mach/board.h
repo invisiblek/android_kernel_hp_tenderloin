@@ -244,7 +244,7 @@ struct msm_camera_sensor_platform_info {
 	struct msm_camera_gpio_conf *gpio_conf;
 	struct msm_camera_i2c_conf *i2c_conf;
 	struct msm_camera_csi_lane_params *csi_lane_params;
-#ifdef CONFIG_MACH_HTC
+#if defined(CONFIG_MACH_HTC) && defined(CONFIG_MSM_CAMERA)
 	int sensor_reset_enable;
 	int sensor_pwd;
 	int vcm_pwd;
@@ -321,7 +321,7 @@ struct msm_camera_sensor_info {
 	struct msm_actuator_info *actuator_info;
 	int pmic_gpio_enable;
 	struct msm_eeprom_info *eeprom_info;
-#ifdef CONFIG_MACH_HTC
+#if defined(CONFIG_MACH_HTC) && defined(CONFIG_MSM_CAMERA)
 	struct msm_camera_csi_params csi_params;
 	uint16_t num_actuator_info_table;
 	struct msm_actuator_info **actuator_info_table;
