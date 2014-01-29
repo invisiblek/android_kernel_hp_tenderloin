@@ -722,6 +722,18 @@ config INPUT_CAPELLA_CM3629
 	  Say Y here to enable the CM3629 short distance proximity
 	  sensor with ambient light sensor.
 
+config INPUT_ISL29028
+	tristate "ISL29028 proximity and light sensor"
+	help
+	  Say Y here to enable the ISL29028 Short Distance Proximity
+	  Sensor with Ambient Light Sensor.
+
+config INPUT_ISL29029
+	tristate "ISL29029 proximity and light sensor"
+	help
+	 Say Y here to enable the ISL29029 Short Distance Proximity
+	 Sensor with Ambient Light Sensor.
+
 config SENSORS_R3GD20
 	tristate "ST R3GD20 3-axis gyroscope"
 	depends on I2C
