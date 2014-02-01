@@ -2628,6 +2628,7 @@ CONFIG_USB_HID=y
 #
 # Special HID drivers
 #
+CONFIG_HID_GENERIC=y
 CONFIG_HID_A4TECH=y
 # CONFIG_HID_ACRUX is not set
 # CONFIG_HID_APPLE is not set
