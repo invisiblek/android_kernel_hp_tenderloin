@@ -25,3 +25,6 @@ obj-$(CONFIG_MACH_PYRAMID) += pyramid/
 
 # SHOOTER
 obj-$(CONFIG_MACH_SHOOTER) += shooter/
+
+# RUBY
+obj-$(CONFIG_MACH_RUBY) += ruby/

@@ -1,0 +1,12 @@
+obj-$(CONFIG_MACH_RUBY) += board-ruby.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-gpiomux.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-mdm.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-keypad.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-mmc.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-storage.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-wifi.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-regulator.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-pmic.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-audio.o
+obj-$(CONFIG_MACH_RUBY) += board-ruby-rfkill.o
+obj-$(CONFIG_MACH_RUBY) += display/
