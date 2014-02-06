@@ -106,7 +106,7 @@
 #define SHOOTER_TP_I2C_SDA           (51)
 #define SHOOTER_TP_I2C_SCL           (52)
 #define SHOOTER_TP_ATT_N             (65)
-#define SHOOTER_TP_ATT_N_XB       (50)
+#define SHOOTER_TP_ATT_N_XC          (57)
 
 /* LCD */
 #define GPIO_LCD_TE	28
