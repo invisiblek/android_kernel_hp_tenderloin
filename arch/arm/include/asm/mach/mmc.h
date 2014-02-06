@@ -174,6 +174,9 @@ struct mmc_platform_data {
 	struct msm_mmc_bus_voting_data *msm_bus_voting_data;
 	void (*board_probe)(int id, struct mmc_host *);
 	void (*board_remove)(int id, struct mmc_host *);
+#ifdef CONFIG_MMC_TI_SDIO_ADAPT
+	bool is_ti_wifi;
+#endif
 };
 
 #endif

@@ -102,6 +102,33 @@ static struct mmc_command dummy52cmd = {
 	.data = NULL,
 	.mrq = &dummy52mrq,
 };
+
+#ifdef CONFIG_MMC_TI_SDIO_ADAPT
+struct platform_device *mmci_get_platform_device(void);
+struct mmc_host *mmci_get_mmc(void);
+
+typedef struct wlan_sdioDrv{
+	struct platform_device *pdev;
+	struct mmc_host *mmc;
+} wlan_sdioDrv_t;
+
+wlan_sdioDrv_t g_wlan_sdioDrv;
+
+struct platform_device *mmci_get_platform_device(void)
+{
+	printk("%s\n", __func__);
+	return g_wlan_sdioDrv.pdev;
+}
+EXPORT_SYMBOL(mmci_get_platform_device);
+
+struct mmc_host *mmci_get_mmc(void)
+{
+	printk("%s\n", __func__);
+	return g_wlan_sdioDrv.mmc;
+}
+EXPORT_SYMBOL(mmci_get_mmc);
+#endif
+
 /*
  * An array holding the Tuning pattern to compare with when
  * executing a tuning cycle.
@@ -6049,6 +6076,14 @@ msmsdcc_probe(struct platform_device *pdev)
 	} else if (!plat->status)
 		pr_err("%s: No card detect facilities available\n",
 		       mmc_hostname(mmc));
+
+#ifdef CONFIG_MMC_TI_SDIO_ADAPT
+	if (plat && plat->is_ti_wifi) {
+		pr_info("%s: Wi-Fi OS Router init\n", __func__);
+		g_wlan_sdioDrv.pdev = pdev;
+		g_wlan_sdioDrv.mmc = host->mmc;
+	}
+#endif
 
 	mmc_set_drvdata(pdev, mmc);
 

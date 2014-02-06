@@ -86,3 +86,9 @@ config MMC_BLOCK_TEST
 	  Currently used to test eMMC 4.5 features (packed commands, sanitize,
 	  BKOPs).
 
+config MMC_TI_SDIO_ADAPT
+	bool "Use TI SDIO driver to do EMAPI function"
+	help
+	  TI-1271 driver has its own SDIO driver. we use its SDIO drive
+	  to do EMAPI function.
+
