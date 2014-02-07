@@ -2196,12 +2196,14 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 
 #endif
 #endif
+#if 0
 	{
 		I2C_SURF | I2C_FFA,
 		MSM_GSBI5_QUP_I2C_BUS_ID,
 		msm_i2c_gsbi5_info,
 		ARRAY_SIZE(msm_i2c_gsbi5_info),
 	},
+#endif
 };
 #endif 
 
