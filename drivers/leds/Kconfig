@@ -601,4 +601,9 @@ config FLASHLIGHT_TPS61310
 	help
 	  Say Y here to enable the TI TPS61310 flashlight.
 
+config FLASHLIGHT_AAT
+	tristate "flashlight AAT1271/7"
+	help
+	  Say Y here to enable the AAT flashlight
+
 endif # NEW_LEDS

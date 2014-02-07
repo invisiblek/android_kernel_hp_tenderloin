@@ -55,6 +55,7 @@ enum flashlight_mode_flags {
 };
 
 #ifdef CONFIG_FLASHLIGHT_AAT
+#define AAT_FLT_DEV_NAME "FLASHLIGHT_AAT"
 struct flashlight_platform_data {
 	void (*gpio_init) (void);
 	uint32_t torch;
@@ -69,7 +70,6 @@ struct flashlight_platform_data {
 
 enum flashlight_chip{
 	AAT1271 = 0,
-	AAT3177,
 	AAT1277,
 };
 #endif
