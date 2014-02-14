@@ -292,7 +292,7 @@ static void adreno_perfcounter_start(struct adreno_device *adreno_dev)
  */
 
 int adreno_perfcounter_read_group(struct adreno_device *adreno_dev,
-	struct kgsl_perfcounter_read_group *reads, unsigned int count)
+	struct kgsl_perfcounter_read_group __user *reads, unsigned int count)
 {
 	struct adreno_perfcounters *counters = adreno_dev->gpudev->perfcounters;
 	struct adreno_perfcount_group *group;
@@ -312,12 +312,6 @@ int adreno_perfcounter_read_group(struct adreno_device *adreno_dev,
 	if (reads == NULL || count == 0 || count > 100)
 		return -EINVAL;
 
-	/* verify valid inputs group ids and countables */
-	for (i = 0; i < count; i++) {
-		if (reads[i].groupid >= counters->group_count)
-			return -EINVAL;
-	}
-
 	list = kmalloc(sizeof(struct kgsl_perfcounter_read_group) * count,
 			GFP_KERNEL);
 	if (!list)
@@ -331,7 +325,14 @@ int adreno_perfcounter_read_group(struct adreno_device *adreno_dev,
 
 	/* list iterator */
 	for (j = 0; j < count; j++) {
+
 		list[j].value = 0;
+
+		/* Verify that the group ID is within range */
+		if (list[j].groupid >= counters->group_count) {
+			ret = -EINVAL;
+			goto done;
+		}
 
 		group = &(counters->groups[list[j].groupid]);
 
@@ -3527,6 +3528,9 @@ unsigned int adreno_ft_detect(struct kgsl_device *device,
 				(kgsl_readtimestamp(device, context,
 				KGSL_TIMESTAMP_RETIRED) + 1),
 				curr_global_ts + 1);
+			kgsl_context_put(context);
+			context = NULL;
+			curr_context = NULL;
 			return 1;
 		}
 
@@ -3562,6 +3566,8 @@ unsigned int adreno_ft_detect(struct kgsl_device *device,
 						curr_context->ib_gpu_time_used =
 								0;
 						kgsl_context_put(context);
+						context = NULL;
+						curr_context = NULL;
 						return 1;
 					}
 				}

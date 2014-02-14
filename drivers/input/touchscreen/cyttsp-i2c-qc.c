@@ -947,7 +947,7 @@ static int cyttsp_debug_suspend_get(void *_data, u64 *val)
 DEFINE_SIMPLE_ATTRIBUTE(debug_suspend_fops, cyttsp_debug_suspend_get,
 			cyttsp_debug_suspend_set, "%lld\n");
 
-static void cyttsp_xy_handler(struct cyttsp *ts)
+static void cyttsp_xy_handler(struct cyttsp *ts, bool is_ready_to_suspend)
 {
 	u8 id, tilt, rev_x, rev_y;
 	u8 i, loc;
@@ -1085,6 +1085,9 @@ static void cyttsp_xy_handler(struct cyttsp *ts)
 			    g_xy_data.tt_stat);
 		}
 	}
+
+	if (is_ready_to_suspend)
+		cur_tch = CY_NTCH;
 
 	/* set tool size */
 	curr_tool_width = CY_SMALL_TOOL_WIDTH;
@@ -1891,7 +1894,7 @@ static void cyttsp_timer(unsigned long handle)
 	cyttsp_xdebug("TTSP Device timer event\n");
 
 	/* schedule motion signal handling */
-	cyttsp_xy_handler(ts);
+	cyttsp_xy_handler(ts, false);
 
 	return;
 }
@@ -1908,7 +1911,7 @@ static irqreturn_t cyttsp_irq(int irq, void *handle)
 
 	cyttsp_xdebug("%s: Got IRQ\n", CY_I2C_NAME);
 
-	cyttsp_xy_handler(ts);
+	cyttsp_xy_handler(ts, false);
 
 	return IRQ_HANDLED;
 }
@@ -3044,7 +3047,7 @@ static int cyttsp_suspend(struct device *dev)
 	else
 		disable_irq(ts->client->irq);
 
-	cyttsp_release_all(ts);
+	cyttsp_xy_handler(ts, true);
 
 	if (!(retval < CY_OK)) {
 		if (ts->platform_data->use_sleep &&

@@ -136,6 +136,221 @@ int msm_camera_flash_current_driver(
 	return rc;
 }
 
+static void flash_wq_function(struct work_struct *work)
+{
+	if (tps61310_client) {
+		i2c_client.client = tps61310_client;
+		i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+		msm_camera_i2c_write(&i2c_client, 0x01,
+				0x46, MSM_CAMERA_I2C_BYTE_DATA);
+	}
+	return;
+}
+
+void flash_timer_callback(unsigned long data)
+{
+	queue_work(flash_wq, (struct work_struct *)work );
+	mod_timer(&flash_timer, jiffies + msecs_to_jiffies(10000));
+}
+
+int msm_camera_flash_external(
+	struct msm_camera_sensor_flash_external *external,
+	unsigned led_state)
+{
+	int rc = 0;
+
+	switch (led_state) {
+
+	case MSM_CAMERA_LED_INIT:
+		if (external->flash_id == MAM_CAMERA_EXT_LED_FLASH_SC628A) {
+			if (!sc628a_client) {
+				rc = i2c_add_driver(&sc628a_i2c_driver);
+				if (rc < 0 || sc628a_client == NULL) {
+					pr_err("sc628a_i2c_driver add failed\n");
+					rc = -ENOTSUPP;
+					return rc;
+				}
+			}
+		} else if (external->flash_id ==
+			MAM_CAMERA_EXT_LED_FLASH_TPS61310) {
+			if (!tps61310_client) {
+				rc = i2c_add_driver(&tps61310_i2c_driver);
+				if (rc < 0 || tps61310_client == NULL) {
+					pr_err("tps61310_i2c_driver add failed\n");
+					rc = -ENOTSUPP;
+					return rc;
+				}
+			}
+		} else {
+			pr_err("Flash id not supported\n");
+			rc = -ENOTSUPP;
+			return rc;
+		}
+
+#if defined(CONFIG_GPIO_SX150X) || defined(CONFIG_GPIO_SX150X_MODULE)
+		if (external->expander_info && !sx150x_client) {
+			struct i2c_adapter *adapter =
+			i2c_get_adapter(external->expander_info->bus_id);
+			if (adapter)
+				sx150x_client = i2c_new_device(adapter,
+					external->expander_info->board_info);
+			if (!sx150x_client || !adapter) {
+				pr_err("sx150x_client is not available\n");
+				rc = -ENOTSUPP;
+				if (sc628a_client) {
+					i2c_del_driver(&sc628a_i2c_driver);
+					sc628a_client = NULL;
+				}
+				if (tps61310_client) {
+					i2c_del_driver(&tps61310_i2c_driver);
+					tps61310_client = NULL;
+				}
+				return rc;
+			}
+			i2c_put_adapter(adapter);
+		}
+#endif
+		if (sc628a_client)
+			rc = gpio_request(external->led_en, "sc628a");
+		if (tps61310_client)
+			rc = gpio_request(external->led_en, "tps61310");
+
+		if (!rc) {
+			gpio_direction_output(external->led_en, 0);
+		} else {
+			goto error;
+		}
+
+		if (sc628a_client)
+			rc = gpio_request(external->led_flash_en, "sc628a");
+		if (tps61310_client)
+			rc = gpio_request(external->led_flash_en, "tps61310");
+
+		if (!rc) {
+			gpio_direction_output(external->led_flash_en, 0);
+			break;
+		}
+
+		if (sc628a_client || tps61310_client) {
+			gpio_set_value_cansleep(external->led_en, 0);
+			gpio_free(external->led_en);
+		}
+error:
+		pr_err("%s gpio request failed\n", __func__);
+		if (sc628a_client) {
+			i2c_del_driver(&sc628a_i2c_driver);
+			sc628a_client = NULL;
+		}
+		if (tps61310_client) {
+			i2c_del_driver(&tps61310_i2c_driver);
+			tps61310_client = NULL;
+		}
+		break;
+
+	case MSM_CAMERA_LED_RELEASE:
+		if (sc628a_client || tps61310_client) {
+			gpio_set_value_cansleep(external->led_en, 0);
+			gpio_free(external->led_en);
+			gpio_set_value_cansleep(external->led_flash_en, 0);
+			gpio_free(external->led_flash_en);
+			if (sc628a_client) {
+				i2c_del_driver(&sc628a_i2c_driver);
+				sc628a_client = NULL;
+			}
+			if (tps61310_client) {
+				if (timer_state) {
+					del_timer(&flash_timer);
+					kfree((void *)work);
+					timer_state = 0;
+				}
+				i2c_del_driver(&tps61310_i2c_driver);
+				tps61310_client = NULL;
+			}
+		}
+#if defined(CONFIG_GPIO_SX150X) || defined(CONFIG_GPIO_SX150X_MODULE)
+		if (external->expander_info && sx150x_client) {
+			i2c_unregister_device(sx150x_client);
+			sx150x_client = NULL;
+		}
+#endif
+		break;
+
+	case MSM_CAMERA_LED_OFF:
+		if (sc628a_client || tps61310_client) {
+			if (sc628a_client) {
+				i2c_client.client = sc628a_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x02,
+					0x00, MSM_CAMERA_I2C_BYTE_DATA);
+			}
+			if (tps61310_client) {
+				i2c_client.client = tps61310_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x01,
+					0x00, MSM_CAMERA_I2C_BYTE_DATA);
+				if (timer_state) {
+					del_timer(&flash_timer);
+					kfree((void *)work);
+					timer_state = 0;
+				}
+			}
+			gpio_set_value_cansleep(external->led_en, 0);
+			gpio_set_value_cansleep(external->led_flash_en, 0);
+		}
+		break;
+
+	case MSM_CAMERA_LED_LOW:
+		if (sc628a_client || tps61310_client) {
+			gpio_set_value_cansleep(external->led_en, 1);
+			gpio_set_value_cansleep(external->led_flash_en, 1);
+			usleep_range(2000, 3000);
+			if (sc628a_client) {
+				i2c_client.client = sc628a_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x02,
+					0x06, MSM_CAMERA_I2C_BYTE_DATA);
+			}
+			if (tps61310_client) {
+				i2c_client.client = tps61310_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x01,
+					0x46, MSM_CAMERA_I2C_BYTE_DATA);
+				flash_wq = alloc_workqueue("my_queue",WQ_MEM_RECLAIM,1);
+				work = (struct flash_work *)kmalloc(sizeof(struct flash_work), GFP_KERNEL);
+				INIT_WORK( (struct work_struct *)work, flash_wq_function );
+				setup_timer(&flash_timer, flash_timer_callback, 0);
+				mod_timer(&flash_timer, jiffies + msecs_to_jiffies(10000));
+				timer_state = 1;
+			}
+		}
+		break;
+
+	case MSM_CAMERA_LED_HIGH:
+		if (sc628a_client || tps61310_client) {
+			gpio_set_value_cansleep(external->led_en, 1);
+			gpio_set_value_cansleep(external->led_flash_en, 1);
+			usleep_range(2000, 3000);
+			if (sc628a_client) {
+				i2c_client.client = sc628a_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x02,
+					0x49, MSM_CAMERA_I2C_BYTE_DATA);
+			}
+			if (tps61310_client) {
+				i2c_client.client = tps61310_client;
+				i2c_client.addr_type = MSM_CAMERA_I2C_BYTE_ADDR;
+				rc = msm_camera_i2c_write(&i2c_client, 0x01,
+					0x8B, MSM_CAMERA_I2C_BYTE_DATA);
+			}
+		}
+		break;
+
+	default:
+		rc = -EFAULT;
+		break;
+	}
+	return rc;
+}
 
 static int msm_camera_flash_pwm(
 	struct msm_camera_sensor_flash_pwm *pwm,

@@ -1102,7 +1102,7 @@ static int msm_get_stats(struct msm_sync *sync, void __user *arg)
 	CDBG("%s: returned from wait: %d\n", __func__, rc);
 
 	rc = 0;
-
+        memset(&stats, 0, sizeof(stats));
 	qcmd = msm_dequeue(&sync->event_q, list_config);
 	if (!qcmd) {
 		/* Should be associated with wait_event

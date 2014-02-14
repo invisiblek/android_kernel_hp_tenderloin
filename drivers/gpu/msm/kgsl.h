@@ -192,6 +192,7 @@ struct kgsl_mem_entry {
 	struct kgsl_process_private *priv;
 	/* Initialized to 0, set to 1 when entry is marked for freeing */
 	int pending_free;
+	struct kgsl_device_private *dev_priv;
 };
 
 #ifdef CONFIG_MSM_KGSL_MMU_PAGE_FAULT
@@ -261,7 +262,7 @@ static inline int kgsl_gpuaddr_in_memdesc(const struct kgsl_memdesc *memdesc,
 		size = 1;
 
 	/* don't overflow */
-	if ((gpuaddr + size) < gpuaddr)
+	if (size > UINT_MAX - gpuaddr)
 		return 0;
 
 	if (gpuaddr >= memdesc->gpuaddr &&
