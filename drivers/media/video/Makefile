@@ -213,7 +213,7 @@ obj-$(CONFIG_VIDEO_IR_I2C)  += ir-kbd-i2c.o
 obj-y	+= davinci/
 
 obj-$(CONFIG_MSM_CAMERA) += msm/
-obj-$(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL) += msm/wfd/
+#obj-$(CONFIG_FB_MSM_WRITEBACK_MSM_PANEL) += msm/wfd/
 obj-$(CONFIG_ARCH_OMAP)	+= omap/
 #obj-$(CONFIG_MSM_VIDC) += msm_vidc/
 obj-$(CONFIG_VIDEO_NMI) += nmi/
