@@ -1142,12 +1142,28 @@ static struct snd_kcontrol_new snd_msm_secondary_controls[] = {
 			msm_voc_session_info, msm_voip_session_get, NULL, 0),
 };
 
+
 #if defined(CONFIG_MACH_TENDERLOIN)
+
+static int wm8994_en_pwr_amp(struct snd_soc_dapm_widget *w,
+	struct snd_kcontrol *k, int event)
+{
+	struct snd_soc_codec *codec = w->codec;
+
+	if( SND_SOC_DAPM_EVENT_ON(event) ){
+		snd_soc_write(codec, WM8994_GPIO_1, 0x41);
+	}
+	else{
+		snd_soc_write(codec, WM8994_GPIO_1, 0x1);
+	}
+	return 0;
+}
+
 static const struct snd_soc_dapm_widget tenderloin_dapm_widgets[] = {
 	SND_SOC_DAPM_HP("Headphone", NULL),
 	SND_SOC_DAPM_MIC("Headset Mic", NULL),
 	SND_SOC_DAPM_MIC("Internal Mic", NULL),
-        //	SND_SOC_DAPM_SPK("Speaker",wm8994_en_pwr_amp),
+	SND_SOC_DAPM_SPK("Speaker",wm8994_en_pwr_amp),
 };
 
 static struct snd_soc_dapm_route tenderloin_dapm_routes[] = {
@@ -1325,6 +1341,14 @@ static int msm_soc_dai_init(
         snd_soc_dapm_nc_pin(dapm, "IN1LN");
 
 #ifdef CONFIG_MACH_TENDERLOIN
+	snd_soc_dapm_new_controls(dapm, tenderloin_dapm_widgets,
+				ARRAY_SIZE(tenderloin_dapm_widgets));
+
+	snd_soc_dapm_add_routes(dapm, tenderloin_dapm_routes,
+				ARRAY_SIZE(tenderloin_dapm_routes));
+#endif
+
+#ifdef CONFIG_MACH_TENDERLOIN
         /* Headphone jack detection */
         // If we have the HeadSet uart (hs_uart) then we DONT want to detect headphones
         if ( hs_uart == 1 ) {
@@ -1365,7 +1389,7 @@ static int msm_soc_dai_init(
         return ret;
 }
 
-#if defined(CONFIG_MACH_TENDERLOIN)
+#ifdef CONFIG_MACH_TENDERLOIN
 
 static struct snd_soc_codec_conf wm8994_codec_conf[] = {
 	{
@@ -1504,10 +1528,6 @@ static struct snd_soc_card snd_soc_card_msm = {
 #if defined(CONFIG_MACH_TENDERLOIN)
 	.codec_conf = wm8994_codec_conf,
 	.num_configs = ARRAY_SIZE(wm8994_codec_conf),
-	.dapm_widgets = tenderloin_dapm_widgets,
-	.num_dapm_widgets = ARRAY_SIZE(tenderloin_dapm_widgets),
-	.dapm_routes = tenderloin_dapm_routes,
-	.num_dapm_routes = ARRAY_SIZE(tenderloin_dapm_routes),
 #endif
 };
 
