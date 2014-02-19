@@ -39,6 +39,44 @@
 #define WM_FW_BLOCK_A    0x08
 #define WM_FW_BLOCK_C    0x0c
 
+#ifdef CONFIG_MACH_TENDERLOIN
+static struct wm8958_enh_eq_cfg enh_eq_beats_cfg = { "Beats",
+													{ 	0x0020,//0x2200
+														0x0000,//0x2201
+														0x0040,//0x2202
+														0x0000,//0x2203
+														0x0000,//0x2204
+														0xCC75,//0x2205
+														0x007F,//0x2206
+														0x65A7,//0x2207
+														0x0030,//0x2208
+														0x0057,//0x2209
+														0x0009,//0x220a
+														0x5BB9,//0x220b
+														0x0064,//0x220c
+														0x90CD,//0x220d
+														0x001E,//0x220e
+														0x7BA4,//0x220f
+														0x000D,//0x2210
+														0x473B,//0x2211
+														0x00FE,//0x2212
+														0x4290,//0x2213
+														0x0014,//0x2214
+														0xCD7F,//0x2215
+														0x0000,//0x2216
+														0x0000,//0x2217
+														0x00EB,//0x2218
+														0x3281,//0x2219
+														0x00AA,//0x221a
+														0x9205,//0x221b
+														0x00E9,//0x221c
+														0x9AFE,//0x221d
+														0x000C,//0x221e
+														0x73D5,//0x221f
+													},
+												   };
+#endif
+
 static int wm8958_dsp2_fw(struct snd_soc_codec *codec, const char *name,
 			  const struct firmware *fw, bool check)
 {
@@ -310,12 +348,18 @@ static void wm8958_dsp_start_enh_eq(struct snd_soc_codec *codec, int path)
 
 	/* If we've got user supplied settings use them */
 	if (pdata && pdata->num_enh_eq_cfgs) {
+#ifndef CONFIG_MACH_TENDERLOIN
 		struct wm8958_enh_eq_cfg *cfg
 			= &pdata->enh_eq_cfgs[wm8994->enh_eq_cfg];
 
 		for (i = 0; i < ARRAY_SIZE(cfg->regs); i++)
 			snd_soc_write(codec, i + 0x2200,
 				      cfg->regs[i]);
+#else
+		struct wm8958_enh_eq_cfg *cfg = &enh_eq_beats_cfg;
+		for (i = 0; i < 32; i++)
+			snd_soc_write(codec, i + 0x2200, cfg->regs[i]);
+#endif
 	}
 
 	/* Run the DSP */
@@ -1038,6 +1082,10 @@ void wm8958_dsp2_init(struct snd_soc_codec *codec)
 				pdata->num_enh_eq_cfgs);
 			return;
 		}
+
+#ifdef CONFIG_MACH_TENDERLOIN
+		pdata->enh_eq_cfgs = &enh_eq_beats_cfg;
+#endif
 
 		for (i = 0; i < pdata->num_enh_eq_cfgs; i++)
 			wm8994->enh_eq_texts[i] = pdata->enh_eq_cfgs[i].name;

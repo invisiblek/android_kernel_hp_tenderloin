@@ -458,6 +458,8 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
 	codec_dai->active--;
 	codec->active--;
 
+	substream->prepared = 0;
+
 	/* clear the corresponding DAIs rate when inactive */
 	if (!cpu_dai->active)
 		cpu_dai->rate = 0;
@@ -492,6 +494,11 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
 	cpu_dai->runtime = NULL;
 
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+#ifdef CONFIG_MACH_TENDERLOIN
+		snd_soc_dapm_stream_event(rtd,
+			codec_dai->driver->playback.stream_name,
+			SND_SOC_DAPM_STREAM_STOP);
+#else
 		if (codec->ignore_pmdown_time ||
 		    rtd->dai_link->ignore_pmdown_time ||
 		    !rtd->pmdown_time) {
@@ -505,6 +512,7 @@ static int soc_pcm_close(struct snd_pcm_substream *substream)
 			schedule_delayed_work(&rtd->delayed_work,
 				msecs_to_jiffies(rtd->pmdown_time));
 		}
+#endif
 	} else {
 		/* capture streams can be powered down now */
 		if (!codec_dai->capture_active)
@@ -576,6 +584,7 @@ static int soc_pcm_prepare(struct snd_pcm_substream *substream)
 		cancel_delayed_work(&rtd->delayed_work);
 	}
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 		snd_soc_dapm_stream_event(rtd,
 					  codec_dai->driver->playback.stream_name,
@@ -586,6 +595,19 @@ static int soc_pcm_prepare(struct snd_pcm_substream *substream)
 					  codec_dai->driver->capture.stream_name,
 					  SND_SOC_DAPM_STREAM_START);
 	}
+#else
+	if (!substream->prepared) {
+		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
+			snd_soc_dapm_stream_event(rtd,
+						  codec_dai->driver->playback.stream_name,
+						  SND_SOC_DAPM_STREAM_START);
+		else
+			snd_soc_dapm_stream_event(rtd,
+						  codec_dai->driver->capture.stream_name,
+						  SND_SOC_DAPM_STREAM_START);
+		substream->prepared = 1;
+	}
+#endif
 	snd_soc_dai_digital_mute(codec_dai, 0);
 
 out:
@@ -616,7 +638,7 @@ static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 			goto out;
 		}
 	}
-
+#ifndef CONFIG_MACH_TENDERLOIN
 	if (codec_dai->driver->ops->hw_params) {
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
 			ret = codec_dai->driver->ops->hw_params(substream,
@@ -638,6 +660,7 @@ static int soc_pcm_hw_params(struct snd_pcm_substream *substream,
 			}
 		}
 	}
+#endif
 
 	if (cpu_dai->driver->ops->hw_params) {
 		ret = cpu_dai->driver->ops->hw_params(substream, params, cpu_dai);
@@ -686,13 +709,15 @@ platform_err:
 interface_err:
 	if (codec_dai->driver->ops->hw_free)
 		codec_dai->driver->ops->hw_free(substream, codec_dai);
-
+#ifndef CONFIG_MACH_TENDERLOIN
 codec_err:
 	if (rtd->dai_link->ops && rtd->dai_link->ops->hw_free)
 		rtd->dai_link->ops->hw_free(substream);
 
 	mutex_unlock(&rtd->pcm_mutex);
+#endif
 	return ret;
+
 }
 
 /*

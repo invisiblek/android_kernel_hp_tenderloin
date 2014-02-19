@@ -1478,7 +1478,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
 						| SND_SOC_DAIFMT_CBS_CFS,
 		.init   = msm_soc_dai_init,
-                .ops = &machine_ops,
+		.ops = &machine_ops,
 	},
 	{
 		.name = "Media Capture",
@@ -1489,7 +1489,7 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_name = "wm8994-codec",
 		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
 								| SND_SOC_DAIFMT_CBS_CFS,
-                //                .ops = &msm_aif_ops,
+		.ops = &machine_ops,
 	},
 };
 
