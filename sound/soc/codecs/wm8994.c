@@ -784,6 +784,9 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 			 struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
+#ifdef CONFIG_MACH_TENDERLOIN
+	struct wm8994 *control = codec->control_data;
+#endif
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
@@ -793,6 +796,13 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 		configure_clock(codec);
 		break;
 	}
+
+#if defined(CONFIG_MACH_TENDERLOIN) && 1
+	if (control->type == WM8958) {
+		/* We may also have postponed startup of DSP, handle that. */
+		wm8958_aif_ev(w, kcontrol, event);
+	}
+#endif
 
 	return 0;
 }
@@ -1407,9 +1417,20 @@ static int post_ev(struct snd_soc_dapm_widget *w,
 	    struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
+	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	dev_dbg(codec->dev, "SRC status: %x\n",
 		snd_soc_read(codec,
 			     WM8994_RATE_STATUS));
+
+	// Handle late enables for sequences like MICBIAS ...
+	if (wm8994->aif1clk_enable)
+		snd_soc_update_bits(codec, WM8994_AIF1_CLOCKING_1,
+				    WM8994_AIF1CLK_ENA_MASK,
+				    WM8994_AIF1CLK_ENA);
+	if (wm8994->aif2clk_enable)
+		snd_soc_update_bits(codec, WM8994_AIF2_CLOCKING_1,
+				    WM8994_AIF2CLK_ENA_MASK,
+				    WM8994_AIF2CLK_ENA);
 	return 0;
 }
 
@@ -2700,7 +2721,7 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	bclk_rate = params_rate(params) * 4;
+	bclk_rate = params_rate(params) * 2;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 		bclk_rate *= 16;
@@ -2765,12 +2786,22 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 	 */
 	best = 0;
 	for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
+#ifdef CONFIG_MACH_TENDERLOIN
+		if (bclk_divs[i] < 0) {
+			printk(KERN_WARNING "%s: bclk_divs[%d]<0\n", __func__, i);
+			continue;
+		}
+#endif
 		cur_val = (wm8994->aifclk[id] * 10 / bclk_divs[i]) - bclk_rate;
 		if (cur_val < 0) /* BCLK table is sorted */
 			break;
 		best = i;
 	}
+#if defined(CONFIG_MACH_TENDERLOIN)
+	bclk_rate = wm8994->aifclk[id] / bclk_divs[best];
+#else
 	bclk_rate = wm8994->aifclk[id] * 10 / bclk_divs[best];
+#endif
 	dev_dbg(dai->dev, "Using BCLK_DIV %d for actual BCLK %dHz\n",
 		bclk_divs[best], bclk_rate);
 	bclk |= best << WM8994_AIF1_BCLK_DIV_SHIFT;
@@ -3791,11 +3822,13 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	struct wm8994 *control = dev_get_drvdata(codec->dev->parent);
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
+	struct wm8994_pdata *pdata;
 	unsigned int reg;
 	int ret, i;
 
 	wm8994->codec = codec;
 	codec->control_data = control->regmap;
+	pdata = wm8994->pdata;
 
 	snd_soc_codec_set_cache_io(codec, 16, 16, SND_SOC_REGMAP);
 
@@ -4002,12 +4035,13 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	}
 
 	//pm_runtime_put(codec->dev);
-
+#ifdef CONFIG_MACH_TENDERLOIN
 	/* Latch volume update bits */
 	for (i = 0; i < ARRAY_SIZE(wm8994_vu_bits); i++)
 		snd_soc_update_bits(codec, wm8994_vu_bits[i].reg,
 				    wm8994_vu_bits[i].mask,
 				    wm8994_vu_bits[i].mask);
+#endif
 
 	/* Set the low bit of the 3D stereo depth so TLV matches */
 	snd_soc_update_bits(codec, WM8994_AIF1_DAC1_FILTERS_2,
@@ -4110,8 +4144,11 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 					  ARRAY_SIZE(wm8994_dac_widgets));
 		break;
 	}
-
+#ifdef CONFIG_MACH_TENDERLOIN
+	wm_hubs_add_analogue_routes(codec, pdata->lineout1_diff, pdata->lineout2_diff);
+#else
 	wm_hubs_add_analogue_routes(codec, 1, 1);
+#endif
 	snd_soc_dapm_add_routes(dapm, intercon, ARRAY_SIZE(intercon));
 
 
