@@ -1423,6 +1423,9 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 
 	pr_debug("Enter %s rate = %d\n", __func__, rate);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
+		rtd = snd_soc_get_pcm_runtime(codec_dai->card, "Media Playback");
+		codec_dai = rtd->codec_dai;
+
 		if (rx_hw_param_status)
 			return 0;
 		/* wm8903 run @ LRC*256 */
@@ -1431,15 +1434,16 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 		  pr_err("Failed to set DAI FLL to rate %d: ret %d\n", WM_FLL_MULT * bclk_rate, rc);
 		  return rc;
 		}
-		ret = snd_soc_dai_set_sysclk(codec_dai, WM8994_SYSCLK_FLL1, rate * 256,
+		ret = snd_soc_dai_set_sysclk(codec_dai, WM8994_SYSCLK_FLL1, fll_rate,
 						SND_SOC_CLOCK_IN);
-		snd_soc_dai_digital_mute(codec_dai, 0);
 		if (ret < 0) {
 			pr_err("can't set rx codec clk configuration\n");
 			return ret;
 		}
 		rx_hw_param_status++;
 	} else if (substream->stream == SNDRV_PCM_STREAM_CAPTURE) {
+		rtd = snd_soc_get_pcm_runtime(codec_dai->card, "Media Capture");
+		codec_dai = rtd->codec_dai;
 		if (tx_hw_param_status)
 			return 0;
 		rc = snd_soc_dai_set_pll(codec_dai, WM8994_FLL2, WM8994_FLL_SRC_BCLK, bclk_rate, fll_rate);
@@ -1447,7 +1451,7 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 		  pr_err("Failed to set DAI FLL to rate %d: ret %d\n", WM_FLL_MULT * bclk_rate, rc);
 		  return rc;
 		}
-		ret = snd_soc_dai_set_sysclk(codec_dai, WM8994_SYSCLK_FLL2, rate * 256,
+		ret = snd_soc_dai_set_sysclk(codec_dai, WM8994_SYSCLK_FLL2, fll_rate,
 						SND_SOC_CLOCK_IN);
 		if (ret < 0) {
 			pr_err("can't set tx codec clk configuration\n");
@@ -1456,7 +1460,7 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 		tx_hw_param_status++;
 	}
 
-        snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT - SNDRV_PCM_HW_PARAM_FIRST_MASK], SNDRV_PCM_FORMAT_S24_LE);
+        snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT - SNDRV_PCM_HW_PARAM_FIRST_MASK], SNDRV_PCM_FORMAT_S16_LE);
         return wm8994_hw_params(substream, params, codec_dai);
 }
 
