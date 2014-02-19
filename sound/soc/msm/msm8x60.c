@@ -1408,10 +1408,18 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
         int bclk_rate = 0;
 	int rc = 0;
 
-        bclk_rate = params_rate(params) * WM_CHANNELS * WM_BITS;
+	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_CBS_CFS |
+			SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF);
+
+		if (ret != 0) {
+			pr_err("Failed to set DAI format: %d\n", ret);
+			return ret;
+		}
+
+	bclk_rate = params_rate(params) * WM_CHANNELS * WM_BITS;
 	fll_rate = bclk_rate * WM_FLL_MULT;
-        if (fll_rate < WM_FLL_MIN_RATE)
-          fll_rate = WM_FLL_MIN_RATE;
+	if (fll_rate < WM_FLL_MIN_RATE)
+		fll_rate = WM_FLL_MIN_RATE;
 
 	pr_debug("Enter %s rate = %d\n", __func__, rate);
 	if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK) {
@@ -1475,8 +1483,6 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_dai_name = "wm8994-aif1",
 		.platform_name = "msm-dsp-audio.0",
 		.codec_name = "wm8994-codec",
-		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
-						| SND_SOC_DAIFMT_CBS_CFS,
 		.init   = msm_soc_dai_init,
 		.ops = &machine_ops,
 	},
@@ -1487,8 +1493,6 @@ static struct snd_soc_dai_link msm_dai[] = {
 		.codec_dai_name = "wm8994-aif2",
 		.platform_name = "msm-dsp-audio.0",
 		.codec_name = "wm8994-codec",
-		.dai_fmt = SND_SOC_DAIFMT_I2S | SND_SOC_DAIFMT_NB_NF
-								| SND_SOC_DAIFMT_CBS_CFS,
 		.ops = &machine_ops,
 	},
 };

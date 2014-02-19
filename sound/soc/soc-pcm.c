@@ -713,9 +713,9 @@ interface_err:
 codec_err:
 	if (rtd->dai_link->ops && rtd->dai_link->ops->hw_free)
 		rtd->dai_link->ops->hw_free(substream);
+#endif
 
 	mutex_unlock(&rtd->pcm_mutex);
-#endif
 	return ret;
 
 }
