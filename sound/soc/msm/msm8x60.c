@@ -1230,8 +1230,8 @@ static int msm_new_mixer(struct snd_soc_codec *codec)
 }
 
 #ifdef CONFIG_MACH_TENDERLOIN
-static int headphone_plugged = 0;
-static struct switch_dev *headphone_switch;
+int headphone_plugged = 0;
+struct switch_dev *headphone_switch;
 static struct snd_soc_jack hp_jack;
 static struct notifier_block jack_notifier;
 static struct snd_soc_jack_pin hp_jack_pins[] = {
