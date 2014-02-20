@@ -2533,6 +2533,42 @@ static struct i2c_board_info wm8903_codec_i2c_info[] = {
 };
 #endif
 
+static struct wm8958_enh_eq_cfg enh_eq_beats_cfg = { "Beats",
+											   		 { 	0x0020,//0x2200
+  												 	   	0x0000,//0x2201
+													   	0x0040,//0x2202
+														0x0000,//0x2203
+														0x0000,//0x2204
+														0xCC75,//0x2205
+														0x007F,//0x2206
+														0x65A7,//0x2207
+														0x0030,//0x2208
+														0x0057,//0x2209
+														0x0009,//0x220a
+														0x5BB9,//0x220b
+														0x0064,//0x220c
+														0x90CD,//0x220d
+														0x001E,//0x220e
+														0x7BA4,//0x220f
+														0x000D,//0x2210
+														0x473B,//0x2211
+														0x00FE,//0x2212
+														0x4290,//0x2213
+														0x0014,//0x2214
+														0xCD7F,//0x2215
+														0x0000,//0x2216
+														0x0000,//0x2217
+														0x00EB,//0x2218
+														0x3281,//0x2219
+														0x00AA,//0x221a
+														0x9205,//0x221b
+														0x00E9,//0x221c
+														0x9AFE,//0x221d
+														0x000C,//0x221e
+														0x73D5,//0x221f
+													},
+												   };
+
 #ifdef CONFIG_PMIC8901
 
 #define PM8901_GPIO_INT           91
@@ -2891,6 +2927,7 @@ static struct wm8994_pdata wm8958_pdata = {
 	 * Line outputs are not actually connected on the board.
 	 */
 	.num_enh_eq_cfgs = 1,
+	.enh_eq_cfgs = &enh_eq_beats_cfg,
 	.lineout1_diff = 1,
 	.lineout2_diff = 1,
 	.wm8994_setup = msm_wm8958_setup_power,

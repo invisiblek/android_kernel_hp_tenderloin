@@ -2410,7 +2410,7 @@ static int wm8994_set_bias_level(struct snd_soc_codec *codec,
 	struct wm8994 *control = wm8994->wm8994;
 
 	wm_hubs_set_bias_level(codec, level);
-	printk("FLINTMAN enter: %s\n", __FUNCTION__);
+
 	switch (level) {
 	case SND_SOC_BIAS_ON:
 		break;
