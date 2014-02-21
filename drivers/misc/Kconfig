@@ -739,6 +739,11 @@ config AMP_RT5501_DELAY
 	help
 	  RichTek RT5501 AMP Delay Workaround for pop noise of headset enable.
 
+config HRES_COUNTER
+	tristate "High resolution counter"
+	---help---
+	  Select Y if you want to enable High resolution counter.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
