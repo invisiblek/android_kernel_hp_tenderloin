@@ -760,6 +760,12 @@ config KERNEL_LOG
 	---help---
 		Select Y for support for keeping kernel logs in physical memory
 
+config HSUART
+	bool "High Speed UART engine"
+	default n
+	---help---
+	  Generic HSUART engine, which calls platform specific code to facilitate High speed UART driver".
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
