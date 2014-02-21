@@ -85,6 +85,7 @@ struct mdp_buf_type {
 struct mdp_table_entry {
 	uint32_t reg;
 	uint32_t val;
+	uint32_t mask;
 };
 
 extern struct mdp_ccs mdp_ccs_yuv2rgb ;
