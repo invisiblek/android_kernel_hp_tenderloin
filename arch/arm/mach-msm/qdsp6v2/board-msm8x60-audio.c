@@ -2684,6 +2684,13 @@ static struct platform_device *snd_devices_common[] __initdata = {
 	&msm_device_dspcrashd_8x60,
 };
 
+static struct platform_device *snd_devices_tenderloin[] __initdata = {
+	&msm_ispkr_stereo_device,
+	&msm_ispkr_mic_device,
+	&msm_bt_sco_earpiece_device,
+	&msm_bt_sco_mic_device,
+};
+
 #ifdef CONFIG_MSM8X60_FTM_AUDIO_DEVICES
 static struct platform_device *snd_devices_ftm[] __initdata = {
 	&ftm_headset_mono_rx_device,
@@ -2756,7 +2763,14 @@ void __init msm_snddev_init(void)
 
 		platform_add_devices(snd_devices_fluid,
 		ARRAY_SIZE(snd_devices_fluid));
+	} else if (machine_is_tenderloin()) {
+		for (i = 0; i < ARRAY_SIZE(snd_devices_tenderloin); i++)
+			snd_devices_tenderloin[i]->id = dev_id++;
+
+		platform_add_devices(snd_devices_tenderloin,
+		ARRAY_SIZE(snd_devices_tenderloin));
 	}
+
 	if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa()
 		|| machine_is_msm8x60_fusion()
 		|| machine_is_msm8x60_fusn_ffa()) {
