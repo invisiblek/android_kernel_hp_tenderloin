@@ -308,7 +308,7 @@ static int msm_pcm_capture_prepare(struct snd_pcm_substream *substream)
 		pr_debug("prtd->session_id = %d, copp_id= %d",
 			prtd->session_id,
 			session_route.capture_session[prtd->session_id][i]);
-		if (session_route.capture_session[prtd->session_id][i]
+		if (session_route.capture_session[substream->number][i]
 				!= DEVICE_IGNORE) {
 			if (i == PCM_RX)
 				dev_rate = 8000;
