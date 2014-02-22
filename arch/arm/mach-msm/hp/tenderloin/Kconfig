@@ -1,0 +1,9 @@
+config MACH_TENDERLOIN
+	depends on ARCH_MSM8X60
+	select MACH_HP
+	select SND_SOC_WM8994
+	select MSM_INSECURE_PIL_QDSP6V3
+        select REMOVE_SMI_2X_CLK
+	bool "HP Tenderloin"
+	help
+	  Support for the HTC TENDERLOIN device.
