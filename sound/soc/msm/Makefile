@@ -27,6 +27,9 @@ snd-soc-msm8x60-pcm-objs := msm8x60-pcm.o
 obj-$(CONFIG_SND_SOC_MSM8X60_PCM) += snd-soc-msm8x60-pcm.o
 
 snd-soc-msm8x60-objs := msm8x60.o
+ifeq ($(CONFIG_MACH_TENDERLOIN),y)
+snd-soc-msm8x60-objs += msm8x60-tenderloin.o
+endif
 obj-$(CONFIG_SND_SOC_MSM8X60) += snd-soc-msm8x60.o
 
 
