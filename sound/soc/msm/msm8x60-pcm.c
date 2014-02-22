@@ -746,6 +746,7 @@ static int msm_pcm_new(struct snd_soc_pcm_runtime *rtd)
 {
 	int ret = 0;
 	struct snd_card *card = rtd->card->snd_card;
+#ifndef CONFIG_MFD_WM8994
 	struct snd_pcm *pcm = rtd->pcm;
 
 	ret = snd_pcm_new_stream(pcm, SNDRV_PCM_STREAM_PLAYBACK, 2);
@@ -756,6 +757,7 @@ static int msm_pcm_new(struct snd_soc_pcm_runtime *rtd)
 		return ret;
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_PLAYBACK, &msm_pcm_ops);
 	snd_pcm_set_ops(pcm, SNDRV_PCM_STREAM_CAPTURE, &msm_pcm_ops);
+#endif
 
 	if (!card->dev->coherent_dma_mask)
 		card->dev->coherent_dma_mask = DMA_BIT_MASK(32);
