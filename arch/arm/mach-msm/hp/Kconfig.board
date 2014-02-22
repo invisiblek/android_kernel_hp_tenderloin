@@ -1,0 +1,7 @@
+#
+# Include the specific Kconfig file for HP board
+#
+
+config MACH_HP_DUMMY
+       depends on MACH_HP
+       bool "NONE (No device)"
