@@ -692,8 +692,13 @@ static struct snddev_icodec_data snddev_imic_data = {
 	.profile = &imic_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_amic_power,
 	.pamp_off = msm_snddev_disable_amic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_imic_device = {
@@ -743,8 +748,13 @@ static struct snddev_icodec_data snddev_ihs_stereo_rx_data = {
 	.profile = &headset_ab_cpls_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+#else
+	.voltage_on = NULL,
+	.voltage_off = NULL,
+#endif
 };
 
 static struct platform_device msm_headset_stereo_device = {
@@ -813,8 +823,13 @@ static struct snddev_icodec_data snddev_ispkr_stereo_data = {
 	.profile = &ispkr_stereo_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_poweramp_on,
 	.pamp_off = msm_snddev_poweramp_off,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_ispkr_stereo_device = {
@@ -847,8 +862,13 @@ static struct snddev_icodec_data snddev_ispkr_mic_data = {
 	.profile = &idmic_mono_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_ispkr_mic_device = {
@@ -895,8 +915,13 @@ static struct snddev_icodec_data snddev_imic_ffa_data = {
 	.profile = &idmic_mono_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_imic_ffa_device = {
@@ -929,8 +954,13 @@ static struct snddev_icodec_data snddev_dual_mic_endfire_data = {
 	.profile = &dual_mic_endfire_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_hs_dual_mic_endfire_device = {
@@ -945,8 +975,13 @@ static struct snddev_icodec_data snddev_dual_mic_spkr_endfire_data = {
 	.profile = &dual_mic_endfire_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_spkr_dual_mic_endfire_device = {
@@ -980,8 +1015,13 @@ static struct snddev_icodec_data snddev_hs_dual_mic_broadside_data = {
 	.profile = &dual_mic_broadside_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_sec_power,
 	.pamp_off = msm_snddev_disable_dmic_sec_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_hs_dual_mic_broadside_device = {
@@ -1213,10 +1253,17 @@ static struct snddev_icodec_data snddev_ihs_stereo_speaker_stereo_rx_data = {
 	.profile = &ihs_stereo_speaker_stereo_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_poweramp_on,
 	.pamp_off = msm_snddev_poweramp_off,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+	.voltage_on = NULL,
+	.voltage_off = NULL,
+#endif
 };
 
 static struct platform_device msm_ihs_stereo_speaker_stereo_rx_device = {
@@ -1308,8 +1355,13 @@ static struct snddev_icodec_data snddev_itty_mono_rx_data = {
 	.profile = &itty_mono_rx_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+#else
+	.voltage_on = NULL,
+	.voltage_off = NULL,
+#endif
 };
 
 static struct platform_device msm_itty_mono_rx_device = {
@@ -2497,8 +2549,13 @@ static void snddev_hsed_config_restore_setting(void)
 	icodec_data = (struct snddev_icodec_data *)device->dev.platform_data;
 
 	if (icodec_data) {
+#if defined(CONFIG_MARIMBA_CODEC)
 		icodec_data->voltage_on = msm_snddev_voltage_on;
 		icodec_data->voltage_off = msm_snddev_voltage_off;
+#else
+		icodec_data->voltage_on = NULL;
+		icodec_data->voltage_off = NULL;
+#endif
 		icodec_data->profile->settings = headset_ab_cpls_settings;
 		icodec_data->profile->setting_sz =
 			ARRAY_SIZE(headset_ab_cpls_settings);
@@ -2627,6 +2684,13 @@ static struct platform_device *snd_devices_common[] __initdata = {
 	&msm_device_dspcrashd_8x60,
 };
 
+static struct platform_device *snd_devices_tenderloin[] __initdata = {
+	&msm_ispkr_stereo_device,
+	&msm_ispkr_mic_device,
+	&msm_bt_sco_earpiece_device,
+	&msm_bt_sco_mic_device,
+};
+
 #ifdef CONFIG_MSM8X60_FTM_AUDIO_DEVICES
 static struct platform_device *snd_devices_ftm[] __initdata = {
 	&ftm_headset_mono_rx_device,
@@ -2699,7 +2763,14 @@ void __init msm_snddev_init(void)
 
 		platform_add_devices(snd_devices_fluid,
 		ARRAY_SIZE(snd_devices_fluid));
+	} else if (machine_is_tenderloin()) {
+		for (i = 0; i < ARRAY_SIZE(snd_devices_tenderloin); i++)
+			snd_devices_tenderloin[i]->id = dev_id++;
+
+		platform_add_devices(snd_devices_tenderloin,
+		ARRAY_SIZE(snd_devices_tenderloin));
 	}
+
 	if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa()
 		|| machine_is_msm8x60_fusion()
 		|| machine_is_msm8x60_fusn_ffa()) {

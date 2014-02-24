@@ -1,7 +1,7 @@
 ifdef CONFIG_ARCH_MSM8X60
 obj-y += audio_dev_ctl.o
 obj-y += board-msm8x60-audio.o
-obj-$(CONFIG_TIMPANI_CODEC) += snddev_icodec.o
+obj-y += snddev_icodec.o
 obj-y += snddev_ecodec.o snddev_mi2s.o snddev_virtual.o
 obj-y += pcm_out.o pcm_in.o fm.o
 obj-y += audio_lpa.o

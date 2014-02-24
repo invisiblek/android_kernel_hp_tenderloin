@@ -151,6 +151,7 @@ static int msm_snddev_tx_mclk_request(void)
 {
 	int rc = 0;
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	rc = gpio_request(the_msm_cdcclk_ctl_state.tx_mclk,
 		"MSM_SNDDEV_TX_MCLK");
 	if (rc < 0) {
@@ -158,6 +159,7 @@ static int msm_snddev_tx_mclk_request(void)
 		return rc;
 	}
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 1;
+#endif
 	return rc;
 }
 static void msm_snddev_rx_mclk_free(void)
@@ -189,6 +191,7 @@ static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 	the_msm_cdcclk_ctl_state.rx_mclk = res->start;
 	the_msm_cdcclk_ctl_state.rx_mclk_requested = 0;
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
 			"msm_snddev_tx_mclk");
 	if (!res) {
@@ -197,7 +200,7 @@ static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 	}
 	the_msm_cdcclk_ctl_state.tx_mclk = res->start;
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 0;
-
+#endif
 	return rc;
 }
 static int msm_cdcclk_ctl_probe(struct platform_device *pdev)
@@ -216,6 +219,7 @@ static struct platform_driver msm_cdcclk_ctl_driver = {
 	.driver = { .name = "msm_cdcclk_ctl"}
 };
 
+#if defined(CONFIG_MARIMBA_CODEC)
 static int snddev_icodec_open_lb(struct snddev_icodec_state *icodec)
 {
 	int trc;
@@ -249,6 +253,8 @@ static int snddev_icodec_open_lb(struct snddev_icodec_state *icodec)
 
 	return 0;
 }
+#endif
+
 static int initialize_msm_icodec_gpios(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -350,6 +356,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	if (icodec->data->voltage_on)
 		icodec->data->voltage_on();
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	/* Configure ADIE */
 	trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
 	if (IS_ERR_VALUE(trc))
@@ -357,6 +364,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	else
 		adie_codec_setpath(icodec->adie_path,
 					icodec->sample_rate, 256);
+#endif
 	/* OSR default to 256, can be changed for power optimization
 	 * If OSR is to be changed, need clock API for setting the divider
 	 */
@@ -384,6 +392,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	if (trc < 0)
 		pr_err("%s: afe open failed, trc = %d\n", __func__, trc);
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	/* Enable ADIE */
 	if (icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
@@ -396,6 +405,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 		adie_codec_set_master_mode(icodec->adie_path, 1);
 	else
 		adie_codec_set_master_mode(icodec->adie_path, 0);
+#endif
 
 	/* Enable power amplifier */
 	if (icodec->data->pamp_on) {
@@ -473,6 +483,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	clk_prepare_enable(drv->tx_bitclk);
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	/* Enable ADIE */
 	trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
 	if (IS_ERR_VALUE(trc))
@@ -480,6 +491,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	else
 		adie_codec_setpath(icodec->adie_path,
 					icodec->sample_rate, 256);
+#endif
 
 	switch (icodec->data->channel_mode) {
 	case 2:
@@ -501,6 +513,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	trc = afe_open(icodec->data->copp_id, &afe_config, icodec->sample_rate);
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	if (icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
 					ADIE_CODEC_DIGITAL_READY);
@@ -512,6 +525,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 		adie_codec_set_master_mode(icodec->adie_path, 1);
 	else
 		adie_codec_set_master_mode(icodec->adie_path, 0);
+#endif
 
 	icodec->enabled = 1;
 
@@ -529,6 +543,7 @@ error_pamp:
 	return -ENODEV;
 }
 
+#if defined(CONFIG_MARIMBA_CODEC)
 static int snddev_icodec_close_lb(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
@@ -552,6 +567,7 @@ static int snddev_icodec_close_lb(struct snddev_icodec_state *icodec)
 
 	return 0;
 }
+#endif
 
 static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 {
@@ -567,6 +583,7 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 	if (icodec->data->pamp_off)
 		icodec->data->pamp_off();
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	/* Disable ADIE */
 	if (icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
@@ -574,6 +591,7 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 		adie_codec_close(icodec->adie_path);
 		icodec->adie_path = NULL;
 	}
+#endif
 
 	afe_close(icodec->data->copp_id);
 
@@ -601,6 +619,7 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 0, SNDDEV_HIGH_POWER_MODE);
 
+#if defined(CONFIG_MARIMBA_CODEC)
 	/* Disable ADIE */
 	if (icodec->adie_path) {
 		adie_codec_proceed_stage(icodec->adie_path,
@@ -608,6 +627,7 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 		adie_codec_close(icodec->adie_path);
 		icodec->adie_path = NULL;
 	}
+#endif
 
 	afe_close(icodec->data->copp_id);
 
@@ -634,7 +654,7 @@ static int snddev_icodec_set_device_volume_impl(
 	int rc = 0;
 
 	icodec = dev_info->private_data;
-
+#if defined(CONFIG_MARIMBA_CODEC)
 	if (icodec->data->dev_vol_type & SNDDEV_DEV_VOL_DIGITAL) {
 
 		rc = adie_codec_set_device_digital_volume(icodec->adie_path,
@@ -659,7 +679,9 @@ static int snddev_icodec_set_device_volume_impl(
 		pr_err("%s: Invalid device volume control\n", __func__);
 		return -EPERM;
 	}
+#else
 	return rc;
+#endif
 }
 
 static int snddev_icodec_open(struct msm_snddev_info *dev_info)
@@ -699,6 +721,7 @@ static int snddev_icodec_open(struct msm_snddev_info *dev_info)
 					" error(rx) = %d\n", __func__, rc);
 		}
 		mutex_unlock(&drv->rx_lock);
+#if defined(CONFIG_MARIMBA_CODEC)
 	} else if (icodec->data->capability & SNDDEV_CAP_LB) {
 		mutex_lock(&drv->lb_lock);
 		rc = snddev_icodec_open_lb(icodec);
@@ -712,6 +735,7 @@ static int snddev_icodec_open(struct msm_snddev_info *dev_info)
 		}
 
 		mutex_unlock(&drv->lb_lock);
+#endif
 	} else {
 		mutex_lock(&drv->tx_lock);
 		if (drv->tx_active) {
@@ -767,10 +791,12 @@ static int snddev_icodec_close(struct msm_snddev_info *dev_info)
 		else
 			pr_err("%s: close rx failed, rc = %d\n", __func__, rc);
 		mutex_unlock(&drv->rx_lock);
+#if defined(CONFIG_MARIMBA_CODEC)
 	} else if (icodec->data->capability & SNDDEV_CAP_LB) {
 		mutex_lock(&drv->lb_lock);
 		rc = snddev_icodec_close_lb(icodec);
 		mutex_unlock(&drv->lb_lock);
+#endif
 	} else {
 		mutex_lock(&drv->tx_lock);
 		if (!drv->tx_active) {
@@ -791,6 +817,7 @@ error:
 	return rc;
 }
 
+#if defined(CONFIG_MARIMBA_CODEC)
 static int snddev_icodec_check_freq(u32 req_freq)
 {
 	int rc = -EINVAL;
@@ -808,6 +835,7 @@ static int snddev_icodec_check_freq(u32 req_freq)
 	}
 	return rc;
 }
+#endif
 
 static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 {
@@ -820,6 +848,8 @@ static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 	}
 
 	icodec = dev_info->private_data;
+
+#if defined(CONFIG_MARIMBA_CODEC)
 	if (adie_codec_freq_supported(icodec->data->profile, rate) != 0) {
 		pr_err("%s: adie_codec_freq_supported() failed\n", __func__);
 		rc = -EINVAL;
@@ -832,6 +862,7 @@ static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 		} else
 			icodec->sample_rate = rate;
 	}
+#endif
 
 	if (icodec->enabled) {
 		snddev_icodec_close(dev_info);
@@ -880,6 +911,8 @@ error:
 	return rc;
 
 }
+
+#if defined(CONFIG_MARIMBA_CODEC)
 static int snddev_icodec_enable_anc(struct msm_snddev_info *dev_info,
 	u32 enable)
 {
@@ -936,6 +969,7 @@ error:
 	return rc;
 
 }
+#endif
 
 int snddev_icodec_set_device_volume(struct msm_snddev_info *dev_info,
 		u32 volume)
@@ -1027,8 +1061,10 @@ static int snddev_icodec_probe(struct platform_device *pdev)
 		dev_info->dev_ops.enable_sidetone = NULL;
 
 	if (pdata->capability & SNDDEV_CAP_ANC) {
+#if defined(CONFIG_MARIMBA_CODEC)
 		dev_info->dev_ops.enable_anc =
 		snddev_icodec_enable_anc;
+#endif
 	} else {
 		dev_info->dev_ops.enable_anc = NULL;
 	}

@@ -33,13 +33,12 @@
 #include <linux/mutex.h>
 #include <linux/input-polldev.h>
 #include <linux/delay.h>
-#include <linux/module.h>
 
 #include <linux/slab.h>
 #include <linux/mm.h>
+#include <linux/module.h>
 
 #include <linux/i2c/lsm303dlh.h>
-
 
 /** Maximum polled-device-reported g value */
 #define H_MAX			8100
@@ -115,25 +114,11 @@ static const struct output_rate odr_table[] = {
 	{	1334,	LSM303DLH_MAG_ODR_75},
 };
 
-struct lsm303dlh_mag_data {
-	struct i2c_client *client;
-	struct lsm303dlh_mag_platform_data *pdata;
-
-	struct mutex lock;
-
-	struct input_polled_dev *input_poll_dev;
-
-	int hw_initialized;
-	atomic_t enabled;
-	atomic_t self_test_enabled;
-
-	u16 xy_sensitivity;
-	u16 z_sensitivity;
-
-	u8 resume_state[3];
-
-	u8 reg_addr;
-};
+/*
+ * Because i2c devices can not carry a pointer from driver register to
+ * open, we keep this global.  This limits the driver to a single instance.
+ */
+struct lsm303dlh_mag_data *lsm303dlh_mag_misc_data = NULL;
 
 static int lsm303dlh_mag_i2c_read(struct lsm303dlh_mag_data *mag,
 				  u8 *buf, int len)
@@ -264,7 +249,7 @@ int lsm303dlh_mag_update_h_range(struct lsm303dlh_mag_data *mag,
 		return -EINVAL;
 	}
 
-	if (atomic_read(&mag->enabled)) {
+	//if (atomic_read(&mag->enabled)) {
 
 		buf[0] = CRB_REG_M;
 		buf[1] = new_h_range;
@@ -272,7 +257,7 @@ int lsm303dlh_mag_update_h_range(struct lsm303dlh_mag_data *mag,
 		if (err < 0)
 			return err;
 		mag->resume_state[RES_CRB_REG_M] = new_h_range;
-	}
+	//}
 
 	return 0;
 }
@@ -292,15 +277,13 @@ int lsm303dlh_mag_update_odr(struct lsm303dlh_mag_data *mag,
 	config[1] = odr_table[i].mask;
 	config[1] |= NORMAL_MODE;
 
-	if (atomic_read(&mag->enabled)) {
+	//if (atomic_read(&mag->enabled)) {
 		config[0] = CRA_REG_M;
 		err = lsm303dlh_mag_i2c_write(mag, config, 1);
 		if (err < 0)
 			return err;
 		mag->resume_state[RES_CRA_REG_M] = config[1];
-	}
-
-
+	//}
 
 	return 0;
 }
@@ -497,17 +480,26 @@ static int lsm303dlh_mag_device_power_on(struct lsm303dlh_mag_data *mag)
 static int lsm303dlh_mag_enable(struct lsm303dlh_mag_data *mag)
 {
 	int err;
+	int cur_count;
 
-	if (!atomic_cmpxchg(&mag->enabled, 0, 1)) {
+	cur_count = atomic_read(&mag->enabled);
+	atomic_inc(&mag->enabled);
 
+	if (!cur_count) {
 		err = lsm303dlh_mag_device_power_on(mag);
 		if (err < 0) {
 			atomic_set(&mag->enabled, 0);
 			return err;
 		}
+	}
+	
+	if (!mag->ext_adap_enabled) {
 		schedule_delayed_work(&mag->input_poll_dev->work,
 				      msecs_to_jiffies(mag->
 						       pdata->poll_interval));
+	}
+	else {
+		cancel_delayed_work_sync(&mag->input_poll_dev->work);
 	}
 
 	return 0;
@@ -515,13 +507,58 @@ static int lsm303dlh_mag_enable(struct lsm303dlh_mag_data *mag)
 
 static int lsm303dlh_mag_disable(struct lsm303dlh_mag_data *mag)
 {
-	if (atomic_cmpxchg(&mag->enabled, 1, 0)) {
+	#define atomic_decrement_if_positive(v) atomic_add_unless((v), -1, 0) /* CHECKME */
+	int cur_count;
+
+	atomic_decrement_if_positive(&mag->enabled);
+	cur_count = atomic_read(&mag->enabled);
+
+	if (!cur_count) {
 		cancel_delayed_work_sync(&mag->input_poll_dev->work);
 		lsm303dlh_mag_device_power_off(mag);
+	}
+	else  {
+		//if enable mag from gyro request, we need to re-initial mag
+		if (!mag->ext_adap_enabled) {
+			lsm303dlh_mag_hw_init(mag);
+			schedule_delayed_work(&mag->input_poll_dev->work,
+				msecs_to_jiffies(mag->pdata->poll_interval));
+		}
 	}
 
 	return 0;
 }
+
+int lsm303dlh_mag_enable_ext(struct lsm303dlh_mag_data *mag)
+{
+	int err = 0;
+	if (!mag->ext_adap_enabled)
+	{
+		mag->ext_adap_enabled = 1;
+		err = lsm303dlh_mag_enable(mag);
+	}
+	return err;
+}
+EXPORT_SYMBOL(lsm303dlh_mag_enable_ext);
+
+int lsm303dlh_mag_disable_ext(struct lsm303dlh_mag_data *mag)
+{
+	int err=0;
+	if (mag->ext_adap_enabled)
+	{
+		mag->ext_adap_enabled = 0;
+		err = lsm303dlh_mag_disable(mag);
+	}
+	return err;
+}
+EXPORT_SYMBOL(lsm303dlh_mag_disable_ext);
+
+struct lsm303dlh_mag_data * lsm303dlh_mag_get_instance_ext(void)
+{
+	return lsm303dlh_mag_misc_data;
+}
+EXPORT_SYMBOL(lsm303dlh_mag_get_instance_ext);
+
 
 static ssize_t attr_get_polling_rate(struct device *dev,
 				     struct device_attribute *attr,
@@ -904,7 +941,7 @@ static int lsm303dlh_mag_probe(struct i2c_client *client,
 		goto err2;
 	}
 
-	atomic_set(&mag->enabled, 1);
+	//atomic_set(&mag->enabled, 1);
 
 	err = lsm303dlh_mag_update_h_range(mag, mag->pdata->h_range);
 	if (err < 0) {
@@ -922,6 +959,8 @@ static int lsm303dlh_mag_probe(struct i2c_client *client,
 	if (err < 0)
 		goto err3;
 
+	lsm303dlh_mag_misc_data = mag;
+
 	err = create_sysfs_interfaces(&client->dev);
 	if (err < 0) {
 		dev_err(&client->dev, "%s register failed\n",
@@ -931,7 +970,7 @@ static int lsm303dlh_mag_probe(struct i2c_client *client,
 
 	lsm303dlh_mag_device_power_off(mag);
 
-	atomic_set(&mag->enabled, 0);
+	//atomic_set(&mag->enabled, 0);
 
 	mutex_unlock(&mag->lock);
 
@@ -974,10 +1013,17 @@ static int lsm303dlh_mag_remove(struct i2c_client *client)
 static int lsm303dlh_mag_suspend(struct device *dev)
 {
 	#ifdef CONFIG_SUSPEND
+	struct i2c_client *client = to_i2c_client(dev);
+	struct lsm303dlh_mag_data *mag = i2c_get_clientdata(client);
 	#ifdef DEBUG
 	pr_info(KERN_INFO "lsm303dlh_suspend\n");
 	#endif
-	/* TO DO */
+
+	mag->on_before_suspend = atomic_read(&mag->enabled);
+
+	cancel_delayed_work_sync(&mag->input_poll_dev->work);
+	lsm303dlh_mag_device_power_off(mag);
+
 	#endif
 	return 0;
 }
@@ -985,10 +1031,26 @@ static int lsm303dlh_mag_suspend(struct device *dev)
 static int lsm303dlh_mag_resume(struct device *dev)
 {
 	#ifdef CONFIG_SUSPEND
+	struct i2c_client *client = to_i2c_client(dev);
+	struct lsm303dlh_mag_data *mag = i2c_get_clientdata(client);
+	int err;
 	#ifdef DEBUG
 	pr_info(KERN_INFO "lsm303dlh_resume\n");
 	#endif
-	/* TO DO */
+
+	if (mag->on_before_suspend) {
+		err = lsm303dlh_mag_device_power_on(mag);
+		if (err>=0) {
+			if (!mag->ext_adap_enabled) {
+				schedule_delayed_work(&mag->input_poll_dev->work,
+					msecs_to_jiffies(mag->pdata->poll_interval));
+			}
+			else {
+				cancel_delayed_work_sync(&mag->input_poll_dev->work);
+			}
+		}
+	}
+
 	#endif
 	return 0;
 }

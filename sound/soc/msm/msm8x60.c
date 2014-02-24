@@ -36,6 +36,7 @@
 #define LOOPBACK_DISABLE	0x0
 
 #include "msm8x60-pcm.h"
+#include "tenderloin.h"
 
 static struct platform_device *msm_audio_snd_device;
 struct audio_locks the_locks;
@@ -1147,6 +1148,9 @@ static int msm_new_mixer(struct snd_soc_codec *codec)
 	simple_control = ARRAY_SIZE(snd_msm_controls)
 			+ ARRAY_SIZE(snd_msm_secondary_controls);
 	device_index = simple_control + 1;
+#ifdef CONFIG_MACH_TENDERLOIN
+	device_index += 256;
+#endif
 	return 0;
 }
 
@@ -1166,6 +1170,8 @@ static int msm_soc_dai_init(
 	ret = msm_new_mixer(codec);
 	if (ret < 0)
 		pr_err("%s: ALSA MSM Mixer Fail\n", __func__);
+
+	tenderloin_soc_dai_init(rtd);
 
 	return ret;
 }
@@ -1206,6 +1212,7 @@ static int __init msm_audio_init(void)
 	if (!msm_audio_snd_device)
 		return -ENOMEM;
 
+	tenderloin_soc_card_fixup(&snd_soc_card_msm, msm_soc_dai_init);
 	platform_set_drvdata(msm_audio_snd_device, &snd_soc_card_msm);
 	ret = platform_device_add(msm_audio_snd_device);
 	if (ret) {

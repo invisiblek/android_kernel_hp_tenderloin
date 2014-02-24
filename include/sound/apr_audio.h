@@ -230,6 +230,9 @@ struct afe_port_mi2s_cfg {
 				/* 1, word select signal from internal source */
 	u16	format;	/* don't touch this field if it is not for */
 				/* AFE_PORT_CMD_I2S_CONFIG opcode */
+#ifdef CONFIG_MACH_TENDERLOIN
+	u32	reserved;
+#endif
 } __attribute__ ((packed));
 
 struct afe_port_hdmi_cfg {

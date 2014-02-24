@@ -1947,6 +1947,12 @@ config MSM_PIL_QDSP6V3
 	  Support for booting and shutting down QDSP6v3 processors (hexagon).
 	  The QDSP6 is a low power DSP used in audio software applications.
 
+config MSM_INSECURE_PIL_QDSP6V3
+	bool "Force QDSP6v3 PIL to insecure mode"
+	depends on MSM_PIL_QDSP6V3
+	help
+	  Force Riva PIL to use non-secure boot.
+
 config MSM_PIL_QDSP6V4
 	tristate "QDSP6v4 (Hexagon) Boot Support"
 	depends on MSM_PIL
