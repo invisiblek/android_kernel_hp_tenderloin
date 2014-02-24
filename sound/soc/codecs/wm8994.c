@@ -791,7 +791,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_codec *codec = w->codec;
 #ifdef CONFIG_MACH_TENDERLOIN
-	struct wm8994 *control = codec->control_data;
+	//struct wm8994 *control = codec->control_data;
 #endif
 
 	switch (event) {
@@ -803,7 +803,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 		break;
 	}
 
-#if defined(CONFIG_MACH_TENDERLOIN)
+#if defined(CONFIG_MACH_TENDERLOIN) && 0
 	if (control->type == WM8958) {
 		/* We may also have postponed startup of DSP, handle that. */
 		wm8958_aif_ev(w, kcontrol, event);
