@@ -1405,7 +1405,7 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 	struct snd_soc_dai *codec_dai = rtd->codec_dai;
 	int rate = params_rate(params), ret = 0;
 	int fll_rate = 0;
-        int bclk_rate = 0;
+	int bclk_rate = 0;
 	int rc = 0;
 
 	ret = snd_soc_dai_set_fmt(codec_dai, SND_SOC_DAIFMT_CBS_CFS |
@@ -1460,7 +1460,7 @@ static int msm8660_i2s_hw_params(struct snd_pcm_substream *substream,
 		tx_hw_param_status++;
 	}
 
-        snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT - SNDRV_PCM_HW_PARAM_FIRST_MASK], SNDRV_PCM_FORMAT_S16_LE);
+        snd_mask_set(&params->masks[SNDRV_PCM_HW_PARAM_FORMAT - SNDRV_PCM_HW_PARAM_FIRST_MASK], SNDRV_PCM_FORMAT_S24_LE);
         return wm8994_hw_params(substream, params, codec_dai);
 }
 

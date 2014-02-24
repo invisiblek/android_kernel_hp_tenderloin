@@ -791,7 +791,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_codec *codec = w->codec;
 #ifdef CONFIG_MACH_TENDERLOIN
-	struct wm8994 *control = codec->control_data;
+	//struct wm8994 *control = codec->control_data;
 #endif
 
 	switch (event) {
@@ -803,7 +803,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 		break;
 	}
 
-#if defined(CONFIG_MACH_TENDERLOIN) && 1
+#if defined(CONFIG_MACH_TENDERLOIN) && 0
 	if (control->type == WM8958) {
 		/* We may also have postponed startup of DSP, handle that. */
 		wm8958_aif_ev(w, kcontrol, event);
@@ -1780,14 +1780,17 @@ SND_SOC_DAPM_AIF_IN_E("AIF2DACR", NULL, 0,
 		      SND_SOC_NOPM, 12, 0, wm8958_aif_ev,
 		      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 
-/*SND_SOC_DAPM_AIF_IN("AIF1DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_AIF_IN("AIF2DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
-SND_SOC_DAPM_AIF_OUT("AIF2ADCDAT",  NULL, 0, SND_SOC_NOPM, 0, 0),*/
+#ifdef CONFIG_MACH_TENDERLOIN
 SND_SOC_DAPM_AIF_IN("AIF1DACDAT", "AIF1 Playback", 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_IN("AIF2DACDAT", "AIF2 Playback", 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", "AIF1 Capture", 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_OUT("AIF2ADCDAT", "AIF2 Capture", 0, SND_SOC_NOPM, 0, 0),
+#else
+SND_SOC_DAPM_AIF_IN("AIF1DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_IN("AIF2DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_OUT("AIF2ADCDAT",  NULL, 0, SND_SOC_NOPM, 0, 0),
+#endif
 
 
 SND_SOC_DAPM_MUX("AIF1DAC Mux", SND_SOC_NOPM, 0, 0, &aif1dac_mux),
@@ -1910,13 +1913,15 @@ static const struct snd_soc_dapm_route intercon[] = {
 
 	{ "TOCLK", NULL, "CLK_SYS" },
 
-	/*{ "AIF1DACDAT", NULL, "AIF1 Playback" },
+#ifndef CONFIG_MACH_TENDERLOIN
+	{ "AIF1DACDAT", NULL, "AIF1 Playback" },
 	{ "AIF2DACDAT", NULL, "AIF2 Playback" },
-	{ "AIF3DACDAT", NULL, "AIF3 Playback" },*/
+	{ "AIF3DACDAT", NULL, "AIF3 Playback" },
 
-	/*{ "AIF1 Capture", NULL, "AIF1ADCDAT" },
+	{ "AIF1 Capture", NULL, "AIF1ADCDAT" },
 	{ "AIF2 Capture", NULL, "AIF2ADCDAT" },
-	{ "AIF3 Capture", NULL, "AIF3ADCDAT" },*/
+	{ "AIF3 Capture", NULL, "AIF3ADCDAT" },
+#endif
 
 	/* AIF1 outputs */
 	{ "AIF1ADC1L", NULL, "AIF1ADC1L Mixer" },
@@ -2727,7 +2732,7 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	bclk_rate = params_rate(params) * 2;
+	bclk_rate = params_rate(params) * 4;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 		bclk_rate *= 16;
@@ -2792,22 +2797,13 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 	 */
 	best = 0;
 	for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
-#ifdef CONFIG_MACH_TENDERLOIN
-		if (bclk_divs[i] < 0) {
-			printk(KERN_WARNING "%s: bclk_divs[%d]<0\n", __func__, i);
-			continue;
-		}
-#endif
 		cur_val = (wm8994->aifclk[id] * 10 / bclk_divs[i]) - bclk_rate;
 		if (cur_val < 0) /* BCLK table is sorted */
 			break;
 		best = i;
 	}
-#if defined(CONFIG_MACH_TENDERLOIN)
-	bclk_rate = wm8994->aifclk[id] / bclk_divs[best];
-#else
 	bclk_rate = wm8994->aifclk[id] * 10 / bclk_divs[best];
-#endif
+
 	dev_dbg(dai->dev, "Using BCLK_DIV %d for actual BCLK %dHz\n",
 		bclk_divs[best], bclk_rate);
 	bclk |= best << WM8994_AIF1_BCLK_DIV_SHIFT;
