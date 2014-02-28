@@ -739,12 +739,6 @@ config AMP_RT5501_DELAY
 	help
 	  RichTek RT5501 AMP Delay Workaround for pop noise of headset enable.
 
-config AMP_TPA2051D3
-        tristate "TI TPA2051D3 Speaker AMP Driver"
-	depends on I2C=y
-        help
-         TI TPA2051D3 Speaker AMP Driver implemented by HTC.
-
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"

@@ -82,4 +82,3 @@ obj-$(CONFIG_SENSORS_NFC_PN544)	+= pn544.o
 obj-$(CONFIG_AMP_TFA9887)	+= tfa9887.o
 obj-$(CONFIG_AMP_TFA9887L)	+= tfa9887l.o
 obj-$(CONFIG_AMP_RT5501)	+= rt5501.o
-obj-$(CONFIG_AMP_TPA2051D3)     += tpa2051d3.o
