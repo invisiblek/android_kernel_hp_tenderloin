@@ -31,7 +31,7 @@
 #include "msm-pcm-routing.h"
 #include "../codecs/wcd9310.h"
 
-#include <mach/htc_acoustic_8960.h>
+#include <mach/htc_acoustic_8xxx.h>
 #include <linux/tfa9887.h>
 #include <linux/rt5501.h>
 #include <sound/q6asm.h>
