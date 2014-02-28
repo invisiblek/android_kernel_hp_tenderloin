@@ -32,6 +32,11 @@
 #include <mach/qdsp6v2/audio_dev_ctl.h>
 #include <mach/qdsp6v2/q6voice.h>
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#include <linux/mfd/msm-adie-codec.h>
+#include "../../../arch/arm/mach-msm/qdsp6v2/snddev_icodec.h"
+#endif
+
 #define LOOPBACK_ENABLE		0x1
 #define LOOPBACK_DISABLE	0x0
 
@@ -261,8 +266,21 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 	int set = ucontrol->value.integer.value[2];
 	u64 session_mask;
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	int i = 0, j = 0;
+	struct snddev_icodec_state *icodec;
+	struct adie_codec_hwsetting_entry *rx_entry;
+	struct adie_codec_hwsetting_entry *tx_entry;
+
+	pr_info("[ALSA] msm_route_voice: "
+		"tx %d, rx %d, set %d\n",
+		(int) ucontrol->value.integer.value[1],
+		(int) ucontrol->value.integer.value[0],
+		set);
+#else
 	if (!set)
 		return -EPERM;
+#endif
 	/* Rx Device Routing */
 	rx_dev_id = ucontrol->value.integer.value[0];
 	rx_dev_info = audio_dev_ctrl_find_dev(rx_dev_id);
@@ -280,6 +298,27 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 
 	pr_debug("%s:route cfg %d STREAM_VOICE_RX type\n",
 		__func__, rx_dev_id);
+
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (rx_dev_info->copp_id == PRIMARY_I2S_RX) {
+		icodec = (struct snddev_icodec_state *)rx_dev_info->private_data;
+		rx_entry = icodec->data->profile->settings;
+		j = icodec->data->profile->setting_sz;
+		if (set) {
+			for (i = 0; i < j; i++)
+				if (rx_entry[i].voc_action != NULL) {
+					rx_entry[i].actions = rx_entry[i].voc_action;
+					rx_entry[i].action_sz = rx_entry[i].voc_action_sz;
+			}
+		} else {
+			for (i = 0; i < j; i++)
+				if (rx_entry[i].midi_action != NULL) {
+					rx_entry[i].actions = rx_entry[i].midi_action;
+					rx_entry[i].action_sz = rx_entry[i].midi_action_sz;
+				}
+		}
+	}
+#endif
 
 	msm_set_voc_route(rx_dev_info, AUDIO_ROUTE_STREAM_VOICE_RX,
 				rx_dev_id);
@@ -308,16 +347,47 @@ static int msm_voice_put(struct snd_kcontrol *kcontrol,
 	pr_debug("%s:route cfg %d %d type\n",
 		__func__, tx_dev_id, AUDIO_ROUTE_STREAM_VOICE_TX);
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (tx_dev_info->copp_id == PRIMARY_I2S_TX) {
+		icodec = (struct snddev_icodec_state *)tx_dev_info->private_data;
+		tx_entry = icodec->data->profile->settings;
+		j = icodec->data->profile->setting_sz;
+		if (set) {
+			for (i = 0; i < j; i++)
+				if (tx_entry[i].voc_action != NULL) {
+					tx_entry[i].actions = tx_entry[i].voc_action;
+					tx_entry[i].action_sz = tx_entry[i].voc_action_sz;
+				}
+		} else {
+			for (i = 0; i < j; i++)
+				if (tx_entry[i].midi_action != NULL) {
+					tx_entry[i].actions = tx_entry[i].midi_action;
+					tx_entry[i].action_sz = tx_entry[i].midi_action_sz;
+				}
+		}
+	}
+#endif
+
 	msm_set_voc_route(tx_dev_info, AUDIO_ROUTE_STREAM_VOICE_TX,
 				tx_dev_id);
 
 	broadcast_event(AUDDEV_EVT_DEV_CHG_VOICE, tx_dev_id, session_mask);
 
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	if (set) {
+		if (rx_dev_info->opened)
+			broadcast_event(AUDDEV_EVT_DEV_RDY, rx_dev_id,	session_mask);
+
+		if (tx_dev_info->opened)
+			broadcast_event(AUDDEV_EVT_DEV_RDY, tx_dev_id, session_mask);
+	}
+#else
 	if (rx_dev_info->opened)
 		broadcast_event(AUDDEV_EVT_DEV_RDY, rx_dev_id,	session_mask);
 
 	if (tx_dev_info->opened)
 		broadcast_event(AUDDEV_EVT_DEV_RDY, tx_dev_id, session_mask);
+#endif
 
 	return rc;
 }
@@ -367,11 +437,18 @@ static int msm_device_put(struct snd_kcontrol *kcontrol,
 	if (set) {
 		if (!dev_info->opened) {
 			set_freq = dev_info->sample_rate;
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+			if (!msm_device_is_voice(route_cfg.dev_id) && msm_get_call_state()) {
+#else
 			if (!msm_device_is_voice(route_cfg.dev_id)) {
+#endif
 				msm_get_voc_freq(&tx_freq, &rx_freq);
 				if (dev_info->capability & SNDDEV_CAP_TX)
 					set_freq = tx_freq;
-
+#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+				if (dev_info->capability & SNDDEV_CAP_RX)
+					set_freq = rx_freq;
+#endif
 				if (set_freq == 0)
 					set_freq = dev_info->sample_rate;
 			} else
