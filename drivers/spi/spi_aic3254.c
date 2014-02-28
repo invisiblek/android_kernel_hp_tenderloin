@@ -27,7 +27,9 @@
 #include <linux/delay.h>
 #include <linux/clk.h>
 #include <linux/wakelock.h>
+#include <linux/pm_qos.h>
 #include <linux/rtc.h>
+#include <mach/cpuidle.h>
 
 static struct spi_device *codec_dev;
 static struct mutex lock;
@@ -47,7 +49,7 @@ struct ecodec_aic3254_state {
 	int enabled;
 	struct clk *rx_mclk;
 	struct clk *rx_sclk;
-	struct wake_lock idlelock;
+	struct pm_qos_request pm_qos_req;
 	struct wake_lock wakelock;
 };
 static struct ecodec_aic3254_state codec_clk;
@@ -335,8 +337,8 @@ static void aic3254_powerdown(void)
 	if (drv->enabled) {
 		/* Disable MI2S RX master block */
 		/* Disable MI2S RX bit clock */
-		clk_disable(drv->rx_sclk);
-		clk_disable(drv->rx_mclk);
+		clk_disable_unprepare(drv->rx_sclk);
+		clk_disable_unprepare(drv->rx_mclk);
 		drv->enabled = 0;
 		pr_info("[AUD] %s: disable CLK\n", __func__);
 	}
@@ -511,8 +513,8 @@ static int aic3254_set_config(int config_tbl, int idx, int en)
 	if (drv->enabled == 0) {
 		/* enable MI2S RX master block */
 		/* enable MI2S RX bit clock */
-		clk_enable(drv->rx_mclk);
-		clk_enable(drv->rx_sclk);
+		clk_prepare_enable(drv->rx_mclk);
+		clk_prepare_enable(drv->rx_sclk);
 		pr_info("[AUD] %s: enable CLK\n", __func__);
 		drv->enabled = 1;
 	}
@@ -972,14 +974,15 @@ static void spi_aic3254_prevent_sleep(void)
 	struct ecodec_aic3254_state *codec_drv = &codec_clk;
 
 	wake_lock(&codec_drv->wakelock);
-	wake_lock(&codec_drv->idlelock);
+	pm_qos_update_request(&codec_drv->pm_qos_req, PM_QOS_DEFAULT_VALUE);
 }
 
 static void spi_aic3254_allow_sleep(void)
 {
 	struct ecodec_aic3254_state *codec_drv = &codec_clk;
 
-	wake_unlock(&codec_drv->idlelock);
+	pm_qos_update_request(&codec_drv->pm_qos_req,
+			      msm_cpuidle_get_deep_idle_latency());
 	wake_unlock(&codec_drv->wakelock);
 }
 
@@ -1033,6 +1036,8 @@ static int __init spi_aic3254_init(void)
 	}
 #endif
 
+	pm_qos_add_request(&codec_drv->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+				PM_QOS_DEFAULT_VALUE);
 	wake_lock_init(&codec_drv->wakelock, WAKE_LOCK_SUSPEND,
 			"aic3254_suspend_lock");
 
@@ -1048,7 +1053,8 @@ static void __exit spi_aic3254_exit(void)
 	misc_deregister(&aic3254_misc);
 
 	wake_lock_destroy(&codec_drv->wakelock);
-	wake_lock_destroy(&codec_drv->idlelock);
+	pm_qos_add_request(&codec_drv->pm_qos_req, PM_QOS_CPU_DMA_LATENCY,
+				PM_QOS_DEFAULT_VALUE);
 
 #if defined(CONFIG_ARCH_MSM7X30)
 	clk_put(codec_drv->rx_mclk);
