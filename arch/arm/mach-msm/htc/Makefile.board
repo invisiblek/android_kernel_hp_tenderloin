@@ -16,3 +16,6 @@ obj-$(CONFIG_MACH_VILLE) += ville/
 
 # M7
 obj-$(CONFIG_MACH_M7_UL) += m7/
+
+# PYRAMID
+obj-$(CONFIG_MACH_PYRAMID) += pyramid/
