@@ -86,6 +86,11 @@ int32_t pm8058_xoadc_registered(void);
 
 int32_t pm8058_xoadc_calib_device(uint32_t adc_instance);
 
+#ifdef CONFIG_MACH_HTC
+int32_t pm8058_htc_config_mpp_and_adc_read(int32_t *result,
+						int32_t size, int32_t channels,
+						uint32_t mpp, uint32_t amux);
+#endif
 #else
 
 static inline int32_t pm8058_xoadc_read_adc_code(uint32_t adc_instance,
@@ -117,5 +122,11 @@ static inline int32_t pm8058_xoadc_registered(void)
 
 static inline int32_t pm8058_xoadc_calib_device(uint32_t adc_instance)
 { return -ENXIO; }
+#ifdef CONFIG_MACH_HTC
+static inline int32_t pm8058_htc_config_mpp_and_adc_read(int32_t *result,
+						int32_t size, int32_t channels,
+						uint32_t mpp, uint32_t amux)
+{ return -ENXIO; }
+#endif
 #endif
 #endif
