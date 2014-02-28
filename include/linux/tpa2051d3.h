@@ -11,7 +11,9 @@
 #define HEADSET_OUTPUT 1
 #define DUAL_OUTPUT 2
 #define HANDSET_OUTPUT 3
-#define LINEOUT_OUTPUT 4
+#define BEATS_ON_OUTPUT 4
+#define BEATS_OFF_OUTPUT 5
+#define LINEOUT_OUTPUT 6
 #define MODE_CMD_LEM 9
 struct tpa2051d3_platform_data {
 	uint32_t gpio_tpa2051_spk_en;
@@ -37,8 +39,10 @@ enum TPA2051_Mode {
 	TPA2051_MODE_VOICECALL_HEADSET,
 	TPA2051_MODE_FM_SPKR,
 	TPA2051_MODE_FM_HEADSET,
-	TPA2051_MODE_PLAYBACK_HANDSET,
-	TPA2051_MODE_VOICECALL_HANDSET,
+	TPA2051_MODE_PLAYBACK_REC,
+	TPA2051_MODE_VOICECALL_REC,
+	TPA2051_MODE_PLAYBACK_HEADSET_BEATS_ON,
+	TPA2051_MODE_PLAYBACK_HEADSET_BEATS_OFF,
 	TPA2051_MODE_LINEOUT,
 	TPA2051_MAX_MODE
 };
@@ -54,5 +58,6 @@ void set_headset_amp(int on);
 void set_speaker_headset_amp(int on);
 void set_handset_amp(int on);
 void set_usb_audio_amp(int on);
+void set_beats_on(int en);
 #endif
 

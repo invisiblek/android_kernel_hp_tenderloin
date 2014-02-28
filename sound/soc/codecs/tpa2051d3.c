@@ -26,7 +26,7 @@
 #include <linux/input.h>
 #include <linux/workqueue.h>
 #include <linux/freezer.h>
-#include <sound/tpa2051d3.h>
+#include <linux/tpa2051d3.h>
 #include <linux/mutex.h>
 
 #include <linux/gpio.h>
@@ -55,6 +55,10 @@ static char RING_AMP_ON[] =
 			{0x00, 0x8E, 0x25, 0x57, 0x8D, 0xCD, 0x0D};
 static char HANDSET_AMP_ON[] =
 			{0x00, 0x82, 0x25, 0x57, 0x13, 0xCD, 0x0D};
+static char BEATS_AMP_ON[] =
+			{0x00, 0x8C, 0x25, 0x57, 0x73, 0x4D, 0x0D};
+static char BEATS_AMP_OFF[] =
+			{0x00, 0x8C, 0x25, 0x57, 0x73, 0x4D, 0x0D};
 static char LINEOUT_AMP_ON[] =
 			{0x00, 0x8C, 0x25, 0x57, 0x73, 0x4D, 0x0D};
 static char AMP_0FF[] = {0x00, 0x90};
@@ -260,6 +264,22 @@ void set_usb_audio_amp(int on)
 	set_amp(on, LINEOUT_AMP_ON);
 }
 
+void set_beats_on(int en)
+{
+	pr_info("%s: %d\n", __func__, en);
+	mutex_lock(&spk_amp_lock);
+	if (en) {
+		tpa2051_i2c_write(BEATS_AMP_ON, AMP_ON_CMD_LEN);
+		pr_info("%s: en(%d) reg_value[5]=%2x, reg_value[6]=%2x\n", __func__,  \
+				en, BEATS_AMP_ON[5], BEATS_AMP_ON[6]);
+	} else {
+		tpa2051_i2c_write(BEATS_AMP_OFF, AMP_ON_CMD_LEN);
+		pr_info("%s: en(%d)  reg_value[5]=%2x, reg_value[6]=%2x\n", __func__,  \
+				en, BEATS_AMP_OFF[5], BEATS_AMP_OFF[6]);
+	}
+	mutex_unlock(&spk_amp_lock);
+}
+
 int update_amp_parameter(int mode)
 {
 	if (mode > tpa2051_mode_cnt)
@@ -276,11 +296,17 @@ int update_amp_parameter(int mode)
 	else if (*(config_data + mode * MODE_CMD_LEM + 1) == HANDSET_OUTPUT)
 		memcpy(HANDSET_AMP_ON, config_data + mode * MODE_CMD_LEM + 2,
 				sizeof(HANDSET_AMP_ON));
+	else if (*(config_data + mode * MODE_CMD_LEM + 1) == BEATS_ON_OUTPUT)
+		memcpy(BEATS_AMP_ON, config_data + mode * MODE_CMD_LEM + 2,
+				sizeof(BEATS_AMP_ON));
+	else if (*(config_data + mode * MODE_CMD_LEM + 1) == BEATS_OFF_OUTPUT)
+		memcpy(BEATS_AMP_OFF, config_data + mode * MODE_CMD_LEM + 2,
+				sizeof(BEATS_AMP_OFF));
 	else if (*(config_data + mode * MODE_CMD_LEM + 1) == LINEOUT_OUTPUT)
 		memcpy(LINEOUT_AMP_ON, config_data + mode * MODE_CMD_LEM + 2,
 				sizeof(LINEOUT_AMP_ON));
 	else {
-		pr_info("[AUD] wrong mode id %d\n", mode);
+		pr_info("wrong mode id %d\n", mode);
 		return -EINVAL;
 	}
 	return 0;
@@ -396,7 +422,8 @@ err2:
 		update_amp_parameter(TPA2051_MODE_PLAYBACK_SPKR);
 		update_amp_parameter(TPA2051_MODE_PLAYBACK_HEADSET);
 		update_amp_parameter(TPA2051_MODE_RING);
-		update_amp_parameter(TPA2051_MODE_PLAYBACK_HANDSET);
+		update_amp_parameter(TPA2051_MODE_PLAYBACK_HEADSET_BEATS_ON);
+		update_amp_parameter(TPA2051_MODE_PLAYBACK_HEADSET_BEATS_OFF);
 		update_amp_parameter(TPA2051_MODE_LINEOUT);
 		rc = 0;
 		break;

@@ -23,7 +23,7 @@
 #include <sound/jack.h>
 #include <asm/mach-types.h>
 #include <mach/socinfo.h>
-#include <sound/tpa2051d3.h>
+#include <linux/tpa2051d3.h>
 #include <asm/system_info.h>
 
 #include <linux/mfd/wcd9xxx/core.h>

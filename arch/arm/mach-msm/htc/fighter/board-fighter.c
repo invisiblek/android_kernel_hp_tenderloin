@@ -26,7 +26,7 @@
 #include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
 #include <linux/slimbus/slimbus.h>
-#include <sound/tpa2051d3.h>
+#include <linux/tpa2051d3.h>
 #ifdef CONFIG_ANDROID_PMEM
 #include <linux/android_pmem.h>
 #endif
