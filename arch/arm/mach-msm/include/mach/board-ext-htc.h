@@ -119,6 +119,8 @@ struct msm_camera_csi_params {
 	uint8_t lane_assign;
 	uint8_t settle_cnt;
 	uint8_t dpcm_scheme;
+	uint8_t mipi_driving_strength;/*from 0-3*/
+	uint8_t hs_impedence;
 };
 
 struct camera_led_info {

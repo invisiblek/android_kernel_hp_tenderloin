@@ -322,7 +322,12 @@ struct msm_mctl_pp_frame_cmd {
 	uint32_t src_buf_handle;
 	uint32_t dest_buf_handle;
 	struct msm_pp_crop crop;
+#if CONFIG_HTC_CAMERA_HAL_VERSION < 1
+	int src_path;
+	int dest_path;
+#else
 	int path;
+#endif
 	
 };
 

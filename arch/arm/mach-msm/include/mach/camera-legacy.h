@@ -1,4 +1,4 @@
-/* Copyright (c) 2009-2012, Code Aurora Forum. All rights reserved.
+/* Copyright (c) 2009-2011, Code Aurora Forum. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -19,17 +19,17 @@
 #include <linux/cdev.h>
 #include <linux/platform_device.h>
 #include <linux/wakelock.h>
-#include <linux/regulator/consumer.h>
 #include "linux/types.h"
 
 #include <mach/board.h>
-#if CONFIG_HTC_CAMERA_HAL_VERSION < 1
+#ifdef CONFIG_MSM_CAMERA_V4L2
+#include <linux/ion.h>
+#include <linux/regulator/consumer.h>
 #include <media/msm_camera_legacy.h>
 #else
 #include <media/msm_camera.h>
 #endif
 #include <mach/msm_subsystem_map.h>
-#include <linux/ion.h>
 
 #define CONFIG_MSM_CAMERA_DEBUG
 #ifdef CONFIG_MSM_CAMERA_DEBUG
@@ -37,18 +37,6 @@
 #else
 #define CDBG(fmt, args...) do { } while (0)
 #endif
-
-#ifdef pr_err
-#undef pr_err
-#endif
-#define pr_err(fmt, args...) \
-        printk(KERN_ERR "[CAM][ERR] " pr_fmt(fmt), ## args)
-
-#ifdef pr_info
-#undef pr_info
-#endif
-#define pr_info(fmt, args...) \
-        printk(KERN_INFO "[CAM] " pr_fmt(fmt), ## args)
 
 #define PAD_TO_2K(a, b) ((!b) ? a : (((a)+2047) & ~2047))
 
@@ -59,8 +47,19 @@
 #define NUM_AUTOFOCUS_MULTI_WINDOW_GRIDS 16
 #define NUM_STAT_OUTPUT_BUFFERS      3
 #define NUM_AF_STAT_OUTPUT_BUFFERS      3
+#ifdef CONFIG_MSM_CAMERA_V4L2
 #define max_control_command_size 512
+#else
+#define max_control_command_size 260
+#endif
 #define CROP_LEN 36
+
+#ifdef CONFIG_MSM_CAMERA_V4L2
+struct msm_camera_platform_info {
+	 struct msm_cam_clk_info *clk_info;
+	 int num_clks;
+};
+#endif
 
 enum vfe_mode_of_operation{
 	VFE_MODE_OF_OPERATION_CONTINUOUS,
@@ -68,53 +67,51 @@ enum vfe_mode_of_operation{
 	VFE_MODE_OF_OPERATION_VIDEO,
 	VFE_MODE_OF_OPERATION_RAW_SNAPSHOT,
 	VFE_MODE_OF_OPERATION_ZSL,
-	VFE_MODE_OF_OPERATION_JPEG_SNAPSHOT,
 	VFE_LAST_MODE_OF_OPERATION_ENUM
 };
 
 enum msm_queue {
-	MSM_CAM_Q_CTRL,     
-	MSM_CAM_Q_VFE_EVT,  
-	MSM_CAM_Q_VFE_MSG,  
-	MSM_CAM_Q_V4L2_REQ, 
-	MSM_CAM_Q_VPE_MSG,  
-	MSM_CAM_Q_PP_MSG,  
+	MSM_CAM_Q_CTRL,     /* control command or control command status */
+	MSM_CAM_Q_VFE_EVT,  /* adsp event */
+	MSM_CAM_Q_VFE_MSG,  /* adsp message */
+	MSM_CAM_Q_V4L2_REQ, /* v4l2 request */
+	MSM_CAM_Q_VPE_MSG,  /* vpe message */
+	MSM_CAM_Q_PP_MSG,  /* pp message */
 };
 
 enum vfe_resp_msg {
 	VFE_EVENT,
 	VFE_MSG_GENERAL,
 	VFE_MSG_SNAPSHOT,
-	VFE_MSG_OUTPUT_P,   
-	VFE_MSG_OUTPUT_T,   
-	VFE_MSG_OUTPUT_S,   
-	VFE_MSG_OUTPUT_V,   
+	VFE_MSG_OUTPUT_P,   /* preview (continuous mode ) */
+	VFE_MSG_OUTPUT_T,   /* thumbnail (snapshot mode )*/
+	VFE_MSG_OUTPUT_S,   /* main image (snapshot mode )*/
+	VFE_MSG_OUTPUT_V,   /* video   (continuous mode ) */
 	VFE_MSG_STATS_AEC,
 	VFE_MSG_STATS_AF,
 	VFE_MSG_STATS_AWB,
-	VFE_MSG_STATS_RS, 
+	VFE_MSG_STATS_RS,
 	VFE_MSG_STATS_CS,
 	VFE_MSG_STATS_IHIST,
 	VFE_MSG_STATS_SKIN,
-	VFE_MSG_STATS_WE, 
+	VFE_MSG_STATS_WE, /* AEC + AWB */
 	VFE_MSG_SYNC_TIMER0,
 	VFE_MSG_SYNC_TIMER1,
 	VFE_MSG_SYNC_TIMER2,
 	VFE_MSG_COMMON,
 	VFE_MSG_V32_START,
-	VFE_MSG_V32_START_RECORDING, 
+	VFE_MSG_V32_START_RECORDING,
 	VFE_MSG_V32_CAPTURE,
-	VFE_MSG_V32_JPEG_CAPTURE,
 	VFE_MSG_OUTPUT_IRQ,
-	VFE_MSG_V2X_PREVIEW,
-	VFE_MSG_V2X_CAPTURE,
+#ifdef CONFIG_MSM_CAMERA_V4L2
 	VFE_MSG_OUTPUT_PRIMARY,
 	VFE_MSG_OUTPUT_SECONDARY,
+#endif
 };
 
 enum vpe_resp_msg {
 	VPE_MSG_GENERAL,
-	VPE_MSG_OUTPUT_V,   
+	VPE_MSG_OUTPUT_V,   /* video   (continuous mode ) */
 	VPE_MSG_OUTPUT_ST_L,
 	VPE_MSG_OUTPUT_ST_R,
 };
@@ -178,13 +175,9 @@ struct msm_ispif_params_list {
 
 struct msm_vpe_phy_info {
 	uint32_t sbuf_phy;
-	uint32_t planar0_off;
-	uint32_t planar1_off;
-	uint32_t planar2_off;
-	uint32_t p0_phy;
-	uint32_t p1_phy;
-	uint32_t p2_phy;
-	uint8_t  output_id; 
+	uint32_t y_phy;
+	uint32_t cbcr_phy;
+	uint8_t  output_id; /* VFE31_OUTPUT_MODE_PT/S/V */
 	uint32_t frame_id;
 };
 
@@ -208,7 +201,6 @@ struct msm_camera_csid_params {
 struct msm_camera_csiphy_params {
 	uint8_t lane_cnt;
 	uint8_t settle_cnt;
-	uint8_t lane_mask;
 };
 
 struct msm_camera_csi2_params {
@@ -222,12 +214,12 @@ struct msm_camera_csi2_params {
 #define VFE31_OUTPUT_MODE_V (0x1 << 2)
 #define VFE31_OUTPUT_MODE_P (0x1 << 3)
 #define VFE31_OUTPUT_MODE_T (0x1 << 4)
-#define VFE31_OUTPUT_MODE_P_ALL_CHNLS (0x1 << 5)
 #endif
 
 #define CSI_EMBED_DATA 0x12
-#define CSI_RESERVED_DATA_0 0x13
+#ifdef CONFIG_MSM_CAMERA_V4L2
 #define CSI_YUV422_8  0x1E
+#endif
 #define CSI_RAW8    0x2A
 #define CSI_RAW10   0x2B
 #define CSI_RAW12   0x2C
@@ -235,17 +227,15 @@ struct msm_camera_csi2_params {
 #define CSI_DECODE_6BIT 0
 #define CSI_DECODE_8BIT 1
 #define CSI_DECODE_10BIT 2
+#ifdef CONFIG_MSM_CAMERA_V4L2
 #define CSI_DECODE_DPCM_10_8_10 5
+#endif
 
 struct msm_vfe_phy_info {
 	uint32_t sbuf_phy;
-	uint32_t planar0_off;
-	uint32_t planar1_off;
-	uint32_t planar2_off;
-	uint32_t p0_phy;
-	uint32_t p1_phy;
-	uint32_t p2_phy;
-	uint8_t  output_id; 
+	uint32_t y_phy;
+	uint32_t cbcr_phy;
+	uint8_t  output_id; /* VFE31_OUTPUT_MODE_PT/S/V */
 	uint32_t frame_id;
 };
 
@@ -275,8 +265,8 @@ struct video_crop_t{
 };
 
 struct msm_vpe_buf_info {
-	uint32_t p0_phy;
-	uint32_t p1_phy;
+	uint32_t y_phy;
+	uint32_t cbcr_phy;
 	struct   timespec ts;
 	uint32_t frame_id;
 	struct	 video_crop_t vpe_crop;
@@ -340,7 +330,7 @@ struct msm_mctl_pp_params {
 struct msm_camvpe_fn {
 	int (*vpe_reg)(struct msm_vpe_callback *);
 	int (*vpe_cfg_update) (void *);
-	void (*send_frame_to_vpe) (uint32_t planar0_off, uint32_t planar1_off,
+	void (*send_frame_to_vpe) (uint32_t y_phy, uint32_t cbcr_phy,
 		struct timespec *ts, int output_id);
 	int (*vpe_config)(struct msm_vpe_cfg_cmd *, void *);
 	void (*vpe_cfg_offset)(int frame_pack, uint32_t pyaddr,
@@ -361,25 +351,14 @@ struct msm_sensor_ctrl {
 
 struct msm_actuator_ctrl {
 	int (*a_init_table)(void);
+#ifdef CONFIG_MSM_CAMERA_V4L2
 	int (*a_power_up)(void *);
 	int (*a_power_down)(void *);
+#else
+	int (*a_power_down)(void);
+#endif
 	int (*a_create_subdevice)(void *, void *);
 	int (*a_config)(void __user *);
-	int is_ois_supported;
-	int is_cal_supported; 
-#if (CONFIG_HTC_CAMERA_HAL_VERSION == 3)
-	int small_step_damping;
-	int medium_step_damping;
-	int big_step_damping;
-	int is_af_infinity_supported;
-#endif
-	
-	void (*do_vcm_on_cb)(void);
-	void (*do_vcm_off_cb)(void);
-	void (*actuator_poweroff_af)(void);
-	struct mutex *actrl_vcm_on_mut; 
-	enum cam_vcm_onoff_type *actrl_vcm_wa_camera_on;
-	
 };
 
 struct msm_strobe_flash_ctrl {
@@ -390,13 +369,13 @@ struct msm_strobe_flash_ctrl {
 	int (*strobe_flash_charge)(int32_t, int32_t, uint32_t);
 };
 
+/* this structure is used in kernel */
 struct msm_queue_cmd {
 	struct list_head list_config;
 	struct list_head list_control;
 	struct list_head list_frame;
 	struct list_head list_pict;
 	struct list_head list_vpe_frame;
-	struct list_head list_eventdata;
 	enum msm_queue type;
 	void *command;
 	atomic_t on_heap;
@@ -413,23 +392,38 @@ struct msm_device_queue {
 	const char *name;
 };
 
-struct msm_mctl_stats_t {
-	struct hlist_head pmem_stats_list;
-	spinlock_t pmem_stats_spinlock;
-};
-
 struct msm_sync {
+	/* These two queues are accessed from a process context only
+	 * They contain pmem descriptors for the preview frames and the stats
+	 * coming from the camera sensor.
+	*/
 	struct hlist_head pmem_frames;
 	struct hlist_head pmem_stats;
 
+	/* The message queue is used by the control thread to send commands
+	 * to the config thread, and also by the DSP to send messages to the
+	 * config thread.  Thus it is the only queue that is accessed from
+	 * both interrupt and process context.
+	 */
 	struct msm_device_queue event_q;
 
+	/* This queue contains preview frames. It is accessed by the DSP (in
+	 * in interrupt context, and by the frame thread.
+	 */
 	struct msm_device_queue frame_q;
 	int unblock_poll_frame;
 	int unblock_poll_pic_frame;
 
-
-
+#ifdef CONFIG_MSM_CAMERA_V4L2
+/* HTC_START ben 20111111 HDR */
+	atomic_t dropframe_enabled;
+	atomic_t snap_dropframe_num; /* num of snapshot frames to drop */
+	atomic_t snap_dropframe; /* whether to drop next snapshot frame */
+/* HTC_END ben 20111111 HDR */
+#endif
+	/* This queue contains snapshot frames.  It is accessed by the DSP (in
+	 * interrupt context, and by the control thread.
+	 */
 	struct msm_device_queue pict_q;
 	int get_pic_abort;
 	struct msm_device_queue vpe_q;
@@ -441,6 +435,9 @@ struct msm_sync {
 	struct msm_strobe_flash_ctrl sfctrl;
 	struct msm_actuator_ctrl actctrl;
 	struct wake_lock wake_lock;
+#ifdef CONFIG_MSM_CAMERA_V4L2
+	struct wake_lock wake_lock_suspend;
+#endif
 	struct platform_device *pdev;
 	int16_t ignore_qcmd_type;
 	uint8_t ignore_qcmd;
@@ -485,20 +482,26 @@ struct msm_sync {
 #define MSM_APPS_ID_PROP "msm_qct"
 
 struct msm_cam_device {
-	struct msm_sync *sync; 
+	struct msm_sync *sync; /* most-frequently accessed */
 	struct device *device;
 	struct cdev cdev;
+	/* opened is meaningful only for the config and frame nodes,
+	 * which may be opened only once.
+	 */
 	atomic_t opened;
 };
 
 struct msm_control_device {
 	struct msm_cam_device *pmsm;
 
-	
+	/* Used for MSM_CAM_IOCTL_CTRL_CMD_DONE responses */
 	uint8_t ctrl_data[max_control_command_size];
 	struct msm_ctrl_cmd ctrl;
 	struct msm_queue_cmd qcmd;
 
+	/* This queue used by the config thread to send responses back to the
+	 * control thread.  It is accessed only from a process context.
+	 */
 	struct msm_device_queue ctrl_q;
 };
 
@@ -513,8 +516,9 @@ struct msm_pmem_region {
 	unsigned long len;
 	struct file *file;
 	struct msm_pmem_info info;
+#ifdef CONFIG_MSM_CAMERA_V4L2
 	struct ion_handle *handle;
-	unsigned long vaddr;
+#endif
 };
 
 struct axidata {
@@ -599,8 +603,6 @@ enum msm_camio_clk_type {
 	CAMIO_CSI0_PHY_CLK,
 	CAMIO_CSI1_PHY_CLK,
 	CAMIO_CSIPHY_TIMER_SRC_CLK,
-	CAMIO_IMEM_CLK,
-	CAMIO_CAM_RAWCHIP_MCLK_CLK, 
 
 	CAMIO_MAX_CLK
 };
@@ -625,13 +627,13 @@ enum msm_s_resolution {
 };
 
 enum msm_s_reg_update {
-	
+	/* Sensor egisters that need to be updated during initialization */
 	S_REG_INIT,
-	
+	/* Sensor egisters that needs periodic I2C writes */
 	S_UPDATE_PERIODIC,
-	
+	/* All the sensor Registers will be updated */
 	S_UPDATE_ALL,
-	
+	/* Not valid update */
 	S_UPDATE_INVALID
 };
 
@@ -652,21 +654,27 @@ enum msm_bus_perf_setting {
 	S_EXIT
 };
 
+#ifdef CONFIG_MSM_CAMERA_V4L2
 struct msm_cam_clk_info {
 	const char *clk_name;
 	long clk_rate;
 };
+#endif
 
 int msm_camio_enable(struct platform_device *dev);
+int msm_camio_jpeg_clk_enable(void);
+int msm_camio_jpeg_clk_disable(void);
 int msm_camio_vpe_clk_enable(uint32_t);
 int msm_camio_vpe_clk_disable(void);
 
+void msm_camio_mode_config(enum msm_camera_i2c_mux_mode mode);
 int  msm_camio_clk_enable(enum msm_camio_clk_type clk);
 int  msm_camio_clk_disable(enum msm_camio_clk_type clk);
 int  msm_camio_clk_config(uint32_t freq);
 void msm_camio_clk_rate_set(int rate);
 int msm_camio_vfe_clk_rate_set(int rate);
 void msm_camio_clk_rate_set_2(struct clk *clk, int rate);
+void msm_camio_clk_set_min_rate(struct clk *clk, int rate);
 void msm_camio_clk_axi_rate_set(int rate);
 void msm_disable_io_gpio_clk(struct platform_device *);
 
@@ -675,12 +683,12 @@ void msm_camio_camif_pad_reg_reset_2(void);
 
 void msm_camio_vfe_blk_reset(void);
 
+int32_t msm_camio_3d_enable(const struct msm_camera_sensor_info *sinfo);
+void msm_camio_3d_disable(void);
 void msm_camio_clk_sel(enum msm_camio_clk_src_type);
 void msm_camio_disable(struct platform_device *);
-int msm_camio_probe_on(void *s_info);
-int msm_camio_probe_off(void *s_info);
-int msm_camio_probe_on_bootup(void *s_info);
-int msm_camio_probe_off_bootup(void *s_info);
+int msm_camio_probe_on(struct platform_device *);
+int msm_camio_probe_off(struct platform_device *);
 int msm_camio_sensor_clk_off(struct platform_device *);
 int msm_camio_sensor_clk_on(struct platform_device *);
 int msm_camio_csi_config(struct msm_camera_csi_params *csi_params);
@@ -695,28 +703,16 @@ void msm_io_w_mb(u32 data, void __iomem *addr);
 u32 msm_io_r(void __iomem *addr);
 u32 msm_io_r_mb(void __iomem *addr);
 void msm_io_dump(void __iomem *addr, int size);
-void msm_csi_io_dump(void __iomem *addr, int size);
 void msm_io_memcpy(void __iomem *dest_addr, void __iomem *src_addr, u32 len);
 void msm_camio_set_perf_lvl(enum msm_bus_perf_setting);
-void msm_camio_bus_scale_cfg(
-	struct msm_bus_scale_pdata *, enum msm_bus_perf_setting);
 
 void *msm_isp_sync_alloc(int size, gfp_t gfp);
 
 void msm_isp_sync_free(void *ptr);
-
+#ifdef CONFIG_MSM_CAMERA_V4L2
+void msm_camio_bus_scale_cfg(
+		struct msm_bus_scale_pdata *, enum msm_bus_perf_setting);
 int msm_cam_clk_enable(struct device *dev, struct msm_cam_clk_info *clk_info,
 		struct clk **clk_ptr, int num_clk, int enable);
-int msm_cam_core_reset(void);
-
-int msm_camera_config_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
-		int num_vreg, struct regulator **reg_ptr, int config);
-int msm_camera_enable_vreg(struct device *dev, struct camera_vreg_t *cam_vreg,
-		int num_vreg, struct regulator **reg_ptr, int enable);
-
-int msm_camera_config_gpio_table
-	(struct msm_camera_sensor_info *sinfo, int gpio_en);
-int msm_camera_request_gpio_table
-	(struct msm_camera_sensor_info *sinfo, int gpio_en);
-
+#endif
 #endif
