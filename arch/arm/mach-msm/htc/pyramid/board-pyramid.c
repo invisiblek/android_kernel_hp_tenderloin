@@ -455,7 +455,7 @@ static struct platform_device htc_battery_pdev = {
 };
 #endif
 
-#ifdef CONFIG_FLASHLIGHT_AAT1271
+#ifdef CONFIG_FLASHLIGHT_AAT
 static void config_flashlight_gpios(void)
 {
 	static uint32_t flashlight_gpio_table[] = {
@@ -478,7 +478,7 @@ static struct flashlight_platform_data flashlight_data = {
 };
 
 static struct platform_device flashlight_device = {
-	.name = "FLASHLIGHT_AAT1271",
+	.name = AAT_FLT_DEV_NAME,
 	.dev = {
 		.platform_data	= &flashlight_data,
 	},
@@ -1292,7 +1292,7 @@ static struct platform_device *early_devices[] __initdata = {
 #endif
 	&msm_device_dmov_adm0,
 	&msm_device_dmov_adm1,
-#ifdef CONFIG_FLASHLIGHT_AAT1271
+#ifdef CONFIG_FLASHLIGHT_AAT
 	&flashlight_device,
 #endif
 };

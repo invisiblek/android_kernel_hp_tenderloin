@@ -150,7 +150,7 @@
 
 /* Flashlight */
 #define PYRAMID_FLASH_EN             (29)
-#define PYRAMID_FLASH_TORCH             (30)
+#define PYRAMID_TORCH_EN             (30)
 
 /* Accessory */
 #define PYRAMID_GPIO_AUD_HP_DET        (31)

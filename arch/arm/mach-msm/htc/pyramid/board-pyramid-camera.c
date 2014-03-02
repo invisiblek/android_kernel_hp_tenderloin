@@ -265,46 +265,17 @@ struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 	.cam_bus_scale_table = &cam_bus_client_pdata,
 	},
 };
+
 int aat1271_flashlight_control(int mode);
 #ifdef CONFIG_MSM_CAMERA_FLASH
 static int flashlight_control(int mode)
 {
-/* HTC_START Turn off backlight when flash on */
-        int        rc = 0;
-        //        static int brightness = 255;
-        static int backlight_off = 0;
-
-        pr_info("[CAM] %s, linear led, mode %d backlight_off %d", __func__, mode, backlight_off);
-#if 0
-        if (mode != FL_MODE_PRE_FLASH && mode != FL_MODE_OFF) {
-                if (!backlight_off) {
-                        /* restore backlight brightness value first */
-                        brightness = led_brightness_value_get("lcd-backlight");
-                        if (brightness >= 0 && brightness <= 255) {
-                                pr_info("[CAM] %s, Turn off backlight before flashlight, brightness %d", __func__, brightness);
-                                led_brightness_value_set("lcd-backlight", 0);
-                                backlight_off = 1;
-                        } else
-                                pr_err("[CAM] %s, Invalid brightness value!! brightness %d", __func__, brightness);
-                }
-        }
+#if CONFIG_FLASHLIGHT_AAT
+	return aat1271_flashlight_control(mode);
+#else
+	return 0;
 #endif
-        //        rc = aat1271_flashlight_control(mode);
-
-#if 0
-        if (mode == FL_MODE_PRE_FLASH || mode == FL_MODE_OFF) {
-                if(backlight_off) {
-                        pr_info("[CAM] %s, Turn on backlight after flashlight, brightness %d", __func__, brightness);
-                        led_brightness_value_set("lcd-backlight", brightness);
-                        backlight_off = 0;
-                }
-        }
-#endif
-
-        return rc;
-/* HTC_END */
 }
-
 
 static struct msm_camera_sensor_flash_src msm_flash_src = {
 	.flash_sr_type = MSM_CAMERA_FLASH_SRC_CURRENT_DRIVER,
@@ -616,7 +587,7 @@ static struct msm_camera_sensor_platform_info sensor_s5k3h1gx_board_info = {
 
 static struct camera_flash_cfg msm_camera_sensor_s5k3h1gx_flash_cfg = {
 	.low_temp_limit		= 5,
-	.low_cap_limit		= 1,
+	.low_cap_limit		= 30,
 };
 
 static struct msm_camera_sensor_flash_data flash_s5k3h1gx = {
