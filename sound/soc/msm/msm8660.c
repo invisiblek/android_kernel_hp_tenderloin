@@ -91,7 +91,7 @@ static void config_class_d0_gpio(int enable)
 	int rc;
 
 	if (enable) {
-		rc = pm8901_mpp_config_digital_out(PM8901_MPP_3,
+		rc = pm8xxx_mpp_config_digital_out(PM8901_MPP_3,
 			PM8901_MPP_DIG_LEVEL_MSMIO, 1);
 
 		if (rc) {
@@ -105,7 +105,7 @@ static void config_class_d0_gpio(int enable)
 		if (rc) {
 			pr_err("%s: spkr pamp gpio pm8901 mpp3 request"
 			"failed\n", __func__);
-			pm8901_mpp_config_digital_out(PM8901_MPP_3,
+			pm8xxx_mpp_config_digital_out(PM8901_MPP_3,
 			PM8901_MPP_DIG_LEVEL_MSMIO, 0);
 			return;
 		}
@@ -114,7 +114,7 @@ static void config_class_d0_gpio(int enable)
 		gpio_set_value_cansleep(PM8901_GPIO_PM_TO_SYS(PM8901_MPP_3), 1);
 
 	} else {
-		pm8901_mpp_config_digital_out(PM8901_MPP_3,
+		pm8xxx_mpp_config_digital_out(PM8901_MPP_3,
 		PM8901_MPP_DIG_LEVEL_MSMIO, 0);
 		gpio_set_value_cansleep(PM8901_GPIO_PM_TO_SYS(PM8901_MPP_3), 0);
 		gpio_free(PM8901_GPIO_PM_TO_SYS(PM8901_MPP_3));

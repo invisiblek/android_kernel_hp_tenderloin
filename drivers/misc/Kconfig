@@ -739,6 +739,43 @@ config AMP_RT5501_DELAY
 	help
 	  RichTek RT5501 AMP Delay Workaround for pop noise of headset enable.
 
+config HRES_COUNTER
+	tristate "High resolution counter"
+	---help---
+	  Select Y if you want to enable High resolution counter.
+
+config NDUID
+	bool "Nova Device ID"
+	default n
+	---help---
+	This option exports the Nova Device ID to /proc/nduid.
+
+config USER_PINS
+	tristate "Sysfs GPIO pins control"
+	---help---
+		Select Y if you want to expose some gpio pins through sysfs.
+
+config KERNEL_LOG
+	bool "Kernel ram log"
+	---help---
+		Select Y for support for keeping kernel logs in physical memory
+
+config HSUART
+	bool "High Speed UART engine"
+	default n
+	---help---
+	  Generic HSUART engine, which calls platform specific code to facilitate High speed UART driver".
+
+config MDMGPIO
+	tristate "modem gpio control"
+	depends on SYSFS
+	default n
+	help
+	  If you say yes here you get support for modem gpio control.
+
+	  This driver can also be built as a module, choose M here: the
+	  module will be called mdmgpio.
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
@@ -748,5 +785,6 @@ source "drivers/misc/lis3lv02d/Kconfig"
 source "drivers/misc/carma/Kconfig"
 source "drivers/misc/altera-stapl/Kconfig"
 source "drivers/misc/slimport_anx7808/Kconfig"
+source "drivers/misc/a6/Kconfig"
 
 endmenu

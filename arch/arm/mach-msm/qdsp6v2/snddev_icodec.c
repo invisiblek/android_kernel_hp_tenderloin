@@ -161,7 +161,7 @@ static int msm_snddev_tx_mclk_request(void)
 {
 	int rc = 0;
 
-#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	rc = gpio_request(the_msm_cdcclk_ctl_state.tx_mclk,
 		"MSM_SNDDEV_TX_MCLK");
 	if (rc < 0) {
@@ -205,6 +205,7 @@ static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 	the_msm_cdcclk_ctl_state.rx_mclk = res->start;
 	the_msm_cdcclk_ctl_state.rx_mclk_requested = 0;
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	res = platform_get_resource_byname(pdev, IORESOURCE_IO,
 			"msm_snddev_tx_mclk");
 	if (!res) {
@@ -213,7 +214,7 @@ static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 	}
 	the_msm_cdcclk_ctl_state.tx_mclk = res->start;
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 0;
-
+#endif
 	return rc;
 }
 static int msm_cdcclk_ctl_probe(struct platform_device *pdev)
@@ -269,6 +270,7 @@ static int snddev_icodec_open_lb(struct snddev_icodec_state *icodec)
 
 	return 0;
 }
+
 static int initialize_msm_icodec_gpios(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -388,10 +390,10 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
         else
           adie_codec_setpath(icodec->adie_path,
                              icodec->sample_rate, 256);
+#endif
         /* OSR default to 256, can be changed for power optimization
          * If OSR is to be changed, need clock API for setting the divider
          */
-#endif
 
 	switch (icodec->data->channel_mode) {
 	case 2:
@@ -430,6 +432,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
         else
           adie_codec_set_master_mode(icodec->adie_path, 0);
 #endif
+
 	/* Enable power amplifier */
 	if (icodec->data->pamp_on) {
 		if (icodec->data->pamp_on()) {
@@ -558,6 +561,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
         else
           adie_codec_set_master_mode(icodec->adie_path, 0);
 #endif
+
 	icodec->enabled = 1;
 
 	pm_qos_update_request(&drv->tx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
@@ -603,7 +607,9 @@ static int snddev_icodec_close_lb(struct snddev_icodec_state *icodec)
 static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+#ifdef CONFIG_SPI_AIC3254
 	struct snddev_icodec_data *data = icodec->data;
+#endif
 
 	pm_qos_update_request(&drv->rx_pm_qos_req,
 			      msm_cpuidle_get_deep_idle_latency());
@@ -653,7 +659,9 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 {
 	struct snddev_icodec_drv_state *drv = &snddev_icodec_drv;
+#ifdef CONFIG_SPI_AIC3254
 	struct snddev_icodec_data *data = icodec->data;
+#endif
 
 	pm_qos_update_request(&drv->tx_pm_qos_req,
 			      msm_cpuidle_get_deep_idle_latency());
@@ -705,7 +713,6 @@ static int snddev_icodec_set_device_volume_impl(
 	struct snddev_icodec_state *icodec;
 
 	icodec = dev_info->private_data;
-
 	if (icodec->data->dev_vol_type & SNDDEV_DEV_VOL_DIGITAL) {
 
 		rc = adie_codec_set_device_digital_volume(icodec->adie_path,
@@ -1018,6 +1025,8 @@ static int snddev_icodec_enable_anc(struct msm_snddev_info *dev_info,
 	}
 
 error:
+#else
+	rc = -ENOSYS;
 #endif
 	return rc;
 }
@@ -1067,9 +1076,7 @@ static int snddev_icodec_probe(struct platform_device *pdev)
 	struct snddev_icodec_data *pdata;
 	struct msm_snddev_info *dev_info;
 	struct snddev_icodec_state *icodec;
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
         static int first_time = 1;
-#endif
 
 	if (!pdev || !pdev->dev.platform_data) {
 		printk(KERN_ALERT "Invalid caller\n");

@@ -31,6 +31,8 @@ static unsigned int wow_mode;
 static unsigned int uart_debug;
 static unsigned int ath6kl_p2p;
 static unsigned int testmode;
+static unsigned int recovery_enable;
+static unsigned int heart_beat_poll;
 
 module_param(debug_mask, uint, 0644);
 module_param(suspend_mode, uint, 0644);
@@ -38,6 +40,12 @@ module_param(wow_mode, uint, 0644);
 module_param(uart_debug, uint, 0644);
 module_param(ath6kl_p2p, uint, 0644);
 module_param(testmode, uint, 0644);
+module_param(recovery_enable, uint, 0644);
+module_param(heart_beat_poll, uint, 0644);
+MODULE_PARM_DESC(recovery_enable, "Enable recovery from firmware error");
+MODULE_PARM_DESC(heart_beat_poll, "Enable fw error detection periodic"   \
+		 "polling. This also specifies the polling interval in"  \
+		 "msecs. Set reocvery_enable for this to be effective");
 
 int ath6kl_core_init(struct ath6kl *ar)
 {
@@ -176,6 +184,17 @@ int ath6kl_core_init(struct ath6kl *ar)
 	ath6kl_dbg(ATH6KL_DBG_TRC, "%s: name=%s dev=0x%p, ar=0x%p\n",
 		   __func__, ndev->name, ndev, ar);
 
+	ar->fw_recovery.enable = !!recovery_enable;
+	if (!ar->fw_recovery.enable)
+		return ret;
+
+	if (heart_beat_poll &&
+	    test_bit(ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL,
+		     ar->fw_capabilities))
+		ar->fw_recovery.hb_poll = heart_beat_poll;
+
+	ath6kl_recovery_init(ar);
+
 	return ret;
 
 err_rxbuf_cleanup:
@@ -264,6 +283,8 @@ EXPORT_SYMBOL(ath6kl_core_create);
 void ath6kl_core_cleanup(struct ath6kl *ar)
 {
 	ath6kl_hif_power_off(ar);
+
+	ath6kl_recovery_cleanup(ar);
 
 	destroy_workqueue(ar->ath6kl_wq);
 

@@ -27,6 +27,9 @@ struct ath6kl_sta *ath6kl_find_sta(struct ath6kl_vif *vif, u8 *node_addr)
 	struct ath6kl_sta *conn = NULL;
 	u8 i, max_conn;
 
+	if (is_zero_ether_addr(node_addr))
+		return NULL;
+
 	max_conn = (vif->nw_type == AP_NETWORK) ? AP_MAX_NUM_STA : 0;
 
 	for (i = 0; i < max_conn; i++) {
@@ -291,13 +294,17 @@ int ath6kl_read_fwlogs(struct ath6kl *ar)
 	}
 
 	address = TARG_VTOP(ar->target_type, debug_hdr_addr);
-	ath6kl_diag_read(ar, address, &debug_hdr, sizeof(debug_hdr));
+	ret = ath6kl_diag_read(ar, address, &debug_hdr, sizeof(debug_hdr));
+	if (ret)
+		goto out;
 
 	address = TARG_VTOP(ar->target_type,
 			    le32_to_cpu(debug_hdr.dbuf_addr));
 	firstbuf = address;
 	dropped = le32_to_cpu(debug_hdr.dropped);
-	ath6kl_diag_read(ar, address, &debug_buf, sizeof(debug_buf));
+	ret = ath6kl_diag_read(ar, address, &debug_buf, sizeof(debug_buf));
+	if (ret)
+		goto out;
 
 	loop = 100;
 
@@ -320,7 +327,8 @@ int ath6kl_read_fwlogs(struct ath6kl *ar)
 
 		address = TARG_VTOP(ar->target_type,
 				    le32_to_cpu(debug_buf.next));
-		ath6kl_diag_read(ar, address, &debug_buf, sizeof(debug_buf));
+		ret = ath6kl_diag_read(ar, address, &debug_buf,
+				       sizeof(debug_buf));
 		if (ret)
 			goto out;
 
@@ -336,39 +344,6 @@ out:
 	kfree(buf);
 
 	return ret;
-}
-
-/* FIXME: move to a better place, target.h? */
-#define AR6003_RESET_CONTROL_ADDRESS 0x00004000
-#define AR6004_RESET_CONTROL_ADDRESS 0x00004000
-
-void ath6kl_reset_device(struct ath6kl *ar, u32 target_type,
-			 bool wait_fot_compltn, bool cold_reset)
-{
-	int status = 0;
-	u32 address;
-	__le32 data;
-
-	if (target_type != TARGET_TYPE_AR6003 &&
-	    target_type != TARGET_TYPE_AR6004)
-		return;
-
-	data = cold_reset ? cpu_to_le32(RESET_CONTROL_COLD_RST) :
-			    cpu_to_le32(RESET_CONTROL_MBOX_RST);
-
-	switch (target_type) {
-	case TARGET_TYPE_AR6003:
-		address = AR6003_RESET_CONTROL_ADDRESS;
-		break;
-	case TARGET_TYPE_AR6004:
-		address = AR6004_RESET_CONTROL_ADDRESS;
-		break;
-	}
-
-	status = ath6kl_diag_write32(ar, address, data);
-
-	if (status)
-		ath6kl_err("failed to reset target\n");
 }
 
 static void ath6kl_install_static_wep_keys(struct ath6kl_vif *vif)
@@ -1084,7 +1059,7 @@ static int ath6kl_set_features(struct net_device *dev,
 static void ath6kl_set_multicast_list(struct net_device *ndev)
 {
 	struct ath6kl_vif *vif = netdev_priv(ndev);
-	bool mc_all_on = false, mc_all_off = false;
+	bool mc_all_on = false;
 	int mc_count = netdev_mc_count(ndev);
 	struct netdev_hw_addr *ha;
 	bool found;
@@ -1096,24 +1071,44 @@ static void ath6kl_set_multicast_list(struct net_device *ndev)
 	    !test_bit(WLAN_ENABLED, &vif->flags))
 		return;
 
+	/* Enable multicast-all filter. */
 	mc_all_on = !!(ndev->flags & IFF_PROMISC) ||
 		    !!(ndev->flags & IFF_ALLMULTI) ||
 		    !!(mc_count > ATH6K_MAX_MC_FILTERS_PER_LIST);
 
-	mc_all_off = !(ndev->flags & IFF_MULTICAST) || mc_count == 0;
+	if (mc_all_on)
+		set_bit(NETDEV_MCAST_ALL_ON, &vif->flags);
+	else
+		clear_bit(NETDEV_MCAST_ALL_ON, &vif->flags);
 
-	if (mc_all_on || mc_all_off) {
-		/* Enable/disable all multicast */
-		ath6kl_dbg(ATH6KL_DBG_TRC, "%s multicast filter\n",
-			   mc_all_on ? "enabling" : "disabling");
-		ret = ath6kl_wmi_mcast_filter_cmd(vif->ar->wmi, vif->fw_vif_idx,
+	if (test_bit(ATH6KL_FW_CAPABILITY_WOW_MULTICAST_FILTER,
+		     vif->ar->fw_capabilities)) {
+		mc_all_on = mc_all_on || (vif->ar->state == ATH6KL_STATE_ON);
+	}
+
+	if (!(ndev->flags & IFF_MULTICAST)) {
+		mc_all_on = false;
+		set_bit(NETDEV_MCAST_ALL_OFF, &vif->flags);
+	} else {
+		clear_bit(NETDEV_MCAST_ALL_OFF, &vif->flags);
+	}
+
+	/* Enable/disable "multicast-all" filter*/
+	ath6kl_dbg(ATH6KL_DBG_TRC, "%s multicast-all filter\n",
+		   mc_all_on ? "enabling" : "disabling");
+
+	ret = ath6kl_wmi_mcast_filter_cmd(vif->ar->wmi, vif->fw_vif_idx,
 						  mc_all_on);
-		if (ret)
-			ath6kl_warn("Failed to %s multicast receive\n",
-				    mc_all_on ? "enable" : "disable");
+	if (ret) {
+		ath6kl_warn("Failed to %s multicast-all receive\n",
+			    mc_all_on ? "enable" : "disable");
 		return;
 	}
 
+	if (test_bit(NETDEV_MCAST_ALL_ON, &vif->flags))
+		return;
+
+	/* Keep the driver and firmware mcast list in sync. */
 	list_for_each_entry_safe(mc_filter, tmp, &vif->mc_filter, list) {
 		found = false;
 		netdev_for_each_mc_addr(ha, ndev) {
@@ -1206,9 +1201,11 @@ void init_netdev(struct net_device *dev)
 	dev->watchdog_timeo = ATH6KL_TX_TIMEOUT;
 
 	dev->needed_headroom = ETH_HLEN;
-	dev->needed_headroom += sizeof(struct ath6kl_llc_snap_hdr) +
-				sizeof(struct wmi_data_hdr) + HTC_HDR_LENGTH
-				+ WMI_MAX_TX_META_SZ + ATH6KL_HTC_ALIGN_BYTES;
+	dev->needed_headroom += roundup(sizeof(struct ath6kl_llc_snap_hdr) +
+					sizeof(struct wmi_data_hdr) +
+					HTC_HDR_LENGTH +
+					WMI_MAX_TX_META_SZ +
+					ATH6KL_HTC_ALIGN_BYTES, 4);
 
 	dev->hw_features |= NETIF_F_IP_CSUM | NETIF_F_RXCSUM;
 

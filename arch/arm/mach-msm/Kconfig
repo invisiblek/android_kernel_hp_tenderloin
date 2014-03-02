@@ -928,6 +928,8 @@ source "arch/arm/mach-msm/lge/Kconfig"
 
 source "arch/arm/mach-msm/htc/Kconfig"
 
+source "arch/arm/mach-msm/hp/Kconfig"
+
 config MSM_STACKED_MEMORY
 	bool "Stacked Memory"
 	default y
@@ -1946,6 +1948,12 @@ config MSM_PIL_QDSP6V3
 	  Support for booting and shutting down QDSP6v3 processors (hexagon).
 	  The QDSP6 is a low power DSP used in audio software applications.
 
+config MSM_INSECURE_PIL_QDSP6V3
+	bool "Force QDSP6v3 PIL to insecure mode"
+	depends on MSM_PIL_QDSP6V3
+	help
+	  Force Riva PIL to use non-secure boot.
+
 config MSM_PIL_QDSP6V4
 	tristate "QDSP6v4 (Hexagon) Boot Support"
 	depends on MSM_PIL
@@ -2670,5 +2678,16 @@ config MSM_USE_USER_ACCESSIBLE_TIMERS
 	help
 	  Enables MSM-specific user accessible timers via a shared
 	  memory page containing the cycle counter.
+
+config MSM_UARTDM
+	tristate "MSM UARTDM (High Speed) Driver"
+	depends on ARCH_MSM
+	default n
+	help
+	  Provides access to the high speed uart ports.
+
+config REMOVE_SMI_2X_CLK
+       bool "remove 2x_axi_clk for SMI"
+       default n
 
 endif

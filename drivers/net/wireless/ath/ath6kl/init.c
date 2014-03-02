@@ -115,6 +115,24 @@ static const struct ath6kl_hw hw_list[] = {
 		.fw_board		= AR6004_HW_1_1_BOARD_DATA_FILE,
 		.fw_default_board	= AR6004_HW_1_1_DEFAULT_BOARD_DATA_FILE,
 	},
+	{
+		.id				= AR6004_HW_1_2_VERSION,
+		.name				= "ar6004 hw 1.2",
+		.dataset_patch_addr		= 0x436ecc,
+		.app_load_addr			= 0x1234,
+		.board_ext_data_addr		= 0x437000,
+		.reserved_ram_size		= 9216,
+		.board_addr			= 0x435c00,
+		.refclk_hz			= 40000000,
+		.uarttx_pin			= 11,
+
+		.fw = {
+			.dir		= AR6004_HW_1_2_FW_DIR,
+			.fw		= AR6004_HW_1_2_FIRMWARE_FILE,
+		},
+		.fw_board		= AR6004_HW_1_2_BOARD_DATA_FILE,
+		.fw_default_board	= AR6004_HW_1_2_DEFAULT_BOARD_DATA_FILE,
+	},
 };
 
 /*
@@ -150,8 +168,8 @@ struct sk_buff *ath6kl_buf_alloc(int size)
 	u16 reserved;
 
 	/* Add chacheline space at front and back of buffer */
-	reserved = (2 * L1_CACHE_BYTES) + ATH6KL_DATA_OFFSET +
-		   sizeof(struct htc_packet) + ATH6KL_HTC_ALIGN_BYTES;
+	reserved = roundup((2 * L1_CACHE_BYTES) + ATH6KL_DATA_OFFSET +
+		   sizeof(struct htc_packet) + ATH6KL_HTC_ALIGN_BYTES, 4);
 	skb = dev_alloc_skb(size + reserved);
 
 	if (skb)
@@ -955,9 +973,6 @@ static int ath6kl_fetch_fw_apin(struct ath6kl *ar, const char *name)
 				   ar->hw.reserved_ram_size);
 			break;
 		case ATH6KL_FW_IE_CAPABILITIES:
-			if (ie_len < DIV_ROUND_UP(ATH6KL_FW_CAPABILITY_MAX, 8))
-				break;
-
 			ath6kl_dbg(ATH6KL_DBG_BOOT,
 				   "found firmware capabilities ie (%zd B)\n",
 				   ie_len);
@@ -965,6 +980,9 @@ static int ath6kl_fetch_fw_apin(struct ath6kl *ar, const char *name)
 			for (i = 0; i < ATH6KL_FW_CAPABILITY_MAX; i++) {
 				index = i / 8;
 				bit = i % 8;
+
+				if (index == ie_len)
+					break;
 
 				if (data[index] & (1 << bit))
 					__set_bit(i, ar->fw_capabilities);
@@ -1356,6 +1374,12 @@ static int ath6kl_init_upload(struct ath6kl *ar)
 	    ar->version.target_ver == AR6003_HW_2_1_1_VERSION) {
 		ath6kl_err("temporary war to avoid sdio crc error\n");
 
+		param = 0x28;
+		address = GPIO_BASE_ADDRESS + GPIO_PIN9_ADDRESS;
+		status = ath6kl_bmi_reg_write(ar, address, param);
+		if (status)
+			return status;
+
 		param = 0x20;
 
 		address = GPIO_BASE_ADDRESS + GPIO_PIN10_ADDRESS;
@@ -1465,7 +1489,15 @@ static const char *ath6kl_init_get_hif_name(enum ath6kl_hif_type type)
 	return NULL;
 }
 
-int ath6kl_init_hw_start(struct ath6kl *ar)
+static int ath6kl_init_hw_reset(struct ath6kl *ar)
+{
+	ath6kl_dbg(ATH6KL_DBG_BOOT, "cold resetting the device");
+
+	return ath6kl_diag_write32(ar, RESET_CONTROL_ADDRESS,
+				   cpu_to_le32(RESET_CONTROL_COLD_RST));
+}
+
+static int __ath6kl_init_hw_start(struct ath6kl *ar)
 {
 	long timeleft;
 	int ret, i;
@@ -1485,11 +1517,9 @@ int ath6kl_init_hw_start(struct ath6kl *ar)
 		goto err_power_off;
 
 	/* Do we need to finish the BMI phase */
-	/* FIXME: return error from ath6kl_bmi_done() */
-	if (ath6kl_bmi_done(ar)) {
-		ret = -EIO;
+	ret = ath6kl_bmi_done(ar);
+	if (ret)
 		goto err_power_off;
-	}
 
 	/*
 	 * The reason we have to wait for the target here is that the
@@ -1522,9 +1552,15 @@ int ath6kl_init_hw_start(struct ath6kl *ar)
 						    test_bit(WMI_READY,
 							     &ar->flag),
 						    WMI_TIMEOUT);
+	if (timeleft <= 0) {
+		clear_bit(WMI_READY, &ar->flag);
+		ath6kl_err("wmi is not ready or wait was interrupted: %ld\n",
+			   timeleft);
+		ret = -EIO;
+		goto err_htc_stop;
+	}
 
 	ath6kl_dbg(ATH6KL_DBG_BOOT, "firmware booted\n");
-
 
 	if (test_and_clear_bit(FIRST_BOOT, &ar->flag)) {
 		ath6kl_info("%s %s fw %s api %d%s\n",
@@ -1542,12 +1578,6 @@ int ath6kl_init_hw_start(struct ath6kl *ar)
 		goto err_htc_stop;
 	}
 
-	if (!timeleft || signal_pending(current)) {
-		ath6kl_err("wmi is not ready or wait was interrupted\n");
-		ret = -EIO;
-		goto err_htc_stop;
-	}
-
 	ath6kl_dbg(ATH6KL_DBG_TRC, "%s: wmi is ready\n", __func__);
 
 	/* communicate the wmi protocol verision to the target */
@@ -1561,8 +1591,6 @@ int ath6kl_init_hw_start(struct ath6kl *ar)
 			goto err_htc_stop;
 	}
 
-	ar->state = ATH6KL_STATE_ON;
-
 	return 0;
 
 err_htc_stop:
@@ -1575,7 +1603,18 @@ err_power_off:
 	return ret;
 }
 
-int ath6kl_init_hw_stop(struct ath6kl *ar)
+int ath6kl_init_hw_start(struct ath6kl *ar)
+{
+	int err;
+
+	err = __ath6kl_init_hw_start(ar);
+	if (err)
+		return err;
+	ar->state = ATH6KL_STATE_ON;
+	return 0;
+}
+
+static int __ath6kl_init_hw_stop(struct ath6kl *ar)
 {
 	int ret;
 
@@ -1591,9 +1630,35 @@ int ath6kl_init_hw_stop(struct ath6kl *ar)
 	if (ret)
 		ath6kl_warn("failed to power off hif: %d\n", ret);
 
-	ar->state = ATH6KL_STATE_OFF;
-
 	return 0;
+}
+
+int ath6kl_init_hw_stop(struct ath6kl *ar)
+{
+	int err;
+
+	err = __ath6kl_init_hw_stop(ar);
+	if (err)
+		return err;
+	ar->state = ATH6KL_STATE_OFF;
+	return 0;
+}
+
+void ath6kl_init_hw_restart(struct ath6kl *ar)
+{
+	clear_bit(WMI_READY, &ar->flag);
+
+	ath6kl_cfg80211_stop_all(ar);
+
+	if (__ath6kl_init_hw_stop(ar)) {
+		ath6kl_dbg(ATH6KL_DBG_RECOVERY, "Failed to stop during fw error recovery\n");
+		return;
+	}
+
+	if (__ath6kl_init_hw_start(ar)) {
+		ath6kl_dbg(ATH6KL_DBG_RECOVERY, "Failed to restart during fw error recovery\n");
+		return;
+	}
 }
 
 /* FIXME: move this to cfg80211.c and rename to ath6kl_cfg80211_vif_stop() */
@@ -1654,6 +1719,9 @@ void ath6kl_stop_txrx(struct ath6kl *ar)
 
 	clear_bit(WMI_READY, &ar->flag);
 
+	if (ar->fw_recovery.enable)
+		del_timer_sync(&ar->fw_recovery.hb_timer);
+
 	/*
 	 * After wmi_shudown all WMI events will be dropped. We
 	 * need to cleanup the buffers allocated in AP mode and
@@ -1675,11 +1743,7 @@ void ath6kl_stop_txrx(struct ath6kl *ar)
 	 * Try to reset the device if we can. The driver may have been
 	 * configure NOT to reset the target during a debug session.
 	 */
-	ath6kl_dbg(ATH6KL_DBG_TRC,
-		   "attempting to reset target on instance destroy\n");
-	ath6kl_reset_device(ar, ar->target_type, true, true);
-
-	clear_bit(WLAN_ENABLED, &ar->flag);
+	ath6kl_init_hw_reset(ar);
 
 	up(&ar->sem);
 }

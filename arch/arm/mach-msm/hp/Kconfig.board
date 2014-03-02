@@ -1,0 +1,10 @@
+#
+# Include the specific Kconfig file for HP board
+#
+
+# TENDERLOIN
+source "arch/arm/mach-msm/hp/tenderloin/Kconfig"
+
+config MACH_HP_DUMMY
+       depends on MACH_HP
+       bool "NONE (No device)"

@@ -35,6 +35,9 @@
 #include <linux/mfd/wm8994/pdata.h>
 #include <linux/mfd/wm8994/gpio.h>
 
+#include <linux/input.h>
+#include <linux/switch.h>
+
 #include "wm8994.h"
 #include "wm_hubs.h"
 
@@ -90,6 +93,9 @@ static int wm8994_retune_mobile_base[] = {
 	WM8994_AIF1_DAC2_EQ_GAINS_1,
 	WM8994_AIF2_EQ_GAINS_1,
 };
+
+extern int headphone_plugged;
+extern struct switch_dev *headphone_switch;
 
 static void wm8958_default_micdet(u16 status, void *data);
 
@@ -784,6 +790,9 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 			 struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
+#ifdef CONFIG_MACH_TENDERLOIN
+	struct wm8994 *control = codec->control_data;
+#endif
 
 	switch (event) {
 	case SND_SOC_DAPM_PRE_PMU:
@@ -793,6 +802,13 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 		configure_clock(codec);
 		break;
 	}
+
+#if defined(CONFIG_MACH_TENDERLOIN)
+	if (control->type == WM8958) {
+		/* We may also have postponed startup of DSP, handle that. */
+		wm8958_aif_ev(w, kcontrol, event);
+	}
+#endif
 
 	return 0;
 }
@@ -1407,9 +1423,20 @@ static int post_ev(struct snd_soc_dapm_widget *w,
 	    struct snd_kcontrol *kcontrol, int event)
 {
 	struct snd_soc_codec *codec = w->codec;
+	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	dev_dbg(codec->dev, "SRC status: %x\n",
 		snd_soc_read(codec,
 			     WM8994_RATE_STATUS));
+
+	// Handle late enables for sequences like MICBIAS ...
+	if (wm8994->aif1clk_enable)
+		snd_soc_update_bits(codec, WM8994_AIF1_CLOCKING_1,
+				    WM8994_AIF1CLK_ENA_MASK,
+				    WM8994_AIF1CLK_ENA);
+	if (wm8994->aif2clk_enable)
+		snd_soc_update_bits(codec, WM8994_AIF2_CLOCKING_1,
+				    WM8994_AIF2CLK_ENA_MASK,
+				    WM8994_AIF2CLK_ENA);
 	return 0;
 }
 
@@ -1753,10 +1780,17 @@ SND_SOC_DAPM_AIF_IN_E("AIF2DACR", NULL, 0,
 		      SND_SOC_NOPM, 12, 0, wm8958_aif_ev,
 		      SND_SOC_DAPM_POST_PMU | SND_SOC_DAPM_PRE_PMD),
 
+#ifdef CONFIG_MACH_TENDERLOIN
+SND_SOC_DAPM_AIF_IN("AIF1DACDAT", "AIF1 Playback", 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_IN("AIF2DACDAT", "AIF2 Playback", 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", "AIF1 Capture", 0, SND_SOC_NOPM, 0, 0),
+SND_SOC_DAPM_AIF_OUT("AIF2ADCDAT", "AIF2 Capture", 0, SND_SOC_NOPM, 0, 0),
+#else
 SND_SOC_DAPM_AIF_IN("AIF1DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_IN("AIF2DACDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_OUT("AIF1ADCDAT", NULL, 0, SND_SOC_NOPM, 0, 0),
 SND_SOC_DAPM_AIF_OUT("AIF2ADCDAT",  NULL, 0, SND_SOC_NOPM, 0, 0),
+#endif
 
 SND_SOC_DAPM_MUX("AIF1DAC Mux", SND_SOC_NOPM, 0, 0, &aif1dac_mux),
 SND_SOC_DAPM_MUX("AIF2DAC Mux", SND_SOC_NOPM, 0, 0, &aif2dac_mux),
@@ -1878,6 +1912,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 
 	{ "TOCLK", NULL, "CLK_SYS" },
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ "AIF1DACDAT", NULL, "AIF1 Playback" },
 	{ "AIF2DACDAT", NULL, "AIF2 Playback" },
 	{ "AIF3DACDAT", NULL, "AIF3 Playback" },
@@ -1885,6 +1920,7 @@ static const struct snd_soc_dapm_route intercon[] = {
 	{ "AIF1 Capture", NULL, "AIF1ADCDAT" },
 	{ "AIF2 Capture", NULL, "AIF2ADCDAT" },
 	{ "AIF3 Capture", NULL, "AIF3ADCDAT" },
+#endif
 
 	/* AIF1 outputs */
 	{ "AIF1ADC1L", NULL, "AIF1ADC1L Mixer" },
@@ -2644,7 +2680,7 @@ static int bclk_divs[] = {
 	640, 880, 960, 1280, 1760, 1920
 };
 
-static int wm8994_hw_params(struct snd_pcm_substream *substream,
+int wm8994_hw_params(struct snd_pcm_substream *substream,
 			    struct snd_pcm_hw_params *params,
 			    struct snd_soc_dai *dai)
 {
@@ -2803,6 +2839,7 @@ static int wm8994_hw_params(struct snd_pcm_substream *substream,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(wm8994_hw_params);
 
 static int wm8994_aif3_hw_params(struct snd_pcm_substream *substream,
 				 struct snd_pcm_hw_params *params,
@@ -3605,6 +3642,75 @@ static irqreturn_t wm1811_jackdet_irq(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
+#ifdef CONFIG_MACH_TENDERLOIN
+/* HP microphone detection handler for WM8958 - the user can
+ * override this if they wish.
+ * When we get the interrupt, only a few things can happen
+ * 1. A headset with mic is detection reg = 0x203
+ * 2. Button down reg = 0x7;
+ * 3. Button up reg = 0x203;
+ * 4. Nothing is connected reg = 0x402
+ * 5. Headphones reg = 0x7;
+*/
+
+static void wm8958_hp_micdet(u16 status, void *data)
+{
+	struct snd_soc_codec *codec = data;
+	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
+	int oldtype = 0;
+
+	oldtype = wm8994->micdet[0].jack->jack->type;
+	if(0x203 == status && !(wm8994->pdata->jack_is_mic) ){
+		headphone_plugged = 1;
+		dev_err(codec->dev, "  Reporting Headset inserted\n");
+
+		wm8994->pdata->jack_is_mic = true;
+		wm8994->micdet[0].jack->jack->type = SND_JACK_MICROPHONE;
+		input_report_switch(wm8994->micdet[0].jack->jack->input_dev,
+						    SW_MICROPHONE_INSERT,
+					        1);
+	}else if(7 == status && wm8994->pdata->jack_is_mic == false) {
+		headphone_plugged = 1;
+		dev_err(codec->dev, "  Reporting headphones inserted\n");
+		input_report_switch(wm8994->micdet[0].jack->jack->input_dev,
+							    SW_HEADPHONE_INSERT,
+						        1);
+
+		/* Disable detection, headphones can't change state */
+		wm8958_mic_detect(codec, NULL, NULL, NULL);
+		snd_soc_dapm_disable_pin(&(codec->dapm), "MICBIAS2");
+
+	} else {
+
+		if(0x7 == status && wm8994->pdata->jack_is_mic){
+			dev_err(codec->dev, "  Reporting button press down\n");
+			wm8994->micdet[0].jack->jack->type = SND_JACK_BTN_0;
+			input_report_key(wm8994->micdet[0].jack->jack->input_dev, KEY_PLAYPAUSE,
+					 1);
+
+		}else if(0x203 == status && wm8994->pdata->jack_is_mic){
+			dev_err(codec->dev, "  Reporting button press up\n");
+			wm8994->micdet[0].jack->jack->type = SND_JACK_BTN_0;
+			input_report_key(wm8994->micdet[0].jack->jack->input_dev, KEY_PLAYPAUSE,
+					 0);
+		}else if(0x402 == status){
+			headphone_plugged = 0;
+			dev_err(codec->dev, "  Reporting headset removed\n");
+			wm8994->pdata->jack_is_mic = false;
+			wm8994->micdet[0].jack->jack->type = SND_JACK_MICROPHONE;
+			input_report_switch(wm8994->micdet[0].jack->jack->input_dev,
+							    SW_MICROPHONE_INSERT,
+						        0);
+		}
+	}
+	input_sync(wm8994->micdet[0].jack->jack->input_dev);
+	if (headphone_switch) {
+		switch_set_state(headphone_switch, headphone_plugged);
+	}
+	wm8994->micdet[0].jack->jack->type = oldtype;
+}
+#endif
+
 /**
  * wm8958_mic_detect - Enable microphone detection via the WM8958 IRQ
  *
@@ -3639,7 +3745,11 @@ int wm8958_mic_detect(struct snd_soc_codec *codec, struct snd_soc_jack *jack,
 	if (jack) {
 		if (!cb) {
 			dev_dbg(codec->dev, "Using default micdet callback\n");
+#ifdef CONFIG_MACH_TENDERLOIN
+			cb = wm8958_hp_micdet;
+#else
 			cb = wm8958_default_micdet;
+#endif
 			cb_data = codec;
 		}
 
@@ -3785,11 +3895,13 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	struct wm8994 *control = dev_get_drvdata(codec->dev->parent);
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	struct snd_soc_dapm_context *dapm = &codec->dapm;
+	struct wm8994_pdata *pdata;
 	unsigned int reg;
 	int ret, i;
 
 	wm8994->codec = codec;
 	codec->control_data = control->regmap;
+	pdata = wm8994->pdata;
 
 	snd_soc_codec_set_cache_io(codec, 16, 16, SND_SOC_REGMAP);
 
@@ -3813,7 +3925,11 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	codec->dapm.idle_bias_off = 1;
 
 	/* Set revision-specific configuration */
+#ifdef CONFIG_MACH_TENDERLOIN
+	wm8994->revision = 0;
+#else
 	wm8994->revision = snd_soc_read(codec, WM8994_CHIP_REVISION);
+#endif
 	switch (control->type) {
 	case WM8994:
 		/* Single ended line outputs should have VMID on. */
@@ -4103,9 +4219,8 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 					  ARRAY_SIZE(wm8994_dac_widgets));
 		break;
 	}
-		
 
-	wm_hubs_add_analogue_routes(codec, 0, 0);
+	wm_hubs_add_analogue_routes(codec, pdata->lineout1_diff, pdata->lineout2_diff);
 	snd_soc_dapm_add_routes(dapm, intercon, ARRAY_SIZE(intercon));
 
 	switch (control->type) {

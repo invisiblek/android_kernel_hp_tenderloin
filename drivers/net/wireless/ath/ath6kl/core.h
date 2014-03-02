@@ -91,6 +91,19 @@ enum ath6kl_fw_capability {
 	 */
 	ATH6KL_FW_CAPABILITY_STA_P2PDEV_DUPLEX,
 
+	/*
+	 * Multicast support in WOW and host awake mode.
+	 * Allow all multicast in host awake mode.
+	 * Apply multicast filter in WOW mode.
+	 */
+	ATH6KL_FW_CAPABILITY_WOW_MULTICAST_FILTER,
+
+	/*
+	 * Firmware capability for hang detection through heart beat
+	 * challenge messages.
+	 */
+	ATH6KL_FW_CAPABILITY_HEART_BEAT_POLL,
+
 	/* this needs to be last */
 	ATH6KL_FW_CAPABILITY_MAX,
 };
@@ -117,9 +130,9 @@ struct ath6kl_fw_ie {
 #define AR6003_HW_2_0_FIRMWARE_FILE		"athwlan.bin.z77"
 #define AR6003_HW_2_0_TCMD_FIRMWARE_FILE	"athtcmd_ram.bin"
 #define AR6003_HW_2_0_PATCH_FILE		"data.patch.bin"
-#define AR6003_HW_2_0_BOARD_DATA_FILE "ath6k/AR6003/hw2.0/bdata.bin"
+#define AR6003_HW_2_0_BOARD_DATA_FILE AR6003_HW_2_0_FW_DIR "/bdata.bin"
 #define AR6003_HW_2_0_DEFAULT_BOARD_DATA_FILE \
-			"ath6k/AR6003/hw2.0/bdata.SD31.bin"
+			AR6003_HW_2_0_FW_DIR "/bdata.SD31.bin"
 
 /* AR6003 3.0 definitions */
 #define AR6003_HW_2_1_1_VERSION                 0x30000582
@@ -130,25 +143,33 @@ struct ath6kl_fw_ie {
 #define AR6003_HW_2_1_1_UTF_FIRMWARE_FILE	"utf.bin"
 #define AR6003_HW_2_1_1_TESTSCRIPT_FILE	"nullTestFlow.bin"
 #define AR6003_HW_2_1_1_PATCH_FILE		"data.patch.bin"
-#define AR6003_HW_2_1_1_BOARD_DATA_FILE "ath6k/AR6003/hw2.1.1/bdata.bin"
+#define AR6003_HW_2_1_1_BOARD_DATA_FILE AR6003_HW_2_1_1_FW_DIR "/bdata.bin"
 #define AR6003_HW_2_1_1_DEFAULT_BOARD_DATA_FILE	\
-			"ath6k/AR6003/hw2.1.1/bdata.SD31.bin"
+			AR6003_HW_2_1_1_FW_DIR "/bdata.SD31.bin"
 
 /* AR6004 1.0 definitions */
 #define AR6004_HW_1_0_VERSION                 0x30000623
 #define AR6004_HW_1_0_FW_DIR			"ath6k/AR6004/hw1.0"
 #define AR6004_HW_1_0_FIRMWARE_FILE		"fw.ram.bin"
-#define AR6004_HW_1_0_BOARD_DATA_FILE         "ath6k/AR6004/hw1.0/bdata.bin"
+#define AR6004_HW_1_0_BOARD_DATA_FILE         AR6004_HW_1_0_FW_DIR "/bdata.bin"
 #define AR6004_HW_1_0_DEFAULT_BOARD_DATA_FILE \
-	"ath6k/AR6004/hw1.0/bdata.DB132.bin"
+	AR6004_HW_1_0_FW_DIR "/bdata.DB132.bin"
 
 /* AR6004 1.1 definitions */
 #define AR6004_HW_1_1_VERSION                 0x30000001
 #define AR6004_HW_1_1_FW_DIR			"ath6k/AR6004/hw1.1"
 #define AR6004_HW_1_1_FIRMWARE_FILE		"fw.ram.bin"
-#define AR6004_HW_1_1_BOARD_DATA_FILE         "ath6k/AR6004/hw1.1/bdata.bin"
+#define AR6004_HW_1_1_BOARD_DATA_FILE         AR6004_HW_1_1_FW_DIR "/bdata.bin"
 #define AR6004_HW_1_1_DEFAULT_BOARD_DATA_FILE \
-	"ath6k/AR6004/hw1.1/bdata.DB132.bin"
+	AR6004_HW_1_1_FW_DIR "/bdata.DB132.bin"
+
+/* AR6004 1.2 definitions */
+#define AR6004_HW_1_2_VERSION                 0x300007e8
+#define AR6004_HW_1_2_FW_DIR			"ath6k/AR6004/hw1.2"
+#define AR6004_HW_1_2_FIRMWARE_FILE           "fw.ram.bin"
+#define AR6004_HW_1_2_BOARD_DATA_FILE         AR6004_HW_1_2_FW_DIR "/bdata.bin"
+#define AR6004_HW_1_2_DEFAULT_BOARD_DATA_FILE \
+	AR6004_HW_1_2_FW_DIR "/bdata.bin"
 
 /* Per STA data, used in AP mode */
 #define STA_PS_AWAKE		BIT(0)
@@ -179,7 +200,7 @@ struct ath6kl_fw_ie {
 
 #define AGGR_NUM_OF_FREE_NETBUFS    16
 
-#define AGGR_RX_TIMEOUT     400	/* in ms */
+#define AGGR_RX_TIMEOUT     100	/* in ms */
 
 #define WMI_TIMEOUT (2 * HZ)
 
@@ -226,7 +247,6 @@ struct skb_hold_q {
 
 struct rxtid {
 	bool aggr;
-	bool progress;
 	bool timer_mon;
 	u16 win_sz;
 	u16 seq_next;
@@ -235,9 +255,15 @@ struct rxtid {
 	struct sk_buff_head q;
 
 	/*
-	 * FIXME: No clue what this should protect. Apparently it should
-	 * protect some of the fields above but they are also accessed
-	 * without taking the lock.
+	 * lock mainly protects seq_next and hold_q. Movement of seq_next
+	 * needs to be protected between aggr_timeout() and
+	 * aggr_process_recv_frm(). hold_q will be holding the pending
+	 * reorder frames and it's access should also be protected.
+	 * Some of the other fields like hold_q_sz, win_sz and aggr are
+	 * initialized/reset when receiving addba/delba req, also while
+	 * deleting aggr state all the pending buffers are flushed before
+	 * resetting these fields, so there should not be any race in accessing
+	 * these fields.
 	 */
 	spinlock_t lock;
 };
@@ -474,12 +500,13 @@ enum ath6kl_vif_state {
 	WMM_ENABLED,
 	NETQ_STOPPED,
 	DTIM_EXPIRED,
-	NETDEV_REGISTERED,
 	CLEAR_BSSFILTER_ON_BEACON,
 	DTIM_PERIOD_AVAIL,
 	WLAN_ENABLED,
 	STATS_UPDATE_PEND,
 	HOST_SLEEP_MODE_CMD_PROCESSED,
+	NETDEV_MCAST_ALL_ON,
+	NETDEV_MCAST_ALL_OFF,
 };
 
 struct ath6kl_vif {
@@ -546,6 +573,7 @@ enum ath6kl_dev_state {
 	SKIP_SCAN,
 	ROAM_TBL_PEND,
 	FIRST_BOOT,
+	RECOVERY_CLEANUP,
 };
 
 enum ath6kl_state {
@@ -557,6 +585,16 @@ enum ath6kl_state {
 	ATH6KL_STATE_CUTPOWER,
 	ATH6KL_STATE_WOW,
 	ATH6KL_STATE_SCHED_SCAN,
+	ATH6KL_STATE_RECOVERY,
+};
+
+/* Fw error recovery */
+#define ATH6KL_HB_RESP_MISS_THRES	5
+
+enum ath6kl_fw_err {
+	ATH6KL_FW_ASSERT,
+	ATH6KL_FW_HB_RESP_FAILURE,
+	ATH6KL_FW_EP_FULL,
 };
 
 struct ath6kl {
@@ -696,6 +734,17 @@ struct ath6kl {
 
 	bool wiphy_registered;
 
+	struct ath6kl_fw_recovery {
+		struct work_struct recovery_work;
+		unsigned long err_reason;
+		unsigned long hb_poll;
+		struct timer_list hb_timer;
+		u32 seq_num;
+		bool hb_pending;
+		u8 hb_misscnt;
+		bool enable;
+	} fw_recovery;
+
 #ifdef CONFIG_ATH6KL_DEBUG
 	struct {
 		struct sk_buff_head fwlog_queue;
@@ -809,8 +858,6 @@ void aggr_recv_addba_req_evt(struct ath6kl_vif *vif, u8 tid, u16 seq_no,
 			     u8 win_sz);
 void ath6kl_wakeup_event(void *dev);
 
-void ath6kl_reset_device(struct ath6kl *ar, u32 target_type,
-			 bool wait_fot_compltn, bool cold_reset);
 void ath6kl_init_control_info(struct ath6kl_vif *vif);
 struct ath6kl_vif *ath6kl_vif_first(struct ath6kl *ar);
 void ath6kl_cleanup_vif(struct ath6kl_vif *vif, bool wmi_ready);
@@ -826,4 +873,12 @@ int ath6kl_core_init(struct ath6kl *ar);
 void ath6kl_core_cleanup(struct ath6kl *ar);
 void ath6kl_core_destroy(struct ath6kl *ar);
 
+/* Fw error recovery */
+void ath6kl_init_hw_restart(struct ath6kl *ar);
+void ath6kl_recovery_err_notify(struct ath6kl *ar, enum ath6kl_fw_err reason);
+void ath6kl_recovery_hb_event(struct ath6kl *ar, u32 cookie);
+void ath6kl_recovery_init(struct ath6kl *ar);
+void ath6kl_recovery_cleanup(struct ath6kl *ar);
+void ath6kl_recovery_suspend(struct ath6kl *ar);
+void ath6kl_recovery_resume(struct ath6kl *ar);
 #endif /* CORE_H */

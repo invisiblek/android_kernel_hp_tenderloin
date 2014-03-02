@@ -107,22 +107,6 @@ typedef struct {
 #endif
 
 #ifdef CONFIG_MSM_CAMERA
-enum msm_camera_csi_data_format {
-	CSI_8BIT,
-	CSI_10BIT,
-	CSI_12BIT,
-};
-
-struct msm_camera_csi_params {
-	enum msm_camera_csi_data_format data_format;
-	uint8_t lane_cnt;
-	uint8_t lane_assign;
-	uint8_t settle_cnt;
-	uint8_t dpcm_scheme;
-	uint8_t mipi_driving_strength;/*from 0-3*/
-	uint8_t hs_impedence;
-};
-
 struct camera_led_info {
 	uint16_t enable;
 	uint16_t low_limit_led_state;

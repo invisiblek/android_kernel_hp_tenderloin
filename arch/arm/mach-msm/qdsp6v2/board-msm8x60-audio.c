@@ -21,6 +21,7 @@
 #include <linux/mfd/msm-adie-codec.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/machine.h>
+#include <linux/spi_aic3254.h>
 
 #include <mach/qdsp6v2/audio_dev_ctl.h>
 #include <sound/apr_audio.h>
@@ -34,9 +35,8 @@
 #include "snddev_hdmi.h"
 #include "snddev_mi2s.h"
 #include "snddev_virtual.h"
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 #include "timpani_profile_8x60_htc.h"
-#include <linux/spi_aic3254.h>
 #endif
 
 #ifdef CONFIG_DEBUG_FS
@@ -55,10 +55,10 @@ static void snddev_hsed_config_restore_setting(void);
 #define SNDDEV_GPIO_MIC1_ANCL_SEL 295
 #define SNDDEV_GPIO_HS_MIC4_SEL 296
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 static struct q6v2audio_analog_ops default_audio_ops;
 static struct q6v2audio_analog_ops *audio_ops = &default_audio_ops;
 
+#ifdef CONFIG_MACH_HTC
 int speaker_enable(void)
 {
 	if (audio_ops->speaker_enable)
@@ -669,7 +669,7 @@ static void msm_snddev_disable_amic_power(void)
 #endif
 }
 
-#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
+#ifndef CONFIG_MACH_HTC
 static int msm_snddev_enable_anc_power(void)
 {
 	int ret = 0;
@@ -803,7 +803,7 @@ static void msm_snddev_disable_dmic_sec_power(void)
 }
 
 static struct adie_codec_action_unit iearpiece_48KHz_osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	EAR_PRI_MONO_48000_OSR_256;
 #else
 	EAR_PRI_MONO_8000_OSR_256;
@@ -831,7 +831,7 @@ static struct snddev_icodec_data snddev_iearpiece_data = {
 	.profile = &iearpiece_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = handset_enable,
 	.pamp_off = handset_disable,
 	.voltage_on = voltage_on,
@@ -844,13 +844,13 @@ static struct snddev_icodec_data snddev_iearpiece_data = {
 
 static struct platform_device msm_iearpiece_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 0,
 #endif
 	.dev = { .platform_data = &snddev_iearpiece_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct adie_codec_action_unit iearpiece_hac_48KHz_osr256_actions[] =
 	EAR_PRI_MONO_48000_OSR_256;
 
@@ -893,7 +893,7 @@ static struct platform_device msm_ihac_device = {
 #endif
 
 static struct adie_codec_action_unit imic_48KHz_osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	AMIC_PRI_MONO_48000_OSR_256;
 #else
 	AMIC_PRI_MONO_OSR_256;
@@ -921,27 +921,30 @@ static struct snddev_icodec_data snddev_imic_data = {
 	.profile = &imic_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
-	.pamp_on = int_mic_enable,
-	.pamp_off = int_mic_disable,
 	.aic3254_id = VOICERECOGNITION_IMIC,
 	.aic3254_voc_id = CALL_UPLINK_IMIC_RECEIVER,
 	.default_aic3254_id = VOICERECOGNITION_IMIC,
-#else
+#ifdef CONFIG_MACH_HTC
+	.pamp_on = int_mic_enable,
+	.pamp_off = int_mic_disable,
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_amic_power,
 	.pamp_off = msm_snddev_disable_amic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
 #endif
 };
 
 static struct platform_device msm_imic_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 1,
 #endif
 	.dev = { .platform_data = &snddev_imic_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct snddev_icodec_data snddev_nomic_headset_data = {
 	.capability = (SNDDEV_CAP_TX | SNDDEV_CAP_VOICE),
 	.name = "nomic_headset_tx",
@@ -1005,29 +1008,32 @@ static struct snddev_icodec_data snddev_ihs_stereo_rx_data = {
 	.profile = &headset_ab_cpls_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	.aic3254_id = VOICERECORD_IMIC,
+	.aic3254_voc_id = CALL_UPLINK_IMIC_HEADSET,
+	.default_aic3254_id = VOICERECORD_IMIC,
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = headset_enable,
 	.pamp_off = headset_disable,
 	.voltage_on = voltage_on,
 	.voltage_off = voltage_off,
-	.aic3254_id = VOICERECORD_IMIC,
-	.aic3254_voc_id = CALL_UPLINK_IMIC_HEADSET,
-	.default_aic3254_id = VOICERECORD_IMIC,
-#else
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+#else
+	.voltage_on = NULL,
+	.voltage_off = NULL,
 #endif
 };
 
 static struct platform_device msm_headset_stereo_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 34,
 #endif
 	.dev = { .platform_data = &snddev_ihs_stereo_rx_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct snddev_icodec_data snddev_nomic_ihs_stereo_rx_data = {
 	.capability = (SNDDEV_CAP_RX | SNDDEV_CAP_VOICE),
 	.name = "nomic_headset_stereo_rx",
@@ -1076,7 +1082,7 @@ static struct snddev_icodec_data snddev_anc_headset_data = {
 	.profile = &headset_anc_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = int_mic_enable,
 	.pamp_off = int_mic_disable,
 #else
@@ -1089,14 +1095,14 @@ static struct snddev_icodec_data snddev_anc_headset_data = {
 
 static struct platform_device msm_anc_headset_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 51,
 #endif
 	.dev = { .platform_data = &snddev_anc_headset_data },
 };
 
 static struct adie_codec_action_unit ispkr_stereo_48KHz_osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	SPEAKER_PRI_48000_OSR_256;
 #else
 	SPEAKER_PRI_STEREO_48000_OSR_256;
@@ -1124,30 +1130,33 @@ static struct snddev_icodec_data snddev_ispkr_stereo_data = {
 	.profile = &ispkr_stereo_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	.aic3254_id = PLAYBACK_SPEAKER,
+	.aic3254_voc_id = CALL_DOWNLINK_IMIC_SPEAKER,
+	.default_aic3254_id = PLAYBACK_SPEAKER,
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = speaker_enable,
 	.pamp_off = speaker_disable,
 	.voltage_on = voltage_on,
 	.voltage_off = voltage_off,
-	.aic3254_id = PLAYBACK_SPEAKER,
-	.aic3254_voc_id = CALL_DOWNLINK_IMIC_SPEAKER,
-	.default_aic3254_id = PLAYBACK_SPEAKER,
-#else
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_poweramp_on,
 	.pamp_off = msm_snddev_poweramp_off,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
 #endif
 };
 
 static struct platform_device msm_ispkr_stereo_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 2,
 #endif
 	.dev = { .platform_data = &snddev_ispkr_stereo_data },
 };
 
 static struct adie_codec_action_unit idmic_mono_48KHz_osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	AMIC_PRI_MONO_48000_OSR_256;
 #else
 	DMIC1_PRI_MONO_OSR_256;
@@ -1175,21 +1184,24 @@ static struct snddev_icodec_data snddev_ispkr_mic_data = {
 	.profile = &idmic_mono_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
-	.pamp_on = int_mic_enable,
-	.pamp_off = int_mic_disable,
 	.aic3254_id = VOICERECORD_IMIC,
 	.aic3254_voc_id = CALL_UPLINK_IMIC_SPEAKER,
 	.default_aic3254_id = VOICERECORD_IMIC,
-#else
+#ifdef CONFIG_MACH_HTC
+	.pamp_on = int_mic_enable,
+	.pamp_off = int_mic_disable,
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
 #endif
 };
 
 static struct platform_device msm_ispkr_mic_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 3,
 #endif
 	.dev = { .platform_data = &snddev_ispkr_mic_data },
@@ -1234,8 +1246,13 @@ static struct snddev_icodec_data snddev_imic_ffa_data = {
 	.profile = &idmic_mono_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_power,
 	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_imic_ffa_device = {
@@ -1243,7 +1260,7 @@ static struct platform_device msm_imic_ffa_device = {
 	.dev = { .platform_data = &snddev_imic_ffa_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct adie_codec_action_unit handset_dual_mic_endfire_8KHz_osr256_actions[] =
 	DMIC1_PRI_STEREO_8000_OSR_256;
 
@@ -1303,25 +1320,28 @@ static struct snddev_icodec_data snddev_dual_mic_endfire_data = {
 	.capability = (SNDDEV_CAP_TX | SNDDEV_CAP_VOICE),
 	.name = "handset_dual_mic_endfire_tx",
 	.copp_id = PRIMARY_I2S_TX,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.profile = &handset_dual_mic_endfire_profile,
 #else
 	.profile = &dual_mic_endfire_profile,
 #endif
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_enable_dmic_power,
-	.pamp_off = msm_snddev_disable_dmic_power,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 	.aic3254_id = VOICERECORD_IMIC,
 	.aic3254_voc_id = CALL_UPLINK_IMIC_RECEIVER,
 	.default_aic3254_id = VOICERECORD_IMIC,
+#if defined(CONFIG_MARIMBA_CODEC) || defined(CONFIG_MACH_HTC)
+	.pamp_on = msm_snddev_enable_dmic_power,
+	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
 #endif
 };
 
 static struct platform_device msm_hs_dual_mic_endfire_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 14,
 #endif
 	.dev = { .platform_data = &snddev_dual_mic_endfire_data },
@@ -1331,19 +1351,22 @@ static struct snddev_icodec_data snddev_dual_mic_spkr_endfire_data = {
 	.capability = (SNDDEV_CAP_TX | SNDDEV_CAP_VOICE),
 	.name = "speaker_dual_mic_endfire_tx",
 	.copp_id = PRIMARY_I2S_TX,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.profile = &spk_dual_mic_endfire_profile,
 #else
 	.profile = &dual_mic_endfire_profile,
 #endif
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-	.pamp_on = msm_snddev_enable_dmic_power,
-	.pamp_off = msm_snddev_disable_dmic_power,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 	.aic3254_id = VOICERECORD_IMIC,
 	.aic3254_voc_id = CALL_UPLINK_IMIC_SPEAKER,
 	.default_aic3254_id = VOICERECORD_IMIC,
+#if defined(CONFIG_MARIMBA_CODEC) || defined(CONFIG_MACH_HTC)
+	.pamp_on = msm_snddev_enable_dmic_power,
+	.pamp_off = msm_snddev_disable_dmic_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
 #endif
 };
 
@@ -1354,7 +1377,7 @@ static struct platform_device msm_spkr_dual_mic_endfire_device = {
 };
 
 static struct adie_codec_action_unit dual_mic_broadside_8osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	HS_DMIC2_STEREO_8000_OSR_256;
 #else
 	HS_DMIC2_STEREO_OSR_256;
@@ -1382,8 +1405,13 @@ static struct snddev_icodec_data snddev_hs_dual_mic_broadside_data = {
 	.profile = &dual_mic_broadside_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
+#if defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_enable_dmic_sec_power,
 	.pamp_off = msm_snddev_disable_dmic_sec_power,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+#endif
 };
 
 static struct platform_device msm_hs_dual_mic_broadside_device = {
@@ -1523,7 +1551,7 @@ static struct snddev_hdmi_data snddev_hdmi_stereo_rx_data = {
 
 static struct platform_device msm_snddev_hdmi_stereo_rx_device = {
 	.name = "snddev_hdmi",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 0,
 #endif
 	.dev = { .platform_data = &snddev_hdmi_stereo_rx_data },
@@ -1540,7 +1568,7 @@ static struct snddev_mi2s_data snddev_mi2s_fm_tx_data = {
 
 static struct platform_device msm_mi2s_fm_tx_device = {
 	.name = "snddev_mi2s",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 0,
 #endif
 	.dev = { .platform_data = &snddev_mi2s_fm_tx_data },
@@ -1561,7 +1589,7 @@ static struct platform_device msm_mi2s_fm_rx_device = {
 	.dev = { .platform_data = &snddev_mi2s_fm_rx_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct adie_codec_action_unit ifmradio_speaker_osr256_actions[] =
 	AUXPGA_SPEAKER_RX;
 
@@ -1644,7 +1672,7 @@ static struct platform_device msm_ifmradio_headset_device = {
 #endif
 
 static struct adie_codec_action_unit iheadset_mic_tx_osr256_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	HS_AMIC2_MONO_48000_OSR_256;
 #else
 	HEADSET_AMIC2_TX_MONO_PRI_OSR_256;
@@ -1672,7 +1700,7 @@ static struct snddev_icodec_data snddev_headset_mic_data = {
 	.profile = &iheadset_mic_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = ext_mic_enable,
 	.pamp_off = ext_mic_disable,
 	.aic3254_id = VOICERECOGNITION_EMIC,
@@ -1683,7 +1711,7 @@ static struct snddev_icodec_data snddev_headset_mic_data = {
 
 static struct platform_device msm_headset_mic_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 33,
 #endif
 	.dev = { .platform_data = &snddev_headset_mic_data },
@@ -1717,19 +1745,24 @@ static struct snddev_icodec_data snddev_ihs_stereo_speaker_stereo_rx_data = {
 	.profile = &ihs_stereo_speaker_stereo_rx_profile,
 	.channel_mode = 2,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	.aic3254_id = RING_HEADSET_SPEAKER,
+	.aic3254_voc_id = RING_HEADSET_SPEAKER,
+	.default_aic3254_id = RING_HEADSET_SPEAKER,
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = headset_speaker_enable,
 	.pamp_off = headset_speaker_disable,
 	.voltage_on = voltage_on,
 	.voltage_off = voltage_off,
-	.aic3254_id = RING_HEADSET_SPEAKER,
-	.aic3254_voc_id = RING_HEADSET_SPEAKER,
-	.default_aic3254_id = RING_HEADSET_SPEAKER,
-#else
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.pamp_on = msm_snddev_poweramp_on,
 	.pamp_off = msm_snddev_poweramp_off,
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+#else
+	.pamp_on = NULL,
+	.pamp_off = NULL,
+	.voltage_on = NULL,
+	.voltage_off = NULL,
 #endif
 };
 
@@ -1757,7 +1790,7 @@ static struct snddev_ecodec_data snddev_bt_sco_mic_data = {
 
 struct platform_device msm_bt_sco_earpiece_device = {
 	.name = "msm_snddev_ecodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 0,
 #endif
 	.dev = { .platform_data = &snddev_bt_sco_earpiece_data },
@@ -1765,14 +1798,14 @@ struct platform_device msm_bt_sco_earpiece_device = {
 
 struct platform_device msm_bt_sco_mic_device = {
 	.name = "msm_snddev_ecodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.id = 1,
 #endif
 	.dev = { .platform_data = &snddev_bt_sco_mic_data },
 };
 
 static struct adie_codec_action_unit itty_mono_tx_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	TTY_HEADSET_MONO_TX_48000_OSR_256;
 #else
 	TTY_HEADSET_MONO_TX_OSR_256;
@@ -1800,7 +1833,7 @@ static struct snddev_icodec_data snddev_itty_mono_tx_data = {
 	.profile = &itty_mono_tx_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = ext_mic_enable,
 	.pamp_off = ext_mic_disable,
 	.aic3254_id = TTY_IN_FULL,
@@ -1811,14 +1844,14 @@ static struct snddev_icodec_data snddev_itty_mono_tx_data = {
 
 static struct platform_device msm_itty_mono_tx_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 16,
 #endif
 	.dev = { .platform_data = &snddev_itty_mono_tx_data },
 };
 
 static struct adie_codec_action_unit itty_mono_rx_actions[] =
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	TTY_HEADSET_MONO_RX_48000_OSR_256;
 #else
 	TTY_HEADSET_MONO_RX_8000_OSR_256;
@@ -1846,23 +1879,28 @@ static struct snddev_icodec_data snddev_itty_mono_rx_data = {
 	.profile = &itty_mono_rx_profile,
 	.channel_mode = 1,
 	.default_sample_rate = 48000,
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+	.aic3254_id = TTY_OUT_FULL,
+	.aic3254_voc_id = TTY_OUT_FULL,
+	.default_aic3254_id = TTY_OUT_FULL,
+#ifdef CONFIG_MACH_HTC
 	.pamp_on = headset_enable,
 	.pamp_off = headset_disable,
 	.voltage_on = voltage_on,
 	.voltage_off = voltage_off,
-	.aic3254_id = TTY_OUT_FULL,
-	.aic3254_voc_id = TTY_OUT_FULL,
-	.default_aic3254_id = TTY_OUT_FULL,
-#else
+#elif defined(CONFIG_MARIMBA_CODEC)
 	.voltage_on = msm_snddev_voltage_on,
 	.voltage_off = msm_snddev_voltage_off,
+	.voltage_on = msm_snddev_voltage_on,
+	.voltage_off = msm_snddev_voltage_off,
+#else
+	.voltage_on = NULL,
+	.voltage_off = NULL,
 #endif
 };
 
 static struct platform_device msm_itty_mono_rx_device = {
 	.name = "snddev_icodec",
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
         .id = 17,
 #endif
 	.dev = { .platform_data = &snddev_itty_mono_rx_data },
@@ -2978,7 +3016,7 @@ static struct platform_device msm_snddev_hdmi_non_linear_pcm_rx_device = {
 	.dev = { .platform_data = &snddev_hdmi_non_linear_pcm_rx_data },
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct adie_codec_action_unit headset_mono_ab_cpls_48KHz_osr256_actions[] =
 	HEADSET_AB_CPLS_48000_OSR_256;
 
@@ -3866,8 +3904,13 @@ static void snddev_hsed_config_restore_setting(void)
 	icodec_data = (struct snddev_icodec_data *)device->dev.platform_data;
 
 	if (icodec_data) {
+#if defined(CONFIG_MARIMBA_CODEC)
 		icodec_data->voltage_on = msm_snddev_voltage_on;
 		icodec_data->voltage_off = msm_snddev_voltage_off;
+#else
+		icodec_data->voltage_on = NULL;
+		icodec_data->voltage_off = NULL;
+#endif
 		icodec_data->profile->settings = headset_ab_cpls_settings;
 		icodec_data->profile->setting_sz =
 			ARRAY_SIZE(headset_ab_cpls_settings);
@@ -3995,7 +4038,7 @@ static struct platform_device *snd_devices_fluid[] __initdata = {
 };
 
 static struct platform_device *snd_devices_common[] __initdata = {
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	&msm_uplink_rx_device,
 #else
 	&msm_aux_pcm_device,
@@ -4004,6 +4047,13 @@ static struct platform_device *snd_devices_common[] __initdata = {
 	&msm_uplink_rx_device,
 	&msm_device_dspcrashd_8x60,
 #endif
+};
+
+static struct platform_device *snd_devices_tenderloin[] __initdata = {
+	&msm_ispkr_stereo_device,
+	&msm_ispkr_mic_device,
+	&msm_bt_sco_earpiece_device,
+	&msm_bt_sco_mic_device,
 };
 
 #ifdef CONFIG_MSM8X60_FTM_AUDIO_DEVICES
@@ -4043,7 +4093,7 @@ static struct platform_device *snd_devices_ftm[] __initdata = {
 static struct platform_device *snd_devices_ftm[] __initdata = {};
 #endif
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 static struct platform_device *snd_devices_htc[] __initdata = {
 	&msm_iearpiece_device,
 	&msm_imic_device,
@@ -4093,12 +4143,10 @@ static struct platform_device *snd_devices_htc[] __initdata = {
 };
 #endif
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 void htc_8x60_register_analog_ops(struct q6v2audio_analog_ops *ops)
 {
 	audio_ops = ops;
 }
-#endif
 
 void __init msm_snddev_init(void)
 {
@@ -4108,7 +4156,7 @@ void __init msm_snddev_init(void)
 	atomic_set(&pamp_ref_cnt, 0);
 	atomic_set(&preg_ref_cnt, 0);
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
+#ifdef CONFIG_MACH_HTC
 	platform_add_devices(snd_devices_htc, ARRAY_SIZE(snd_devices_htc));
 #endif
 
@@ -4138,7 +4186,14 @@ void __init msm_snddev_init(void)
 
 		platform_add_devices(snd_devices_fluid,
 		ARRAY_SIZE(snd_devices_fluid));
+	} else if (machine_is_tenderloin()) {
+		for (i = 0; i < ARRAY_SIZE(snd_devices_tenderloin); i++)
+			snd_devices_tenderloin[i]->id = dev_id++;
+
+		platform_add_devices(snd_devices_tenderloin,
+		ARRAY_SIZE(snd_devices_tenderloin));
 	}
+
 	if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa()
 		|| machine_is_msm8x60_fusion()
 		|| machine_is_msm8x60_fusn_ffa()) {

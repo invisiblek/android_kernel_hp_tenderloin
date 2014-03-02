@@ -913,8 +913,19 @@ static inline int mdp4_overlay_borderfill_supported(void)
 int mdp4_overlay_borderfill_supported(void);
 #endif
 
+#ifdef CONFIG_FB_MSM_WRITEBACK_MSM_PANEL
 int mdp4_overlay_writeback_on(struct platform_device *pdev);
 int mdp4_overlay_writeback_off(struct platform_device *pdev);
+#else
+static inline int mdp4_overlay_writeback_on(struct platform_device *pdev)
+{
+  return -ENODEV;
+}
+static inline int mdp4_overlay_writeback_off(struct platform_device *pdev)
+{
+  return -ENODEV;
+}
+#endif
 void mdp4_writeback_overlay(struct msm_fb_data_type *mfd);
 void mdp4_overlay2_done_wfd(struct mdp_dma_data *dma);
 

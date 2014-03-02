@@ -31,11 +31,9 @@ struct snddev_icodec_data {
 	int (*voltage_on) (void);
 	void (*voltage_off) (void);
 	u32 dev_vol_type;
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 	u32 aic3254_id;
 	u32 aic3254_voc_id;
 	u32 default_aic3254_id;
-#endif
 };
 
 /* Context for each internal codec sound device */
@@ -46,7 +44,6 @@ struct snddev_icodec_state {
 	u32 enabled;
 };
 
-#if defined(CONFIG_MSM8X60_AUDIO) && defined(CONFIG_MACH_HTC)
 struct q6v2audio_analog_ops {
 	void (*speaker_enable)(int en);
 	void (*headset_enable)(int en);
@@ -82,6 +79,5 @@ int update_aic3254_info(struct aic3254_info *info);
 void htc_8x60_register_analog_ops(struct q6v2audio_analog_ops *ops);
 void htc_8x60_register_icodec_ops(struct q6v2audio_icodec_ops *ops);
 void htc_8x60_register_aic3254_ops(struct q6v2audio_aic3254_ops *ops);
-#endif
 
 #endif

@@ -73,3 +73,5 @@ obj-$(CONFIG_INPUT_ISL29028)		+= isl29028.o
 obj-$(CONFIG_INPUT_ISL29029)		+= isl29029.o
 obj-$(CONFIG_SENSORS_R3GD20)		+= r3gd20.o
 obj-y 					+= mpu3050/
+obj-$(CONFIG_INPUT_LSM303DLH)		+= lsm303dlh_mag_sysfs.o lsm303dlh_acc_sysfs.o
+obj-$(CONFIG_INPUT_ISL29023)		+= isl29023.o

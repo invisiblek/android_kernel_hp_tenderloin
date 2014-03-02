@@ -16,9 +16,11 @@
  */
 
 #include <linux/ip.h>
+#include <linux/in.h>
 #include "core.h"
 #include "debug.h"
 #include "testmode.h"
+#include "trace.h"
 #include "../regd.h"
 #include "../regd_common.h"
 
@@ -289,6 +291,13 @@ int ath6kl_wmi_implicit_create_pstream(struct wmi *wmi, u8 if_idx,
 					layer2_priority);
 		} else
 			usr_pri = layer2_priority & 0x7;
+
+		/*
+		 * Queue the EAPOL frames in the same WMM_AC_VO queue
+		 * as that of management frames.
+		 */
+		if (skb->protocol == cpu_to_be16(ETH_P_PAE))
+			usr_pri = WMI_VOICE_USER_PRIORITY;
 	}
 
 	/*
@@ -732,7 +741,6 @@ int ath6kl_wmi_force_roam_cmd(struct wmi *wmi, const u8 *bssid)
 		return -ENOMEM;
 
 	cmd = (struct roam_ctrl_cmd *) skb->data;
-	memset(cmd, 0, sizeof(*cmd));
 
 	memcpy(cmd->info.bssid, bssid, ETH_ALEN);
 	cmd->roam_ctrl = WMI_FORCE_ROAM;
@@ -740,6 +748,39 @@ int ath6kl_wmi_force_roam_cmd(struct wmi *wmi, const u8 *bssid)
 	ath6kl_dbg(ATH6KL_DBG_WMI, "force roam to %pM\n", bssid);
 	return ath6kl_wmi_cmd_send(wmi, 0, skb, WMI_SET_ROAM_CTRL_CMDID,
 				   NO_SYNC_WMIFLAG);
+}
+
+int ath6kl_wmi_ap_set_beacon_intvl_cmd(struct wmi *wmi, u8 if_idx,
+				       u32 beacon_intvl)
+{
+	struct sk_buff *skb;
+	struct set_beacon_int_cmd *cmd;
+
+	skb = ath6kl_wmi_get_new_buf(sizeof(*cmd));
+	if (!skb)
+		return -ENOMEM;
+
+	cmd = (struct set_beacon_int_cmd *) skb->data;
+
+	cmd->beacon_intvl = cpu_to_le32(beacon_intvl);
+	return ath6kl_wmi_cmd_send(wmi, if_idx, skb,
+				   WMI_SET_BEACON_INT_CMDID, NO_SYNC_WMIFLAG);
+}
+
+int ath6kl_wmi_ap_set_dtim_cmd(struct wmi *wmi, u8 if_idx, u32 dtim_period)
+{
+	struct sk_buff *skb;
+	struct set_dtim_cmd *cmd;
+
+	skb = ath6kl_wmi_get_new_buf(sizeof(*cmd));
+	if (!skb)
+		return -ENOMEM;
+
+	cmd = (struct set_dtim_cmd *) skb->data;
+
+	cmd->dtim_period = cpu_to_le32(dtim_period);
+	return ath6kl_wmi_cmd_send(wmi, if_idx, skb,
+				   WMI_AP_SET_DTIM_CMDID, NO_SYNC_WMIFLAG);
 }
 
 int ath6kl_wmi_set_roam_mode_cmd(struct wmi *wmi, enum wmi_roam_mode mode)
@@ -752,7 +793,6 @@ int ath6kl_wmi_set_roam_mode_cmd(struct wmi *wmi, enum wmi_roam_mode mode)
 		return -ENOMEM;
 
 	cmd = (struct roam_ctrl_cmd *) skb->data;
-	memset(cmd, 0, sizeof(*cmd));
 
 	cmd->info.roam_mode = mode;
 	cmd->roam_ctrl = WMI_SET_ROAM_MODE;
@@ -912,8 +952,12 @@ static void ath6kl_wmi_regdomain_event(struct wmi *wmi, u8 *datap, int len)
 
 		regpair = ath6kl_get_regpair((u16) reg_code);
 		country = ath6kl_regd_find_country_by_rd((u16) reg_code);
-		ath6kl_dbg(ATH6KL_DBG_WMI, "Regpair used: 0x%0x\n",
-			   regpair->regDmnEnum);
+		if (regpair)
+			ath6kl_dbg(ATH6KL_DBG_WMI, "Regpair used: 0x%0x\n",
+				   regpair->regDmnEnum);
+		else
+			ath6kl_warn("Regpair not found reg_code 0x%0x\n",
+				    reg_code);
 	}
 
 	if (country && wmi->parent_dev->wiphy_registered) {
@@ -1146,6 +1190,9 @@ static int ath6kl_wmi_bitrate_reply_rx(struct wmi *wmi, u8 *datap, int len)
 		rate = RATE_AUTO;
 	} else {
 		index = reply->rate_index & 0x7f;
+		if (WARN_ON_ONCE(index > (RATE_MCS_7_40 + 1)))
+			return -EINVAL;
+
 		sgi = (reply->rate_index & 0x80) ? 1 : 0;
 		rate = wmi_rate_tbl[index][sgi];
 	}
@@ -1652,8 +1699,11 @@ int ath6kl_wmi_cmd_send(struct wmi *wmi, u8 if_idx, struct sk_buff *skb,
 	int ret;
 	u16 info1;
 
-	if (WARN_ON(skb == NULL || (if_idx > (wmi->parent_dev->vif_max - 1))))
+	if (WARN_ON(skb == NULL ||
+		    (if_idx > (wmi->parent_dev->vif_max - 1)))) {
+		dev_kfree_skb(skb);
 		return -EINVAL;
+	}
 
 	ath6kl_dbg(ATH6KL_DBG_WMI, "wmi tx id %d len %d flag %d\n",
 		   cmd_id, skb->len, sync_flag);
@@ -1808,77 +1858,16 @@ int ath6kl_wmi_disconnect_cmd(struct wmi *wmi, u8 if_idx)
 	return ret;
 }
 
-int ath6kl_wmi_beginscan_cmd(struct wmi *wmi, u8 if_idx,
-			     enum wmi_scan_type scan_type,
-			     u32 force_fgscan, u32 is_legacy,
-			     u32 home_dwell_time, u32 force_scan_interval,
-			     s8 num_chan, u16 *ch_list, u32 no_cck, u32 *rates)
-{
-	struct sk_buff *skb;
-	struct wmi_begin_scan_cmd *sc;
-	s8 size;
-	int i, band, ret;
-	struct ath6kl *ar = wmi->parent_dev;
-	int num_rates;
-
-	size = sizeof(struct wmi_begin_scan_cmd);
-
-	if ((scan_type != WMI_LONG_SCAN) && (scan_type != WMI_SHORT_SCAN))
-		return -EINVAL;
-
-	if (num_chan > WMI_MAX_CHANNELS)
-		return -EINVAL;
-
-	if (num_chan)
-		size += sizeof(u16) * (num_chan - 1);
-
-	skb = ath6kl_wmi_get_new_buf(size);
-	if (!skb)
-		return -ENOMEM;
-
-	sc = (struct wmi_begin_scan_cmd *) skb->data;
-	sc->scan_type = scan_type;
-	sc->force_fg_scan = cpu_to_le32(force_fgscan);
-	sc->is_legacy = cpu_to_le32(is_legacy);
-	sc->home_dwell_time = cpu_to_le32(home_dwell_time);
-	sc->force_scan_intvl = cpu_to_le32(force_scan_interval);
-	sc->no_cck = cpu_to_le32(no_cck);
-	sc->num_ch = num_chan;
-
-	for (band = 0; band < IEEE80211_NUM_BANDS; band++) {
-		struct ieee80211_supported_band *sband =
-		    ar->wiphy->bands[band];
-		u32 ratemask = rates[band];
-		u8 *supp_rates = sc->supp_rates[band].rates;
-		num_rates = 0;
-
-		for (i = 0; i < sband->n_bitrates; i++) {
-			if ((BIT(i) & ratemask) == 0)
-				continue; /* skip rate */
-			supp_rates[num_rates++] =
-			    (u8) (sband->bitrates[i].bitrate / 5);
-		}
-		sc->supp_rates[band].nrates = num_rates;
-	}
-
-	for (i = 0; i < num_chan; i++)
-		sc->ch_list[i] = cpu_to_le16(ch_list[i]);
-
-	ret = ath6kl_wmi_cmd_send(wmi, if_idx, skb, WMI_BEGIN_SCAN_CMDID,
-				  NO_SYNC_WMIFLAG);
-
-	return ret;
-}
-
 /* ath6kl_wmi_start_scan_cmd is to be deprecated. Use
  * ath6kl_wmi_begin_scan_cmd instead. The new function supports P2P
  * mgmt operations using station interface.
  */
-int ath6kl_wmi_startscan_cmd(struct wmi *wmi, u8 if_idx,
-			     enum wmi_scan_type scan_type,
-			     u32 force_fgscan, u32 is_legacy,
-			     u32 home_dwell_time, u32 force_scan_interval,
-			     s8 num_chan, u16 *ch_list)
+static int ath6kl_wmi_startscan_cmd(struct wmi *wmi, u8 if_idx,
+				    enum wmi_scan_type scan_type,
+				    u32 force_fgscan, u32 is_legacy,
+				    u32 home_dwell_time,
+				    u32 force_scan_interval,
+				    s8 num_chan, u16 *ch_list)
 {
 	struct sk_buff *skb;
 	struct wmi_start_scan_cmd *sc;
@@ -1912,6 +1901,90 @@ int ath6kl_wmi_startscan_cmd(struct wmi *wmi, u8 if_idx,
 		sc->ch_list[i] = cpu_to_le16(ch_list[i]);
 
 	ret = ath6kl_wmi_cmd_send(wmi, if_idx, skb, WMI_START_SCAN_CMDID,
+				  NO_SYNC_WMIFLAG);
+
+	return ret;
+}
+
+/*
+ * beginscan supports (compared to old startscan) P2P mgmt operations using
+ * station interface, send additional information like supported rates to
+ * advertise and xmit rates for probe requests
+ */
+int ath6kl_wmi_beginscan_cmd(struct wmi *wmi, u8 if_idx,
+			     enum wmi_scan_type scan_type,
+			     u32 force_fgscan, u32 is_legacy,
+			     u32 home_dwell_time, u32 force_scan_interval,
+			     s8 num_chan, u16 *ch_list, u32 no_cck, u32 *rates)
+{
+	struct ieee80211_supported_band *sband;
+	struct sk_buff *skb;
+	struct wmi_begin_scan_cmd *sc;
+	s8 size, *supp_rates;
+	int i, band, ret;
+	struct ath6kl *ar = wmi->parent_dev;
+	int num_rates;
+	u32 ratemask;
+
+	if (!test_bit(ATH6KL_FW_CAPABILITY_STA_P2PDEV_DUPLEX,
+		      ar->fw_capabilities)) {
+		return ath6kl_wmi_startscan_cmd(wmi, if_idx,
+						scan_type, force_fgscan,
+						is_legacy, home_dwell_time,
+						force_scan_interval,
+						num_chan, ch_list);
+	}
+
+	size = sizeof(struct wmi_begin_scan_cmd);
+
+	if ((scan_type != WMI_LONG_SCAN) && (scan_type != WMI_SHORT_SCAN))
+		return -EINVAL;
+
+	if (num_chan > WMI_MAX_CHANNELS)
+		return -EINVAL;
+
+	if (num_chan)
+		size += sizeof(u16) * (num_chan - 1);
+
+	skb = ath6kl_wmi_get_new_buf(size);
+	if (!skb)
+		return -ENOMEM;
+
+	sc = (struct wmi_begin_scan_cmd *) skb->data;
+	sc->scan_type = scan_type;
+	sc->force_fg_scan = cpu_to_le32(force_fgscan);
+	sc->is_legacy = cpu_to_le32(is_legacy);
+	sc->home_dwell_time = cpu_to_le32(home_dwell_time);
+	sc->force_scan_intvl = cpu_to_le32(force_scan_interval);
+	sc->no_cck = cpu_to_le32(no_cck);
+	sc->num_ch = num_chan;
+
+	for (band = 0; band < IEEE80211_NUM_BANDS; band++) {
+		sband = ar->wiphy->bands[band];
+
+		if (!sband)
+			continue;
+
+		if (WARN_ON(band >= A_NUM_BANDS))
+			break;
+
+		ratemask = rates[band];
+		supp_rates = sc->supp_rates[band].rates;
+		num_rates = 0;
+
+		for (i = 0; i < sband->n_bitrates; i++) {
+			if ((BIT(i) & ratemask) == 0)
+				continue; /* skip rate */
+			supp_rates[num_rates++] =
+			    (u8) (sband->bitrates[i].bitrate / 5);
+		}
+		sc->supp_rates[band].nrates = num_rates;
+	}
+
+	for (i = 0; i < num_chan; i++)
+		sc->ch_list[i] = cpu_to_le16(ch_list[i]);
+
+	ret = ath6kl_wmi_cmd_send(wmi, if_idx, skb, WMI_BEGIN_SCAN_CMDID,
 				  NO_SYNC_WMIFLAG);
 
 	return ret;
@@ -1979,7 +2052,7 @@ int ath6kl_wmi_probedssid_cmd(struct wmi *wmi, u8 if_idx, u8 index, u8 flag,
 	struct wmi_probed_ssid_cmd *cmd;
 	int ret;
 
-	if (index > MAX_PROBED_SSID_INDEX)
+	if (index >= MAX_PROBED_SSIDS)
 		return -EINVAL;
 
 	if (ssid_len > sizeof(cmd->ssid))
@@ -2245,8 +2318,10 @@ static int ath6kl_wmi_data_sync_send(struct wmi *wmi, struct sk_buff *skb,
 	struct wmi_data_hdr *data_hdr;
 	int ret;
 
-	if (WARN_ON(skb == NULL || ep_id == wmi->ep_id))
+	if (WARN_ON(skb == NULL || ep_id == wmi->ep_id)) {
+		dev_kfree_skb(skb);
 		return -EINVAL;
+	}
 
 	skb_push(skb, sizeof(struct wmi_data_hdr));
 
@@ -2283,10 +2358,8 @@ static int ath6kl_wmi_sync_point(struct wmi *wmi, u8 if_idx)
 	spin_unlock_bh(&wmi->lock);
 
 	skb = ath6kl_wmi_get_new_buf(sizeof(*cmd));
-	if (!skb) {
-		ret = -ENOMEM;
-		goto free_skb;
-	}
+	if (!skb)
+		return -ENOMEM;
 
 	cmd = (struct wmi_sync_cmd *) skb->data;
 
@@ -2309,7 +2382,7 @@ static int ath6kl_wmi_sync_point(struct wmi *wmi, u8 if_idx)
 	 * then do not send the Synchronize cmd on the control ep
 	 */
 	if (ret)
-		goto free_skb;
+		goto free_cmd_skb;
 
 	/*
 	 * Send sync cmd followed by sync data messages on all
@@ -2319,15 +2392,12 @@ static int ath6kl_wmi_sync_point(struct wmi *wmi, u8 if_idx)
 				  NO_SYNC_WMIFLAG);
 
 	if (ret)
-		goto free_skb;
-
-	/* cmd buffer sent, we no longer own it */
-	skb = NULL;
+		goto free_data_skb;
 
 	for (index = 0; index < num_pri_streams; index++) {
 
 		if (WARN_ON(!data_sync_bufs[index].skb))
-			break;
+			goto free_data_skb;
 
 		ep_id = ath6kl_ac2_endpoint_id(wmi->parent_dev,
 					       data_sync_bufs[index].
@@ -2336,23 +2406,21 @@ static int ath6kl_wmi_sync_point(struct wmi *wmi, u8 if_idx)
 		    ath6kl_wmi_data_sync_send(wmi, data_sync_bufs[index].skb,
 					      ep_id, if_idx);
 
-		if (ret)
-			break;
-
 		data_sync_bufs[index].skb = NULL;
+
+		if (ret)
+			goto free_data_skb;
 	}
 
-free_skb:
+	return 0;
+
+free_cmd_skb:
 	/* free up any resources left over (possibly due to an error) */
-	if (skb)
-		dev_kfree_skb(skb);
+	dev_kfree_skb(skb);
 
-	for (index = 0; index < num_pri_streams; index++) {
-		if (data_sync_bufs[index].skb != NULL) {
-			dev_kfree_skb((struct sk_buff *)data_sync_bufs[index].
-				      skb);
-		}
-	}
+free_data_skb:
+	for (index = 0; index < num_pri_streams; index++)
+		dev_kfree_skb((struct sk_buff *)data_sync_bufs[index].skb);
 
 	return ret;
 }
@@ -2946,10 +3014,21 @@ int ath6kl_wmi_add_del_mcast_filter_cmd(struct wmi *wmi, u8 if_idx,
 
 s32 ath6kl_wmi_get_rate(s8 rate_index)
 {
+	u8 sgi = 0;
+
 	if (rate_index == RATE_AUTO)
 		return 0;
 
-	return wmi_rate_tbl[(u32) rate_index][0];
+	/* SGI is stored as the MSB of the rate_index */
+	if (rate_index & RATE_INDEX_MSB) {
+		rate_index &= RATE_INDEX_WITHOUT_SGI_MASK;
+		sgi = 1;
+	}
+
+	if (WARN_ON(rate_index > RATE_MCS_7_40))
+		rate_index = RATE_MCS_7_40;
+
+	return wmi_rate_tbl[(u32) rate_index][sgi];
 }
 
 static int ath6kl_wmi_get_pmkid_list_event_rx(struct wmi *wmi, u8 *datap,
@@ -3392,6 +3471,19 @@ int ath6kl_wmi_cancel_remain_on_chnl_cmd(struct wmi *wmi, u8 if_idx)
 				     WMI_CANCEL_REMAIN_ON_CHNL_CMDID);
 }
 
+static void ath6kl_wmi_hb_challenge_resp_event(struct wmi *wmi, u8 *datap,
+					       int len)
+{
+	struct wmix_hb_challenge_resp_cmd *cmd;
+
+	if (len < sizeof(struct wmix_hb_challenge_resp_cmd))
+		return;
+
+	cmd = (struct wmix_hb_challenge_resp_cmd *) datap;
+	ath6kl_recovery_hb_event(wmi->parent_dev,
+				 le32_to_cpu(cmd->cookie));
+}
+
 static int ath6kl_wmi_control_rx_xtnd(struct wmi *wmi, struct sk_buff *skb)
 {
 	struct wmix_cmd_hdr *cmd;
@@ -3416,6 +3508,7 @@ static int ath6kl_wmi_control_rx_xtnd(struct wmi *wmi, struct sk_buff *skb)
 	switch (id) {
 	case WMIX_HB_CHALLENGE_RESP_EVENTID:
 		ath6kl_dbg(ATH6KL_DBG_WMI, "wmi event hb challenge resp\n");
+		ath6kl_wmi_hb_challenge_resp_event(wmi, datap, len);
 		break;
 	case WMIX_DBGLOG_EVENTID:
 		ath6kl_dbg(ATH6KL_DBG_WMI, "wmi event dbglog len %d\n", len);
@@ -3675,6 +3768,8 @@ int ath6kl_wmi_control_rx(struct wmi *wmi, struct sk_buff *skb)
 		dev_kfree_skb(skb);
 		return -EINVAL;
 	}
+
+	trace_ath6kl_wmi_event(skb->data, skb->len);
 
 	return ath6kl_wmi_proc_events(wmi, skb);
 }

@@ -106,6 +106,8 @@ struct wmi_data_sync_bufs {
 #define WMM_AC_VI   2		/* video */
 #define WMM_AC_VO   3		/* voice */
 
+#define WMI_VOICE_USER_PRIORITY		0x7
+
 struct wmi {
 	u16 stream_exist_for_ac[WMM_NUM_AC];
 	u8 fat_pipe_exist;
@@ -967,7 +969,7 @@ struct wmi_bss_filter_cmd {
 } __packed;
 
 /* WMI_SET_PROBED_SSID_CMDID */
-#define MAX_PROBED_SSID_INDEX   9
+#define MAX_PROBED_SSIDS   16
 
 enum wmi_ssid_flag {
 	/* disables entry */
@@ -981,7 +983,7 @@ enum wmi_ssid_flag {
 };
 
 struct wmi_probed_ssid_cmd {
-	/* 0 to MAX_PROBED_SSID_INDEX */
+	/* 0 to MAX_PROBED_SSIDS - 1 */
 	u8 entry_index;
 
 	/* see, enum wmi_ssid_flg */
@@ -1529,6 +1531,14 @@ struct roam_ctrl_cmd {
 	u8 roam_ctrl;
 } __packed;
 
+struct set_beacon_int_cmd {
+	__le32 beacon_intvl;
+} __packed;
+
+struct set_dtim_cmd {
+	__le32 dtim_period;
+} __packed;
+
 /* BSS INFO HDR version 2.0 */
 struct wmi_bss_info_hdr2 {
 	__le16 ch; /* frequency in MHz */
@@ -1656,6 +1666,9 @@ struct rx_stats {
 	__le32 dupl_frame;
 	a_sle32 ucast_rate;
 } __packed;
+
+#define RATE_INDEX_WITHOUT_SGI_MASK     0x7f
+#define RATE_INDEX_MSB     0x80
 
 struct tkip_ccmp_stats {
 	__le32 tkip_local_mic_fail;
@@ -1919,7 +1932,6 @@ struct wmi_set_appie_cmd {
 
 #define WOW_MAX_FILTERS_PER_LIST 4
 #define WOW_PATTERN_SIZE	 64
-#define WOW_MASK_SIZE		 64
 
 #define MAC_MAX_FILTERS_PER_LIST 4
 
@@ -1928,7 +1940,7 @@ struct wow_filter {
 	u8 wow_filter_id;
 	u8 wow_filter_size;
 	u8 wow_filter_offset;
-	u8 wow_filter_mask[WOW_MASK_SIZE];
+	u8 wow_filter_mask[WOW_PATTERN_SIZE];
 	u8 wow_filter_pattern[WOW_PATTERN_SIZE];
 } __packed;
 
@@ -2400,11 +2412,6 @@ int ath6kl_wmi_connect_cmd(struct wmi *wmi, u8 if_idx,
 int ath6kl_wmi_reconnect_cmd(struct wmi *wmi, u8 if_idx, u8 *bssid,
 			     u16 channel);
 int ath6kl_wmi_disconnect_cmd(struct wmi *wmi, u8 if_idx);
-int ath6kl_wmi_startscan_cmd(struct wmi *wmi, u8 if_idx,
-			     enum wmi_scan_type scan_type,
-			     u32 force_fgscan, u32 is_legacy,
-			     u32 home_dwell_time, u32 force_scan_interval,
-			     s8 num_chan, u16 *ch_list);
 
 int ath6kl_wmi_beginscan_cmd(struct wmi *wmi, u8 if_idx,
 			     enum wmi_scan_type scan_type,
@@ -2483,6 +2490,9 @@ int ath6kl_wmi_add_wow_pattern_cmd(struct wmi *wmi, u8 if_idx,
 int ath6kl_wmi_del_wow_pattern_cmd(struct wmi *wmi, u8 if_idx,
 				   u16 list_id, u16 filter_id);
 int ath6kl_wmi_set_roam_lrssi_cmd(struct wmi *wmi, u8 lrssi);
+int ath6kl_wmi_ap_set_dtim_cmd(struct wmi *wmi, u8 if_idx, u32 dtim_period);
+int ath6kl_wmi_ap_set_beacon_intvl_cmd(struct wmi *wmi, u8 if_idx,
+				       u32 beacon_interval);
 int ath6kl_wmi_force_roam_cmd(struct wmi *wmi, const u8 *bssid);
 int ath6kl_wmi_set_roam_mode_cmd(struct wmi *wmi, enum wmi_roam_mode mode);
 int ath6kl_wmi_mcast_filter_cmd(struct wmi *wmi, u8 if_idx, bool mc_all_on);
@@ -2539,6 +2549,8 @@ int ath6kl_wmi_set_appie_cmd(struct wmi *wmi, u8 if_idx, u8 mgmt_frm_type,
 			     const u8 *ie, u8 ie_len);
 
 void ath6kl_wmi_sscan_timer(unsigned long ptr);
+
+int ath6kl_wmi_get_challenge_resp_cmd(struct wmi *wmi, u32 cookie, u32 source);
 
 struct ath6kl_vif *ath6kl_get_vif_by_index(struct ath6kl *ar, u8 if_idx);
 void *ath6kl_wmi_init(struct ath6kl *devt);

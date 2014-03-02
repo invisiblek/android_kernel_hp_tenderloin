@@ -443,4 +443,10 @@ config AB8500_BATTERY_THERM_ON_BATCTRL
 	  Say Y to enable battery temperature measurements using
 	  thermistor connected on BATCTRL ADC.
 
+config MAX8903B_CHARGER
+	tristate "MAXIM 8903B charger"
+	default n
+	help
+	  Say Y to enable support for the MAX8903B charger.
+
 endif # POWER_SUPPLY

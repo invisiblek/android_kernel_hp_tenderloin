@@ -157,6 +157,7 @@ static struct mfd_cell wm8994_devs[] = {
  * and should be handled via the standard regulator API supply
  * management.
  */
+#ifndef CONFIG_MACH_TENDERLOIN
 static const char *wm1811_main_supplies[] = {
 	"DBVDD1",
 	"DBVDD2",
@@ -190,11 +191,13 @@ static const char *wm8958_main_supplies[] = {
 	"SPKVDD1",
 	"SPKVDD2",
 };
+#endif
 
 #ifdef CONFIG_PM
 static int wm8994_suspend(struct device *dev)
 {
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
 	int ret;
 
 	/* Don't actually go through with the suspend if the CODEC is
@@ -288,31 +291,41 @@ static int wm8994_suspend(struct device *dev)
 
 	wm8994->suspended = true;
 
+	if (pdata && pdata->wm8994_shutdown)
+		pdata->wm8994_shutdown();
+
+#ifndef CONFIG_MACH_TENDERLOIN
 	ret = regulator_bulk_disable(wm8994->num_supplies,
 				     wm8994->supplies);
 	if (ret != 0) {
 		dev_err(dev, "Failed to disable supplies: %d\n", ret);
 		return ret;
 	}
-
+#endif
 	return 0;
 }
 
 static int wm8994_resume(struct device *dev)
 {
 	struct wm8994 *wm8994 = dev_get_drvdata(dev);
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
 	int ret;
 
 	/* We may have lied to the PM core about suspending */
 	if (!wm8994->suspended)
 		return 0;
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	ret = regulator_bulk_enable(wm8994->num_supplies,
 				    wm8994->supplies);
 	if (ret != 0) {
 		dev_err(dev, "Failed to enable supplies: %d\n", ret);
 		return ret;
 	}
+#endif
+
+	if (pdata && pdata->wm8994_setup)
+		pdata->wm8994_setup();
 
 	regcache_cache_only(wm8994->regmap, false);
 	ret = regcache_sync(wm8994->regmap);
@@ -331,7 +344,9 @@ static int wm8994_resume(struct device *dev)
 	return 0;
 
 err_enable:
+#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies, wm8994->supplies);
+#endif
 
 	return ret;
 }
@@ -390,7 +405,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 	struct regmap_config *regmap_config;
 	const struct reg_default *regmap_patch = NULL;
 	const char *devname;
-	int ret, i, patch_regs;
+	int ret, i, patch_regs = 0;
 	int pulls = 0;
 
 	dev_set_drvdata(wm8994->dev, wm8994);
@@ -405,6 +420,10 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		goto err;
 	}
 
+	if (pdata && pdata->wm8994_setup)
+		pdata->wm8994_setup();
+
+#ifndef CONFIG_MACH_TENDERLOIN
 	switch (wm8994->type) {
 	case WM1811:
 		wm8994->num_supplies = ARRAY_SIZE(wm1811_main_supplies);
@@ -445,7 +464,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		BUG();
 		goto err;
 	}
-		
+
 	ret = regulator_bulk_get(wm8994->dev, wm8994->num_supplies,
 				 wm8994->supplies);
 	if (ret != 0) {
@@ -459,7 +478,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 		dev_err(wm8994->dev, "Failed to enable supplies: %d\n", ret);
 		goto err_get;
 	}
-
+#endif
 	ret = wm8994_reg_read(wm8994, WM8994_SOFTWARE_RESET);
 	if (ret < 0) {
 		dev_err(wm8994->dev, "Failed to read ID register\n");
@@ -641,16 +660,20 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 
 	pm_runtime_enable(wm8994->dev);
 	pm_runtime_idle(wm8994->dev);
-
 	return 0;
 
 err_irq:
 	wm8994_irq_exit(wm8994);
 err_enable:
+	if (pdata && pdata->wm8994_shutdown)
+		pdata->wm8994_shutdown();
+
+#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 err_get:
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
+#endif
 err:
 	mfd_remove_devices(wm8994->dev);
 	return ret;
@@ -658,12 +681,20 @@ err:
 
 static __devexit void wm8994_device_exit(struct wm8994 *wm8994)
 {
+	struct wm8994_pdata *pdata = wm8994->dev->platform_data;
+
 	pm_runtime_disable(wm8994->dev);
 	mfd_remove_devices(wm8994->dev);
 	wm8994_irq_exit(wm8994);
+
+	if (pdata && pdata->wm8994_shutdown)
+		pdata->wm8994_shutdown();
+
+#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
+#endif
 }
 
 static const struct of_device_id wm8994_of_match[] = {
@@ -687,7 +718,8 @@ static __devinit int wm8994_i2c_probe(struct i2c_client *i2c,
 	i2c_set_clientdata(i2c, wm8994);
 	wm8994->dev = &i2c->dev;
 	wm8994->irq = i2c->irq;
-	wm8994->type = id->driver_data;
+//	wm8994->type = id->driver_data;
+    wm8994->type = WM8958;
 
 	wm8994->regmap = devm_regmap_init_i2c(i2c, &wm8994_base_regmap_config);
 	if (IS_ERR(wm8994->regmap)) {
