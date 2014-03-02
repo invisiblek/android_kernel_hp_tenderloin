@@ -29,7 +29,6 @@
 #include <asm/uaccess.h>
 #include <asm/mach-types.h>
 #include <linux/isl29028.h>
-#include <linux/pl_sensor.h>
 #include <linux/capella_cm3602.h>
 #include <asm/setup.h>
 #include <linux/wakelock.h>
@@ -115,7 +114,6 @@ struct isl29028_info {
 	int led;
 	uint8_t default_ps_lt;
 	uint8_t default_ps_ht;
-	int ps_pocket_mode;
 
 	uint8_t original_ht;
 	uint8_t original_lt;
@@ -423,25 +421,6 @@ static void report_psensor_input_event(struct isl29028_info *lpi,
 	else
 		IPS("%s: Proximity adc value not as expected!\n", __func__);
 
-	if ((lpi->enable_polling_ignore == 1) &&
-	    (lpi->mfg_mode != NO_IGNORE_BOOT_MODE) && (val == 0)) {
-		if (((int)ts_start.tv_sec == (int)ts_end.tv_sec) &&
-				(!((ts_end.tv_nsec - ts_start.tv_nsec) >
-				NEAR_DELAY_TIME))) {
-			lpi->ps_pocket_mode = 1;
-			IPS("Ignore NEAR event");
-			lightsensor_real_disable(lpi);
-			return;
-		} else if ((((int)ts_end.tv_sec - (int)ts_start.tv_sec) == 1)
-				&& (!(((1000000000 - ts_start.tv_nsec) +
-				ts_end.tv_nsec) > NEAR_DELAY_TIME))) {
-			lpi->ps_pocket_mode = 1;
-			IPS("Ignore NEAR event2");
-			lightsensor_real_disable(lpi);
-			return;
-		}
-	}
-
 	IPS("proximity %s\n", val ? "FAR" : "NEAR");
 
 	if (lpi->debounce == 1) {
@@ -459,7 +438,6 @@ static void report_psensor_input_event(struct isl29028_info *lpi,
 	/* 0 is close, 1 is far */
 	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, val);
 	input_sync(lpi->ps_input_dev);
-	blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
 
 	ret = _isl29028_set_reg_bit(lpi->i2c_client, 0,
 		ISL29028_INTERRUPT, ISL29028_INT_ALS_FLAG);
@@ -690,7 +668,6 @@ static void sensor_irq_do_work(struct work_struct *work)
 			count = 0;
 			input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
 			input_sync(lpi->ps_input_dev);
-			blocking_notifier_call_chain(&psensor_notifier_list, 3, NULL);
 		}
 
 		enable_irq(lpi->irq);
@@ -710,7 +687,6 @@ static void sensor_irq_do_work(struct work_struct *work)
 			count = 0;
 			input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
 			input_sync(lpi->ps_input_dev);
-			blocking_notifier_call_chain(&psensor_notifier_list, 3, NULL);
 		}
 
 		enable_irq(lpi->irq);
@@ -780,8 +756,6 @@ static void report_near_do_work(struct work_struct *w)
 		ISL29028_INTERRUPT, ISL29028_INT_ALS_FLAG);
 	if (ret < 0)
 		EPS("%s: clear lsensor intr flag fail\n", __func__);
-
-	blocking_notifier_call_chain(&psensor_notifier_list, 2, NULL);
 }
 
 /*#ifdef DEBUG_PROXIMITY*/
@@ -1028,8 +1002,6 @@ static int psensor_enable(struct isl29028_info *lpi)
 		return 0;
 	}
 
-	blocking_notifier_call_chain(&psensor_notifier_list, 1, NULL);
-
 	/* dummy report */
 	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, -1);
 	input_sync(lpi->ps_input_dev);
@@ -1086,7 +1058,6 @@ static int psensor_disable(struct isl29028_info *lpi)
 #endif
 
 	lpi->ps_irq_flag = 0;
-	lpi->ps_pocket_mode = 0;
 
 	judge_and_enable_lightsensor(lpi);
 
@@ -1116,8 +1087,6 @@ static int psensor_disable(struct isl29028_info *lpi)
 		EPS("%s: clear proximity INT flag fail\n", __func__);
 		return ret;
 	}
-
-	blocking_notifier_call_chain(&psensor_notifier_list, 0, NULL);
 
 	irq_set_irq_type(lpi->irq, IRQF_TRIGGER_LOW);
 
@@ -1426,9 +1395,8 @@ static ssize_t ps_adc_show(struct device *dev,
 
 	value = get_ps_adc_value();
 
-	ret = sprintf(buf, "ADC[0x%03X], ENABLE = %d, intr_pin = %d,"
-		" ps_pocket_mode = %d\n", value, lpi->ps_enable, value1,
-		lpi->ps_pocket_mode);
+	ret = sprintf(buf, "ADC[0x%03X], ENABLE = %d, intr_pin = %d\n",
+		value, lpi->ps_enable, value1);
 
 	return ret;
 }
@@ -2055,7 +2023,6 @@ static int isl29028_probe(struct i2c_client *client,
 	lpi->default_ps_lt = pdata->lt;
 	lpi->default_ps_ht = pdata->ht;
 	lpi->debounce = pdata->debounce;
-	lpi->ps_pocket_mode = 0;
 	lpi->mapping_table = pdata->mapping_table;
 	lpi->mapping_size = pdata->mapping_size;
 	lpi->ps_base_index = (pdata->mapping_size - 1);

@@ -29,7 +29,6 @@
 #include <asm/uaccess.h>
 #include <asm/mach-types.h>
 #include <linux/isl29029.h>
-#include <linux/pl_sensor.h>
 #include <linux/capella_cm3602.h>
 #include <asm/setup.h>
 #include <linux/wakelock.h>
@@ -376,8 +375,6 @@ static void report_psensor_input_event(struct isl29029_info *lpi,
 	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, val);
 	input_sync(lpi->ps_input_dev);
 
-	blocking_notifier_call_chain(&psensor_notifier_list, val+2, NULL);
-
 	if (val == 1)
 		set_psensor_th(0x0, lpi->ps_ht);
 	else
@@ -555,7 +552,6 @@ static void sensor_irq_do_work(struct work_struct *work)
 			count = 0;
 			input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
 			input_sync(lpi->ps_input_dev);
-			blocking_notifier_call_chain(&psensor_notifier_list, 3, NULL);
 		}
 
 		enable_irq(lpi->irq);
@@ -575,7 +571,6 @@ static void sensor_irq_do_work(struct work_struct *work)
 			count = 0;
 			input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, 1);
 			input_sync(lpi->ps_input_dev);
-			blocking_notifier_call_chain(&psensor_notifier_list, 3, NULL);
 		}
 
 		enable_irq(lpi->irq);
@@ -739,8 +734,6 @@ static int psensor_enable(struct isl29029_info *lpi)
 		return 0;
 	}
 
-	blocking_notifier_call_chain(&psensor_notifier_list, 1, NULL);
-
 	/* dummy report */
 	input_report_abs(lpi->ps_input_dev, ABS_DISTANCE, -1);
 	input_sync(lpi->ps_input_dev);
@@ -799,8 +792,6 @@ static int psensor_disable(struct isl29029_info *lpi)
 		EPS("%s: disable psensor fail\n", __func__);
 		return ret;
 	}
-
-	blocking_notifier_call_chain(&psensor_notifier_list, 0, NULL);
 
 	ret = _isl29029_set_reg_bit(lpi->i2c_client, 0,
 		ISL29029_INTERRUPT, ISL29029_INT_PROX_FLAG);
