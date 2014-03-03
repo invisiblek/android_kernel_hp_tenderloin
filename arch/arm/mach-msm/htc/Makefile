@@ -11,7 +11,7 @@ obj-y += htc_awb_cal.o
 obj-y += htc_wifi_nvs.o
 obj-y += htc_sysinfo.o
 obj-y += emmc_partitions.o
-obj-y += htc_acoustic_8xxx.o
+obj-y += htc_acoustic_8960.o
 obj-y += htc_lpm.o
 
 obj-$(CONFIG_MACH_M7_UL) += htc_4335_wl_reg.o
