@@ -1,6 +1,7 @@
 header-y += tavarua.h
 
 header-y += msm_camera.h
+header-y += msm_camera_legacy.h
 header-y += vcap_fmt.h
 header-y += msm_isp.h
 header-y += msm_gemini.h
