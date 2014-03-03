@@ -73,8 +73,8 @@
 #ifdef CONFIG_HTC_BATT_8x60
 #include <mach/htc_battery_8x60.h>
 #endif
-#ifdef CONFIG_TPS65200
-#include <linux/tps65200.h>
+#ifdef CONFIG_MFD_TPS65200
+#include <linux/mfd/tps65200.h>
 #endif
 #include <mach/msm_battery.h>
 #include <linux/usb/msm_hsusb.h>
@@ -861,7 +861,7 @@ static struct platform_device msm_gemini_device = {
 };
 #endif
 
-#ifdef CONFIG_TPS65200
+#ifdef CONFIG_MFD_TPS65200
 static struct tps65200_platform_data tps65200_data = {
 	.charger_check = 1,
 	.gpio_chg_stat = PM8058_GPIO_IRQ(PM8058_IRQ_BASE, PYRAMID_CHG_STAT),
@@ -2135,7 +2135,7 @@ static struct i2c_registry msm8x60_i2c_devices[] __initdata = {
 	},
 #endif
 #endif /*CONFIG_MSM_SSBI */
-#ifdef CONFIG_TPS65200
+#ifdef CONFIG_MFD_TPS65200
 	{
 		I2C_SURF | I2C_FFA,
 		MSM_GSBI7_QUP_I2C_BUS_ID,
