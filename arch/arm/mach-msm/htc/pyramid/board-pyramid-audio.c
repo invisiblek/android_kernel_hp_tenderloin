@@ -30,7 +30,7 @@
 #include <mach/qdsp6v2/audio_dev_ctl.h>
 #include <sound/apr_audio.h>
 #include <sound/q6asm.h>
-#include <mach/htc_acoustic_8xxx.h>
+#include <mach/htc_acoustic_8x60.h>
 
 #include "board-pyramid-audio-data.h"
 
