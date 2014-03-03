@@ -863,6 +863,7 @@ static int cd_pmic_request_irq(unsigned int gpio, unsigned int *irq,
 
 static irqreturn_t vbus_irq_handler(int irq, void *dev_id)
 {
+        disable_irq_nosync(irq);
         return cable_detection_vbus_irq_handler();
 }
 
