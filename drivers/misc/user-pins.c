@@ -570,6 +570,9 @@ pin_store_irqmask(struct pin_attribute *attr, const char *buf, size_t count)
 static void
 pin_set_item_init(struct gpio_pin_set_item *psi, struct user_pin *up)
 {
+	int rc;
+	unsigned long flags;
+
 	psi->pin.name      = up->name;
 	psi->pin.gpio      = up->gpio;
 	psi->pin.options   = up->options;
@@ -666,6 +669,16 @@ pin_set_item_init(struct gpio_pin_set_item *psi, struct user_pin *up)
 	// setup  attribute group
 	psi->attr_grp.name  = psi->pin.name;
 	psi->attr_grp.attrs = psi->pin.attr_ptr_arr;
+
+	if (up->init_req) {
+		rc = user_pins_irq_request(&(psi->pin));
+		if (!rc) {
+			spin_lock_irqsave(&pins_lock, flags);
+			psi->pin.irq_requested = 1;
+			psi->pin.irq_masked = 0;
+			spin_unlock_irqrestore(&pins_lock, flags);
+		}
+	}
 
 	return;
 }

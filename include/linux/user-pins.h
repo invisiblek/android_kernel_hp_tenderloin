@@ -19,6 +19,7 @@ struct user_pin {
 	int (*pinmux)(int gpio, int mode);
 	int irq_config;
 	int irq_handle_mode;
+	int init_req;
 };
 
 struct user_pin_set {

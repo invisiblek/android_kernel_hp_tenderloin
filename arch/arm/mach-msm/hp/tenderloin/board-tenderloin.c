@@ -531,6 +531,7 @@ static struct user_pin bt_pins[] = {
 		.options    =  0,
 		.irq_handler = NULL,
 		.irq_config =  0,
+		.init_req   = 0,
 	},
 	{
 		.name       =  "host_wake",
@@ -543,7 +544,8 @@ static struct user_pin bt_pins[] = {
 		.options    =  PIN_IRQ | PIN_WAKEUP_SOURCE,
 		.irq_handler = NULL,
 		.irq_config = IRQF_TRIGGER_RISING,
-		.irq_handle_mode = IRQ_HANDLE_AUTO
+		.irq_handle_mode = IRQ_HANDLE_AUTO,
+		.init_req   = 1,
 	},
 };
 
