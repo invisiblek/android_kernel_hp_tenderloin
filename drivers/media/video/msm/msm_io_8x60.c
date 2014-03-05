@@ -820,7 +820,6 @@ void msm_camio_disable(struct platform_device *pdev)
 	msm_camio_csi_disable();
 	CDBG("disable clocks\n");
 
-	msm_camio_clk_disable(CAMIO_VFE_CLK);
 	msm_camio_clk_disable(CAMIO_CSI0_VFE_CLK);
 	msm_camio_clk_disable(CAMIO_CSI0_CLK);
 	msm_camio_clk_disable(CAMIO_CSI1_VFE_CLK);
