@@ -151,13 +151,14 @@ static struct mfd_cell wm8994_devs[] = {
 		.pm_runtime_no_callbacks = true,
 	},
 };
+#ifndef CONFIG_MACH_TENDERLOIN
 
 /*
  * Supplies for the main bulk of CODEC; the LDO supplies are ignored
  * and should be handled via the standard regulator API supply
  * management.
  */
-/*static const char *wm1811_main_supplies[] = {
+static const char *wm1811_main_supplies[] = {
 	"DBVDD1",
 	"DBVDD2",
 	"DBVDD3",
@@ -189,7 +190,8 @@ static const char *wm8958_main_supplies[] = {
 	"CPVDD",
 	"SPKVDD1",
 	"SPKVDD2",
-};*/
+};
+#endif
 
 #ifdef CONFIG_PM
 static int wm8994_suspend(struct device *dev)
@@ -289,7 +291,7 @@ static int wm8994_suspend(struct device *dev)
 
 	wm8994->suspended = true;
 
-	if (pdata->wm8994_shutdown)
+	if ((pdata)&&(pdata->wm8994_setup))
 		pdata->wm8994_shutdown();
 
 #ifndef CONFIG_MACH_TENDERLOIN
@@ -313,17 +315,17 @@ static int wm8994_resume(struct device *dev)
 	if (!wm8994->suspended)
 		return 0;
 
-	if (pdata->wm8994_setup)
+	if ((pdata)&&(pdata->wm8994_setup))
 		pdata->wm8994_setup();
-
-	//ret = regulator_bulk_enable(wm8994->num_supplies,
-	//			    wm8994->supplies);
-	/*if (ret != 0) {
+#ifndef CONFIG_MACH_TENDERLOIN
+	ret = regulator_bulk_enable(wm8994->num_supplies,
+				    wm8994->supplies);
+	if (ret != 0) {
 		dev_err(dev, "Failed to enable supplies: %d\n", ret);
 		return ret;
 
-	}*/
-
+	}
+#endif
 	regcache_cache_only(wm8994->regmap, false);
 	ret = regcache_sync(wm8994->regmap);
 	if (ret != 0) {
@@ -341,8 +343,9 @@ static int wm8994_resume(struct device *dev)
 	return 0;
 
 err_enable:
-	//regulator_bulk_disable(wm8994->num_supplies, wm8994->supplies);
-
+#ifndef CONFIG_MACH_TENDERLOIN
+	regulator_bulk_disable(wm8994->num_supplies, wm8994->supplies);
+#endif
 	return ret;
 }
 #endif
@@ -645,7 +648,7 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 					WM8994_LDO1_DISCH, 0);
 	}
 
-	//wm8994_irq_init(wm8994);
+	wm8994_irq_init(wm8994);
 
 	ret = mfd_add_devices(wm8994->dev, -1,
 			      wm8994_devs, ARRAY_SIZE(wm8994_devs),

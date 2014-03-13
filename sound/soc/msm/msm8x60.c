@@ -1530,7 +1530,6 @@ static struct snd_soc_dai_link msm_dai[] = {
 
 static struct snd_soc_card snd_soc_card_msm = {
 	.name		= "msm-audio",
-	.owner = THIS_MODULE,
 	.dai_link	= msm_dai,
 	.num_links = ARRAY_SIZE(msm_dai),
 #if defined(CONFIG_MACH_TENDERLOIN)

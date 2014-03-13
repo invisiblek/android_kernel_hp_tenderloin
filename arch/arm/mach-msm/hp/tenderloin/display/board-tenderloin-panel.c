@@ -458,13 +458,7 @@ static int lcdc_panel_power(int on)
                     return -ENODEV;
                   }
               }
-            tenderloin_lcdc_steadycfg();
-            lcdc_power_on = true;
-          }
 
-        if (on) // if power on asked
-          {
-            if (bPanelPowerOn) return 0;
             /* VDD_LVDS_3.3V ENABLE*/
             rc = regulator_set_voltage(votg_l10, 3050000, 3050000);
             if(rc) 
@@ -504,6 +498,13 @@ static int lcdc_panel_power(int on)
                 return rc;
               }
 
+            tenderloin_lcdc_steadycfg();
+            lcdc_power_on = true;
+          }
+
+        if (on) // if power on asked
+          {
+            if (bPanelPowerOn) return 0;
             rc = regulator_enable(votg_l10);
             if(rc) 
               {
@@ -523,10 +524,12 @@ static int lcdc_panel_power(int on)
                   }
               }
 
-            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 1);
-            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 1);
-            mdelay(2);
+            gpio_set_value(GPIO_LCD_PWR_EN, 1);
+            udelay(500);
+            gpio_set_value(GPIO_LVDS_SHDN_N, 1);
+            msleep(200);
             gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
+
             bPanelPowerOn = true;
           }
         else // if power off asked
@@ -551,13 +554,12 @@ static int lcdc_panel_power(int on)
               }
             
             gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
-            mdelay(5);
-            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
-            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 0);
-            mdelay(20);
-            gpio_free(GPIO_LVDS_SHDN_N);
-            gpio_free(GPIO_LCD_PWR_EN);
-            gpio_free(GPIO_BACKLIGHT_EN);
+
+            // msleep(200);
+            gpio_set_value(GPIO_LVDS_SHDN_N, 0);
+            gpio_set_value(GPIO_LCD_PWR_EN, 0);
+            // msleep(400);
+
             bPanelPowerOn = false;
           }
 

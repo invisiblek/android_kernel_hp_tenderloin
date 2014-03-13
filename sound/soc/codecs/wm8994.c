@@ -791,7 +791,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 {
 	struct snd_soc_codec *codec = w->codec;
 #ifdef CONFIG_MACH_TENDERLOIN
-	//struct wm8994 *control = codec->control_data;
+	struct wm8994 *control = codec->control_data;
 #endif
 
 	switch (event) {
@@ -803,7 +803,7 @@ static int clk_sys_event(struct snd_soc_dapm_widget *w,
 		break;
 	}
 
-#if defined(CONFIG_MACH_TENDERLOIN) && 0
+#if defined(CONFIG_MACH_TENDERLOIN)
 	if (control->type == WM8958) {
 		/* We may also have postponed startup of DSP, handle that. */
 		wm8958_aif_ev(w, kcontrol, event);
@@ -3920,8 +3920,8 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 		wm8994->micdet_irq = wm8994->pdata->irq_base +
 					   WM8994_IRQ_MIC1_DET;
 
-	//pm_runtime_enable(codec->dev);
-	//pm_runtime_idle(codec->dev);
+	pm_runtime_enable(codec->dev);
+	pm_runtime_idle(codec->dev);
 
 	/* By default use idle_bias_off, will override for WM8994 */
 	codec->dapm.idle_bias_off = 1;
@@ -4079,7 +4079,7 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 
 
 	/* Make sure we can read from the GPIOs if they're inputs */
-	//pm_runtime_get_sync(codec->dev);
+	pm_runtime_get_sync(codec->dev);
 
 	/* Remember if AIFnLRCLK is configured as a GPIO.  This should be
 	 * configured on init - if a system wants to do this dynamically
@@ -4109,7 +4109,7 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 		wm8994->lrclk_shared[1] = 0;
 	}
 
-	//pm_runtime_put(codec->dev);
+	pm_runtime_put(codec->dev);
 #ifdef CONFIG_MACH_TENDERLOIN
 	/* Latch volume update bits */
 	for (i = 0; i < ARRAY_SIZE(wm8994_vu_bits); i++)
