@@ -149,12 +149,6 @@ VREG_CONSUMERS(PM8901_L5) = {
 VREG_CONSUMERS(PM8901_L6) = {
 	REGULATOR_SUPPLY("8901_l6",		NULL),
 };
-VREG_CONSUMERS(PM8901_S0) = {
-	REGULATOR_SUPPLY("8901_s0",		NULL),
-};
-VREG_CONSUMERS(PM8901_S1) = {
-	REGULATOR_SUPPLY("8901_s1",		NULL),
-};
 VREG_CONSUMERS(PM8901_S2) = {
 	REGULATOR_SUPPLY("8901_s2",		NULL),
 };
@@ -299,59 +293,11 @@ VREG_CONSUMERS(PM8901_S4_PC) = {
 		      RPM_VREG_FORCE_MODE_8660_NONE, RPM_VREG_STATE_OFF, \
 		      _sleep_selectable, _always_on)
 
-#define SAW_VREG_INIT(_id, _name, _min_uV, _max_uV) \
-	{ \
-		.constraints = { \
-			.name		= _name, \
-			.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE, \
-			.min_uV		= _min_uV, \
-			.max_uV		= _max_uV, \
-		}, \
-		.num_consumer_supplies	= ARRAY_SIZE(vreg_consumers_##_id), \
-		.consumer_supplies	= vreg_consumers_##_id, \
-	}
-
-#define PM8901_VREG_INIT(_id, _min_uV, _max_uV, _modes, _ops, _apply_uV, \
-			 _always_on) \
-	{ \
-		.init_data = { \
-			.constraints = { \
-				.valid_modes_mask = _modes, \
-				.valid_ops_mask = _ops, \
-				.min_uV = _min_uV, \
-				.max_uV = _max_uV, \
-				.input_uV = _min_uV, \
-				.apply_uV = _apply_uV, \
-				.always_on = _always_on, \
-			}, \
-			.consumer_supplies = vreg_consumers_PM8901_##_id, \
-			.num_consumer_supplies = \
-				ARRAY_SIZE(vreg_consumers_PM8901_##_id), \
-		}, \
-		.id = PM8901_VREG_ID_##_id, \
-	}
-
-#define PM8901_VREG_INIT_VS(_id) \
-	PM8901_VREG_INIT(_id, 0, 0, REGULATOR_MODE_NORMAL, \
-			REGULATOR_CHANGE_STATUS, 0, 0)
-
-struct pm8901_vreg_pdata pm8901_vreg_init[] = {
-  //	PM8901_VREG_INIT_VS(USB_OTG),
-  //	PM8901_VREG_INIT_VS(HDMI_MVS),
-};
-
 #define LDO50HMIN	RPM_VREG_8660_LDO_50_HPM_MIN_LOAD
 #define LDO150HMIN	RPM_VREG_8660_LDO_150_HPM_MIN_LOAD
 #define LDO300HMIN	RPM_VREG_8660_LDO_300_HPM_MIN_LOAD
 #define SMPS_HMIN	RPM_VREG_8660_SMPS_HPM_MIN_LOAD
 #define FTS_HMIN	RPM_VREG_8660_FTSMPS_HPM_MIN_LOAD
-
-/* SAW regulator constraints */
-struct regulator_init_data msm_saw_regulator_pdata_s0 =
-	/*	      ID  vreg_name	       min_uV   max_uV */
-	SAW_VREG_INIT(PM8901_S0, "8901_s0",	       800000, 1325000);
-struct regulator_init_data msm_saw_regulator_pdata_s1 =
-	SAW_VREG_INIT(PM8901_S1, "8921_s1",	       800000, 1325000);
 
 /* RPM early regulator constraints */
 static struct rpm_regulator_init_data rpm_regulator_early_init_data[] __devinitdata = {
