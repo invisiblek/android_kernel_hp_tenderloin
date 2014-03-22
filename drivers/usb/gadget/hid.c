@@ -11,10 +11,14 @@
  * (at your option) any later version.
  */
 
+#define DEBUG 1
+#define VERBOSE_DEBUG 1
 
 #include <linux/kernel.h>
 #include <linux/platform_device.h>
 #include <linux/list.h>
+
+#include <linux/usb/g_hid.h>
 
 #define DRIVER_DESC		"HID Gadget"
 #define DRIVER_VERSION		"2010/03/16"
@@ -48,6 +52,57 @@ struct hidg_func_node {
 };
 
 static LIST_HEAD(hidg_func_list);
+
+
+/* hid descriptor for a keyboard */
+static struct hidg_func_descriptor my_hid_data = {
+	.subclass		= 0, /* No subclass */
+	.protocol		= 1, /* Keyboard */
+	.report_length		= 8,
+	.report_desc_length	= 63,
+	.report_desc		= {
+		0x05, 0x01,	/* USAGE_PAGE (Generic Desktop)	          */
+		0x09, 0x06,	/* USAGE (Keyboard)                       */
+		0xa1, 0x01,	/* COLLECTION (Application)               */
+		0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+		0x19, 0xe0,	/*   USAGE_MINIMUM (Keyboard LeftControl) */
+		0x29, 0xe7,	/*   USAGE_MAXIMUM (Keyboard Right GUI)   */
+		0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+		0x25, 0x01,	/*   LOGICAL_MAXIMUM (1)                  */
+		0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+		0x95, 0x08,	/*   REPORT_COUNT (8)                     */
+		0x81, 0x02,	/*   INPUT (Data,Var,Abs)                 */
+		0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+		0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+		0x81, 0x03,	/*   INPUT (Cnst,Var,Abs)                 */
+		0x95, 0x05,	/*   REPORT_COUNT (5)                     */
+		0x75, 0x01,	/*   REPORT_SIZE (1)                      */
+		0x05, 0x08,	/*   USAGE_PAGE (LEDs)                    */
+		0x19, 0x01,	/*   USAGE_MINIMUM (Num Lock)             */
+		0x29, 0x05,	/*   USAGE_MAXIMUM (Kana)                 */
+		0x91, 0x02,	/*   OUTPUT (Data,Var,Abs)                */
+		0x95, 0x01,	/*   REPORT_COUNT (1)                     */
+		0x75, 0x03,	/*   REPORT_SIZE (3)                      */
+		0x91, 0x03,	/*   OUTPUT (Cnst,Var,Abs)                */
+		0x95, 0x06,	/*   REPORT_COUNT (6)                     */
+		0x75, 0x08,	/*   REPORT_SIZE (8)                      */
+		0x15, 0x00,	/*   LOGICAL_MINIMUM (0)                  */
+		0x25, 0x65,	/*   LOGICAL_MAXIMUM (101)                */
+		0x05, 0x07,	/*   USAGE_PAGE (Keyboard)                */
+		0x19, 0x00,	/*   USAGE_MINIMUM (Reserved)             */
+		0x29, 0x65,	/*   USAGE_MAXIMUM (Keyboard Application) */
+		0x81, 0x00,	/*   INPUT (Data,Ary,Abs)                 */
+		0xc0		/* END_COLLECTION                         */
+	}
+};
+
+static struct platform_device my_hid = {
+	.name			= "hidg",
+	.id			= 0,
+	.num_resources		= 0,
+	.resource		= 0,
+	.dev.platform_data	= &my_hid_data,
+};
 
 /*-------------------------------------------------------------------------*/
 
@@ -267,6 +322,13 @@ static int __init hidg_init(void)
 {
 	int status;
 
+	status = platform_device_register(&my_hid);
+	if (status < 0) {
+		printk("____ reg failed\n");
+		platform_device_unregister(&my_hid);
+		return status;
+	}
+
 	status = platform_driver_probe(&hidg_plat_driver,
 				hidg_plat_driver_probe);
 	if (status < 0)
@@ -283,6 +345,7 @@ module_init(hidg_init);
 static void __exit hidg_cleanup(void)
 {
 	platform_driver_unregister(&hidg_plat_driver);
+	platform_device_unregister(&my_hid);
 	usb_composite_unregister(&hidg_driver);
 }
 module_exit(hidg_cleanup);
