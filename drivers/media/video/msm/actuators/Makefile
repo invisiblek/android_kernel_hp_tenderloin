@@ -16,3 +16,4 @@ obj-$(CONFIG_IMX175_ACT) += imx175_act.o
 obj-$(CONFIG_OV5693_ACT) += ov5693_act.o
 obj-$(CONFIG_RUMBAS_ACT) += rumbas_act.o
 obj-$(CONFIG_LC898212_ACT) += lc898212_act.o
+obj-$(CONFIG_S5K3H1GX_ACT) += s5k3h1gx_act.o

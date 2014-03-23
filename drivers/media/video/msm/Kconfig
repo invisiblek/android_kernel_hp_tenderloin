@@ -68,6 +68,13 @@ config S5K6A1GX
 	  Support for S5K6A1GX samsung sensor driver.
 	  It is a Bayer 1.3MP sensor it supports one mipi lanes.
 
+config S5K3H1GX_ACT
+	bool "Sensor s5k3h1gx actuator"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Autofocus of s5k3h1gx actuator
+
 config AR0260
 	bool "Sensor ar0260"
 	depends on MSM_CAMERA
