@@ -23,5 +23,8 @@ source "arch/arm/mach-msm/htc/m4/Kconfig"
 # PYRAMID
 source "arch/arm/mach-msm/htc/pyramid/Kconfig"
 
+# SHOOTER
+source "arch/arm/mach-msm/htc/shooter/Kconfig"
+
 config MACH_HTC_DUMMY
 	bool "NONE (No device)"

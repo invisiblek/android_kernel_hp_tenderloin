@@ -23,3 +23,5 @@ obj-$(CONFIG_MACH_M4_UL) += m4/
 # PYRAMID
 obj-$(CONFIG_MACH_PYRAMID) += pyramid/
 
+# SHOOTER
+obj-$(CONFIG_MACH_SHOOTER) += shooter/
