@@ -1445,7 +1445,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 			s_ctrl->prev_line = cdata.cfg.exp_gain.line;
 			s_ctrl->prev_dig_gain= cdata.cfg.exp_gain.dig_gain;
 			break;
-
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 		case CFG_SET_HDR_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_hdr_exp_gain_ex == NULL) {
@@ -1475,7 +1475,7 @@ int32_t msm_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *argp)
 					s_ctrl,
 					cdata.cfg.exp_gain.is_outdoor);
 			break;
-
+#endif
 		case CFG_SET_PICT_EXP_GAIN:
 			if (s_ctrl->func_tbl->
 			sensor_write_snapshot_exp_gain_ex == NULL) {

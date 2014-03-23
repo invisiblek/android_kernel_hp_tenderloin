@@ -309,6 +309,7 @@ int32_t msm_actuator_config(
 			LINFO("%s ois is not supported\n", __func__);
 		}
 		break;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	case CFG_UPDATE_OIS_TBL:
 		if (a_ctrl->actuator_ext_ctrl.is_ois_supported) {
 			if (a_ctrl->func_tbl.actuator_update_ois_tbl != NULL) {
@@ -408,7 +409,7 @@ int32_t msm_actuator_config(
             LINFO("%s cal is not supported\n", __func__);
         }
         break;
-	
+#endif       
 	default:
 		break;
 	}

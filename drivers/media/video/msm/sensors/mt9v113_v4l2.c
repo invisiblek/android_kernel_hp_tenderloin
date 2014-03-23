@@ -41,6 +41,8 @@
 #define SENSOR_NAME "mt9v113"
 
 static struct msm_sensor_ctrl_t mt9v113_s_ctrl;
+static int suspend_fail_retry_count_2;
+#define SUSPEND_FAIL_RETRY_MAX_2 3
 
 DEFINE_MUTEX(mt9v113_mut);
 
@@ -575,6 +577,10 @@ static int mt9v113_reg_init(void)
 		goto reg_init_fail;
 	}
 
+	if(suspend_fail_retry_count_2 != SUSPEND_FAIL_RETRY_MAX_2) {
+	    pr_info("%s: added additional delay count=%d\n", __func__, suspend_fail_retry_count_2);
+	    mdelay(20);
+	}
 	
 	pr_info("%s: RESET and MISC Control\n", __func__);
 
@@ -941,11 +947,41 @@ static int mt9v113_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl, int mode)
 {
 	int rc = 0 , k;
 	uint16_t check_value = 0;
-
+#ifdef CONFIG_ARCH_MSM8X60
+	struct msm_camera_csi_params mt9v113_csi_params;
+#endif
 	pr_info("%s: E\n", __func__);
 	pr_info("sinfo->csi_if = %d, mode = %d", g_csi_if, mode);
 
 	if (config_csi == 0) {
+#ifdef CONFIG_ARCH_MSM8X60
+	if (g_csi_if) {
+		rc = suspend();
+
+		if (rc < 0)
+			pr_err("%s: suspend fail\n", __func__);
+
+		
+		pr_info("[CAM] set csi config\n");
+		mt9v113_csi_params.data_format = CSI_8BIT;
+		mt9v113_csi_params.lane_cnt = 1;
+		mt9v113_csi_params.lane_assign = 0xe4;
+		mt9v113_csi_params.dpcm_scheme = 0;
+		mt9v113_csi_params.settle_cnt = 0x0d;
+
+		v4l2_subdev_notify(&(mt9v113_s_ctrl.sensor_v4l2_subdev),
+			NOTIFY_CSIC_CFG,
+			&mt9v113_csi_params);
+
+		mdelay(20);
+		config_csi = 1;
+
+		rc = resume();
+		if (rc < 0)
+			pr_err("[CAM] mt9v113 resume failed\n");
+	}
+
+#else
 		if (g_csi_if) {
 			s_ctrl->curr_frame_length_lines =
 				s_ctrl->msm_sensor_reg->output_settings[mode].frame_length_lines;
@@ -993,6 +1029,7 @@ static int mt9v113_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl, int mode)
 			if (rc < 0)
 				pr_err("%s: resume fail\n", __func__);
 		}
+#endif
 	}
 
 #if 0 
@@ -1958,8 +1995,6 @@ init_probe_done:
 
 
 
-static int suspend_fail_retry_count_2;
-#define SUSPEND_FAIL_RETRY_MAX_2 3
 int mt9v113_sensor_open_init(const struct msm_camera_sensor_info *data)
 {
 	int rc = 0;
@@ -2197,6 +2232,10 @@ int32_t mt9v113_sensor_config(struct msm_sensor_ctrl_t *s_ctrl, void __user *arg
 	switch (cfg_data.cfgtype) {
 	case CFG_GET_OUTPUT_INFO:
 		rc = mt9v113_get_output_info(&cfg_data.cfg.output_info);
+		if (copy_to_user((void *)argp,
+			&cfg_data,
+			sizeof(struct sensor_cfg_data)))
+			rc = -EFAULT;
 		break;
 	case CFG_SET_MODE:
 		rc = mt9v113_set_sensor_mode(s_ctrl, cfg_data.mode);

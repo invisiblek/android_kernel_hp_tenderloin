@@ -3701,6 +3701,10 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("csi_vfe_clk",	csi1_vfe_clk.c, "msm_camera_ov7692.0"),
 	CLK_LOOKUP("csi_vfe_clk",	csi1_vfe_clk.c, "msm_camera_ov9726.0"),
 	CLK_LOOKUP("csi_vfe_clk",	csi1_vfe_clk.c, "msm_csic.1"),
+#ifdef CONFIG_MSM_CAMERA_V4L2
+	CLK_LOOKUP("csi0_vfe_clk",	csi0_vfe_clk.c,		"msm_vfe.0"),
+	CLK_LOOKUP("csi1_vfe_clk",	csi1_vfe_clk.c,		"msm_vfe.0"),
+#endif
 	CLK_LOOKUP("vfe_clk",		vfe_clk.c,		NULL),
 	CLK_LOOKUP("core_clk",		vfe_clk.c,	"footswitch-8x60.8"),
 	CLK_LOOKUP("bus_clk",		vfe_axi_clk.c,	"footswitch-8x60.8"),

@@ -340,9 +340,11 @@ static int msm_isp_notify_vfe(struct v4l2_subdev *sd,
 	struct msm_cam_media_controller *pmctl =
 		(struct msm_cam_media_controller *)v4l2_get_subdev_hostdata(sd);
 	struct msm_free_buf buf;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	unsigned long pphy;
 	int newWidth;
 	int newHeight;
+#endif
 
 	if (!pmctl) {
 		pr_err("%s: no context in dsp callback.\n", __func__);
@@ -518,6 +520,7 @@ static int msm_isp_notify_vfe(struct v4l2_subdev *sd,
 			stats.af.fd = stats.fd;
 			break;
 		case MSG_ID_STATS_BF:
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 		    newWidth = 0;
 		    newHeight = 0;
 		    stats.htc_af_info.af_input.af_use_sw_sharpness = false;
@@ -545,7 +548,7 @@ static int msm_isp_notify_vfe(struct v4l2_subdev *sd,
 			stats.htc_af_info.af_input.roi_y = pmctl->htc_af_info.af_input.roi_y;
 			stats.htc_af_info.af_input.roi_width = newWidth;
 			stats.htc_af_info.af_input.roi_height = newHeight;
-
+#endif
 			stats.af.buff = stats.buffer;
 			stats.af.fd = stats.fd;
 

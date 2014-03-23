@@ -195,11 +195,12 @@ static int msm_get_sensor_info(
 	info.actuator_enabled = sdata->actuator_info ? 1 : 0;
 	info.strobe_flash_enabled = sdata->strobe_flash_data ? 1 : 0;
 
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	pr_info("msm_get_sensor_info,sdata->htc_image=%d,sdata->use_rawchip=%d,sdata->hdr_mode=%d,sdata->video_hdr_capability=%d",sdata->htc_image,sdata->use_rawchip,sdata->hdr_mode,sdata->video_hdr_capability);
 	info.htc_image = sdata->htc_image;
 	info.hdr_mode = sdata->hdr_mode;
 	info.video_hdr_capability = sdata->video_hdr_capability;
-	
+#endif
 	if (sdata->use_rawchip == RAWCHIP_ENABLE)
 		info.use_rawchip = RAWCHIP_ENABLE;
 	else
@@ -305,12 +306,14 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 		}
 		cdata.is_af_supported = 0;
 		cdata.is_ois_supported = 0;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 		cdata.is_cal_supported = 0; 
 #if (CONFIG_HTC_CAMERA_HAL_VERSION == 3)
 		cdata.small_step_damping = 0;
 		cdata.medium_step_damping = 0;
 		cdata.big_step_damping = 0;
 		cdata.is_af_infinity_supported = 1;
+#endif
 #endif
 		rc = 0;
 
@@ -323,6 +326,7 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 
 			cdata.is_af_supported = 1;
 			cdata.is_ois_supported = p_mctl->actctrl->is_ois_supported;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 			cdata.is_cal_supported = p_mctl->actctrl->is_cal_supported; 
 #if (CONFIG_HTC_CAMERA_HAL_VERSION == 3)
 			cdata.small_step_damping = p_mctl->actctrl->small_step_damping;
@@ -330,7 +334,7 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 			cdata.big_step_damping = p_mctl->actctrl->big_step_damping;
 			cdata.is_af_infinity_supported = p_mctl->actctrl->is_af_infinity_supported;
 #endif
-
+#endif
 			cdata.cfg.cam_name =
 				(enum af_camera_name)sdata->
 				actuator_info->cam_name;
@@ -364,7 +368,9 @@ static int msm_mctl_cmd(struct msm_cam_media_controller *p_mctl,
 			}
 			act_data.is_af_supported = 0;
 			act_data.is_ois_supported = 0;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 			act_data.is_cal_supported = 0; 
+#endif
 
 			rc = copy_to_user((void *)argp,
 					 &act_data,

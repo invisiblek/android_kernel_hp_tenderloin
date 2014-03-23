@@ -687,7 +687,9 @@ struct msm_stats_buf {
 	int length;
 	struct ion_handle *handle;
 	uint32_t frame_id;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	struct stats_htc_af htc_af_info;
+#endif
 };
 #define MSM_V4L2_EXT_CAPTURE_MODE_DEFAULT 0
 #define MSM_V4L2_EXT_CAPTURE_MODE_PREVIEW \
@@ -1058,11 +1060,13 @@ struct sensor_pict_fps {
 struct exp_gain_cfg {
 	uint16_t gain;
 	uint32_t line;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint32_t long_line;
 	uint32_t short_line;
 	uint16_t long_dig_gain;
 	uint16_t short_dig_gain;
 	uint8_t is_outdoor;
+#endif
 	uint16_t dig_gain; 
 };
 
@@ -1172,11 +1176,13 @@ struct msm_sensor_output_info_t {
 	uint16_t y_even_inc;
 	uint16_t y_odd_inc;
 	uint8_t binning_rawchip;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint8_t is_hdr;
 	
 	uint8_t yushan_status_line_enable;
 	uint8_t yushan_status_line; 
 	uint8_t yushan_sensor_status_line; 
+#endif
 };
 
 struct sensor_output_info_t {
@@ -1325,9 +1331,10 @@ struct sensor_cfg_data {
 	int mode;
 	int rs;
 	uint8_t max_steps;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	int8_t sensor_ver;
 	af_value_t af_value;
-
+#endif
 	union {
 		int8_t effect;
 		uint8_t lens_shading;
@@ -1486,7 +1493,9 @@ struct msm_actuator_set_info_t {
 	uint32_t total_steps; 
 	uint16_t gross_steps; 
 	uint16_t fine_steps; 
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint16_t ois_mfgtest_in_progress_reload; 
+#endif
 	struct msm_actuator_params_t actuator_params;
 	struct msm_actuator_tuning_params_t af_tuning_params;
 };
@@ -1605,6 +1614,7 @@ struct msm_actuator_cfg_data {
 	int cfgtype;
 	uint8_t is_af_supported;
 	uint8_t is_ois_supported;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
     uint8_t is_cal_supported; 
 #if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION == 3)
 	int8_t enable_focus_step_log;
@@ -1612,6 +1622,7 @@ struct msm_actuator_cfg_data {
 	uint8_t medium_step_damping;
 	uint8_t big_step_damping;
 	uint8_t is_af_infinity_supported;
+#endif
 #endif
 	union {
 		struct msm_actuator_move_params_t move;
@@ -1621,12 +1632,14 @@ struct msm_actuator_cfg_data {
 		int16_t curr_step_pos; 
 		af_algo_t af_algo; 
 		int16_t ois_mode; 
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 		struct msm_actuator_get_ois_info_t get_ois_info;
 		struct msm_actuator_get_ois_tbl_t get_ois_tbl;
 		af_value_t af_value;
 		struct msm_actuator_get_ois_cal_info_t get_osi_cal_info; 
 		struct sensor_actuator_info_t sensor_actuator_info; 
 		struct msm_actuator_get_vcm_cal_info_t get_vcm_cal_info; 
+#endif
 	} cfg;
 };
 
@@ -1715,10 +1728,14 @@ struct msm_camsensor_info {
 	int mount_angle;
 	uint32_t max_width;
 	uint32_t max_height;
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	enum htc_camera_image_type htc_image;	
 	uint8_t hdr_mode;	
+#endif
 	uint8_t use_rawchip; 
+#if defined(CONFIG_MSM_CAMERA) && (CONFIG_HTC_CAMERA_HAL_VERSION > 0)
 	uint8_t video_hdr_capability;
+#endif
 };
 
 #define V4L2_SINGLE_PLANE	0

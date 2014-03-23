@@ -15,6 +15,7 @@ config HTC_CAMERA_HAL_VERSION
 	default 3 if ARCH_APQ8064 && MACH_M7_UL
 	default 2 if ARCH_APQ8064 && MACH_MONARUDO
 	default 1 if !ARCH_APQ8064 && ARCH_MSM8960
+	default 0 if ARCH_MSM8X60
 	---help---
 	  This controls the version of the HTC camera HAL the
 	  kernel driver should be compatible with.
@@ -225,6 +226,15 @@ config DW9712_ACT
 	---help---
 	  dw9721 lens actuator driver for S5K4E1.
 	  Say Y here if this is msm7627A variant platform.
+
+config S5K3H1GX
+	bool "Sensor s5k3h1gx (Samsung 8M)"
+	depends on MSM_CAMERA
+	default n
+	---help---
+	  Support for S5K3H1GX samsung sensor driver.
+	  It is a Bayer 8MP sensor with auto focus and it supports
+	  two mipi lanes.
 
 config MSM_CAMERA_FLASH_SC628A
 	bool "Qualcomm MSM camera sc628a flash support"
