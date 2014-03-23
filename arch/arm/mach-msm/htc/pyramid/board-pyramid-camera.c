@@ -260,7 +260,7 @@ struct msm_camera_device_platform_data msm_camera_csi_device_data[] = {
 #ifdef CONFIG_MSM_CAMERA_FLASH
 int flashlight_control(int mode)
 {
-#ifdef CONFIG_FLASHLIGHT_AAT1271
+#ifdef CONFIG_FLASHLIGHT_AAT
 	return aat1271_flashlight_control(mode);
 #else
 	return 0;
