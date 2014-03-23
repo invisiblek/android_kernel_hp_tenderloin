@@ -1369,6 +1369,13 @@ static void csi_m(struct vc_data *vc)
 				else if (vc->vc_par[i] >= 40 && vc->vc_par[i] <= 47)
 					vc->vc_color = (color_table[vc->vc_par[i] - 40] << 4)
 						| (vc->vc_color & 0x0f);
+				// support full 16 colors
+				else if (vc->vc_par[i] >= 90 && vc->vc_par[i] <= 97)
+					vc->vc_color = color_table[vc->vc_par[i] - 90 + 8]
+						| (vc->vc_color & 0xf0);
+				else if (vc->vc_par[i] >= 100 && vc->vc_par[i] <= 107)
+					vc->vc_color = (color_table[vc->vc_par[i] - 100 + 8] << 4)
+						| (vc->vc_color & 0x0f);
 				break;
 		}
 	update_attr(vc);
