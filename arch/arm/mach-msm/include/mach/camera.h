@@ -23,11 +23,7 @@
 #include "linux/types.h"
 
 #include <mach/board.h>
-#if CONFIG_HTC_CAMERA_HAL_VERSION < 1
-#include <media/msm_camera_legacy.h>
-#else
 #include <media/msm_camera.h>
-#endif
 #include <mach/msm_subsystem_map.h>
 #include <linux/ion.h>
 
