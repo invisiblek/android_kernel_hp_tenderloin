@@ -74,6 +74,7 @@ static int __init mipi_cmd_pyramid_qhd_pt_init(void)
 	pinfo.lcd.hw_vsync_mode = TRUE;
 	pinfo.lcd.refx100 = 6096; /* adjust refx100 to prevent tearing */
 
+        pinfo.mipi.frame_rate = 61;
 	pinfo.mipi.mode = DSI_CMD_MODE;
 	pinfo.mipi.dst_format = DSI_CMD_DST_FORMAT_RGB888;
 	pinfo.mipi.vc = 0;
