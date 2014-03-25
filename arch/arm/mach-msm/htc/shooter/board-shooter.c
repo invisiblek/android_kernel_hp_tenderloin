@@ -436,7 +436,7 @@ static struct platform_device android_usb_device = {
 static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.guage_driver = GUAGE_NONE,
 	.gpio_mbat_in = MSM_GPIO_TO_INT(SHOOTER_GPIO_MBAT_IN),
-	.gpio_mbat_in_trigger_level = MBAT_IN_LOW_TRIGGER,
+	.gpio_mbat_in_trigger_level = MBAT_IN_HIGH_TRIGGER,
 	.charger = SWITCH_CHARGER_TPS65200,
 	.mpp_data = {
 		{PM8058_MPP_PM_TO_SYS(XOADC_MPP_3), PM_MPP_AIN_AMUX_CH6},

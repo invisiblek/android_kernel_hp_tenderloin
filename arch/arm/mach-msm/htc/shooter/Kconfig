@@ -6,6 +6,6 @@ config MACH_SHOOTER
 	depends on ARCH_MSM8X60
 	select MACH_HTC
         select REMOVE_SMI_2X_CLK
-	bool "HTC Pyramid"
+	bool "HTC Shooter"
 	help
 	  Support for the HTC SHOOTER device.

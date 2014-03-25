@@ -908,7 +908,7 @@ static int mipi_dsi_panel_power(int on)
 }
 
 static struct mipi_dsi_platform_data mipi_dsi_pdata = {
-  	.vsync_gpio		= GPIO_LCD_TE,
+  	.vsync_gpio		=  28, //FLINTMAN GPIO_LCD_TE
 	.dsi_power_save = mipi_dsi_panel_power,
 };
 

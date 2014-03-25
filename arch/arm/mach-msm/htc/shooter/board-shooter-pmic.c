@@ -75,7 +75,7 @@ struct pm8xxx_mpp_init_info {
 	} \
 }
 
-#define PM8058_LINE_IN_DET_GPIO	PM8058_GPIO_PM_TO_SYS(18)
+#define PM8058_LINE_IN_DET_GPIO	PM8058_GPIO_PM_TO_SYS(28)
 
 static struct othc_accessory_info othc_accessories[]  = {
 	{
