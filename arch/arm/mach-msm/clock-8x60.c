@@ -2556,7 +2556,7 @@ static struct rcg_clk pixel_mdp_clk = {
 	.c = {
 		.dbg_name = "pixel_mdp_clk",
 		.ops = &clk_ops_rcg,
-		VDD_DIG_FMAX_MAP2(LOW, 85333000, NOMINAL, 170000000),
+		VDD_DIG_FMAX_MAP2(LOW, 76800000, NOMINAL, 170000000),
 		CLK_INIT(pixel_mdp_clk.c),
 	},
 };
