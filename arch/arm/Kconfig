@@ -1697,6 +1697,14 @@ config NR_CPUS
 	depends on SMP
 	default "4"
 
+config ASMP
+	bool "Multi-core automatic hotplug support"
+	depends on SMP
+	default y
+	help
+	  Automatically hotplugs the multiple cpu cores on and off
+	  based on cpu load and suspend state
+
 config HOTPLUG_CPU
 	bool "Support for hot-pluggable CPUs (EXPERIMENTAL)"
 	depends on SMP && HOTPLUG && EXPERIMENTAL
