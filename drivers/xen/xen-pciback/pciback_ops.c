@@ -216,7 +216,7 @@ int xen_pcibk_enable_msix(struct xen_pcibk_device *pdev,
 	if (result == 0) {
 		for (i = 0; i < op->value; i++) {
 			op->msix_entries[i].entry = entries[i].entry;
-			if (entries[i].vector)
+			if (entries[i].vector) {
 				op->msix_entries[i].vector =
 					xen_pirq_from_irq(entries[i].vector);
 				if (unlikely(verbose_request))
@@ -224,6 +224,7 @@ int xen_pcibk_enable_msix(struct xen_pcibk_device *pdev,
 						"MSI-X[%d]: %d\n",
 						pci_name(dev), i,
 						op->msix_entries[i].vector);
+			}
 		}
 	} else
 		pr_warn_ratelimited(DRV_NAME ": %s: error enabling MSI-X for guest %u: err %d!\n",
