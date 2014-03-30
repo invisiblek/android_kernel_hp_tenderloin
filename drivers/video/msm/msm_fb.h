@@ -255,9 +255,6 @@ int msm_fb_signal_timeline(struct msm_fb_data_type *mfd);
 void msm_fb_release_timeline(struct msm_fb_data_type *mfd);
 void msm_fb_release_busy(struct msm_fb_data_type *mfd);
 
-#ifdef CONFIG_FB_BACKLIGHT
-void msm_fb_config_backlight(struct msm_fb_data_type *mfd);
-#endif
 void mdp_color_enhancement(const struct mdp_table_entry *reg_seq, int size);
 
 void fill_black_screen(bool on, uint8 pipe_num, uint8 mixer_num);
