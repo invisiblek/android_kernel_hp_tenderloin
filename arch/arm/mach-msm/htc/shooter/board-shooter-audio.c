@@ -55,6 +55,7 @@ static uint32_t msm_snddev_gpio[] = {
 #define BIT_FM_HS	(1 << 4)
 #define SHOOTER_AUD_CODEC_RST        (67)
 #define SHOOTER_AUD_HP_EN          PMGPIO(18)
+#define SHOOTER_HAP_ENABLE        PMGPIO(19)
 #define SHOOTER_AUD_MIC_SEL        PMGPIO(26)
 #define PM8058_GPIO_BASE			NR_MSM_GPIOS
 #define PM8058_GPIO_PM_TO_SYS(pm_gpio)		(pm_gpio + PM8058_GPIO_BASE)
@@ -70,13 +71,13 @@ void shooter_snddev_poweramp_on(int en)
 	pr_info("%s %d\n", __func__, en);
 	if (en) {
 		msleep(50);
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 1);
+		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 1);
 		set_speaker_amp(1);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode |= BIT_SPEAKER;
 	} else {
 		set_speaker_amp(0);
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 0);
+		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 0);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode &= ~BIT_SPEAKER;
 	}
@@ -107,14 +108,12 @@ void shooter_snddev_hs_spk_pamp_on(int en)
 		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 1);
 		set_speaker_headset_amp(1);
 		if (!atomic_read(&aic3254_ctl)) {
-			curr_rx_mode |= BIT_SPEAKER;
 			curr_rx_mode |= BIT_HEADSET;
 		}
 	} else {
 		set_speaker_headset_amp(0);
 		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 0);
 		if (!atomic_read(&aic3254_ctl)) {
-			curr_rx_mode &= ~BIT_SPEAKER;
 			curr_rx_mode &= ~BIT_HEADSET;
 		}
 	}
@@ -125,9 +124,13 @@ void shooter_snddev_receiver_pamp_on(int en)
 	pr_info("%s %d\n", __func__, en);
 	if (en) {
 		if (!atomic_read(&aic3254_ctl))
+			gpio_set_value(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 1);
+			set_handset_amp(1);
 			curr_rx_mode |= BIT_RECEIVER;
 	} else {
 		if (!atomic_read(&aic3254_ctl))
+			set_handset_amp(0);
+			gpio_set_value(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 0);
 			curr_rx_mode &= ~BIT_RECEIVER;
 	}
 }
@@ -228,13 +231,13 @@ void shooter_snddev_fmspk_pamp_on(int en)
 {
 	pr_info("%s %d\n", __func__, en);
 	if (en) {
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 1);
+		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 1);
 		set_speaker_amp(1);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode |= BIT_FM_SPK;
 	} else {
 		set_speaker_amp(0);
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_AUD_HP_EN), 0);
+		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 0);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode &= ~BIT_FM_SPK;
 	}
