@@ -342,11 +342,11 @@ void __init shooter_gpio_mpp_init(void)
                            PM8058_GPIO_VIN_L5, PM_GPIO_STRENGTH_HIGH, PM_GPIO_FUNC_2, 0, 0),
 #endif
            /* Volume Up Key */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(SHOOTER_VOL_UP),
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(SHOOTER_GPIO_KEY_VOL_UP),
                            PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_31P5,
                            PM8058_GPIO_VIN_S3, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
           /* Volume Down key */
-          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(SHOOTER_VOL_DN),
+          PM8XXX_GPIO_INIT(PM8058_GPIO_PM_TO_SYS(SHOOTER_GPIO_KEY_VOL_DOWN),
                            PM_GPIO_DIR_IN, 0, 0, PM_GPIO_PULL_UP_1P5,
                            2, 0, PM_GPIO_FUNC_NORMAL, 0, 0),
            /* PMIC ID interrupt */

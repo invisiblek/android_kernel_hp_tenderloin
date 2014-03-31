@@ -84,6 +84,8 @@
 /* GPIO definition */
 
 /* Direct Keys */
+#define SHOOTER_GPIO_KEY_VOL_DOWN    (103)
+#define SHOOTER_GPIO_KEY_VOL_UP      (104)
 #define SHOOTER_GPIO_KEY_POWER          (125)
 
 /* Battery */
@@ -164,8 +166,6 @@
 
 /* PMIC GPIO definition */
 #define PMGPIO(x) (x-1)
-#define SHOOTER_VOL_UP             PMGPIO(16)
-#define SHOOTER_VOL_DN             PMGPIO(17)
 #define SHOOTER_AUD_HP_EN          PMGPIO(18)
 #define SHOOTER_HAP_ENABLE         PMGPIO(19)
 #define SHOOTER_AUD_QTR_RESET      PMGPIO(21)

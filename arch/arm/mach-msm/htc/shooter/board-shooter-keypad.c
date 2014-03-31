@@ -49,11 +49,11 @@ module_param_named(keycaps, keycaps, charp, 0);
 
 static struct gpio_event_direct_entry shooter_keypad_input_map[] = {
 	{
-		.gpio = PM8058_GPIO_PM_TO_SYS(SHOOTER_VOL_UP),
+		.gpio = SHOOTER_GPIO_KEY_VOL_UP,
 		.code = KEY_VOLUMEUP,
 	},
 	{
-		.gpio = PM8058_GPIO_PM_TO_SYS(SHOOTER_VOL_DN),
+		.gpio = SHOOTER_GPIO_KEY_VOL_DOWN,
 		.code = KEY_VOLUMEDOWN,
 	},
 };
