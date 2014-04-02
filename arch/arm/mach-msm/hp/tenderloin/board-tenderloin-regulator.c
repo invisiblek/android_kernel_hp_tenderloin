@@ -361,6 +361,7 @@ void __init tenderloin_pm8901_gpio_mpp_init(void)
 	 * MPP0 is low.
 	 */
         msm_gpio_regulator_pdata[GPIO_VREG_ID_EXT_5V].active_low = 1;
+	pm8901_vreg_mpp0.config.control = PM8XXX_MPP_DOUT_CTRL_HIGH;
 
 	rc = pm8xxx_mpp_config(pm8901_vreg_mpp0.mpp, &pm8901_vreg_mpp0.config);
 	if (rc)
