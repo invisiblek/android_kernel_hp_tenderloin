@@ -49,6 +49,7 @@ static struct gpio_event_direct_entry tenderloin_keypad_input_map[] = {
 
 static struct gpio_event_input_info tenderloin_keypad_input_info = {
 	.info.func = gpio_event_input_func,
+	.info.no_suspend = true,
 	.flags = GPIOEDF_PRINT_KEYS,
 	.type = EV_KEY,
 #if BITS_PER_LONG != 64 && !defined(CONFIG_KTIME_SCALAR)
