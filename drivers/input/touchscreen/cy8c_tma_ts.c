@@ -1180,6 +1180,8 @@ static int cy8c_ts_resume(struct i2c_client *client)
 
 	if (ts->wake)
 		ts->wake();
+
+	msleep(100);
 	ts->suspend = 0;
 
 	if (!i2c_cy8c_read(ts->client, 0x00, buf, 2))
