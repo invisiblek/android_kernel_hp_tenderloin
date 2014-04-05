@@ -530,6 +530,7 @@ static int lcdc_panel_power(int on)
             msleep(200);
             gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
 
+            mdelay(20);
             bPanelPowerOn = true;
           }
         else // if power off asked
