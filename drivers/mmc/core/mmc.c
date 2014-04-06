@@ -1015,6 +1015,13 @@ static int mmc_init_card(struct mmc_host *host, u32 ocr,
 		err = mmc_get_ext_csd(card, &ext_csd);
 		if (err)
 			goto free_card;
+               /* This needs to be done properly, but I'm too annoyed right now */
+#ifndef CONFIG_MMC_NO_BKOPS
+              if(card->host->index == 0) {
+                       pr_info("%s: disabling BKOPS\n", mmc_hostname(card->host));
+                       ext_csd[EXT_CSD_BKOPS_SUPPORT] = 0;
+               }
+#endif
 		err = mmc_read_ext_csd(card, ext_csd);
 		if (err)
 			goto free_card;
