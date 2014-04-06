@@ -80,6 +80,7 @@
 
 /* GSBI UART devices */
 #define MSM_UART2DM_PHYS	(MSM_GSBI2_PHYS + 0x40000)
+#define MSM_UART3DM_PHYS	(MSM_GSBI3_PHYS + 0x40000)
 #define MSM_UART5DM_PHYS	(MSM_GSBI5_PHYS + 0x40000)
 #define MSM_UART6DM_PHYS	(MSM_GSBI6_PHYS + 0x40000)
 #define MSM_UART8DM_PHYS	(MSM_GSBI8_PHYS + 0x40000)
@@ -299,6 +300,34 @@ struct platform_device msm8960_device_uart_gsbi2 = {
 	.num_resources	= ARRAY_SIZE(resources_uart_gsbi2),
 	.resource	= resources_uart_gsbi2,
 };
+
+static struct resource resources_uart_gsbi3[] = {
+	{
+		.start  = GSBI3_UARTDM_IRQ,
+		.end    = GSBI3_UARTDM_IRQ,
+		.flags  = IORESOURCE_IRQ,
+	},
+	{
+		.start  = MSM_UART3DM_PHYS,
+		.end    = MSM_UART3DM_PHYS + PAGE_SIZE - 1,
+		.name   = "uartdm_resource",
+		.flags  = IORESOURCE_MEM,
+	},
+	{
+		.start  = MSM_GSBI3_PHYS,
+		.end    = MSM_GSBI3_PHYS + PAGE_SIZE - 1,
+		.name   = "gsbi_resource",
+		.flags  = IORESOURCE_MEM,
+	},
+};
+
+struct platform_device msm8960_device_uart_gsbi3 = {
+	.name   = "msm_serial_hsl",
+	.id     = 1,
+	.num_resources  = ARRAY_SIZE(resources_uart_gsbi3),
+	.resource       = resources_uart_gsbi3,
+};
+
 /* GSBI 6 used into UARTDM Mode */
 static struct resource msm_uart_dm6_resources[] = {
 	{
@@ -549,7 +578,11 @@ static struct resource resources_uart_gsbi8[] = {
 
 struct platform_device msm8960_device_uart_gsbi8 = {
 	.name	= "msm_serial_hsl",
+#ifdef CONFIG_MACH_M4_UL
+	.id	= 0,
+#else
 	.id	= 1,
+#endif
 	.num_resources	   = ARRAY_SIZE(resources_uart_gsbi8),
 	.resource	   = resources_uart_gsbi8,
 	.dev.platform_data = &uart_gsbi8_pdata,
@@ -1874,6 +1907,18 @@ static struct resource resources_qup_i2c_gsbi4[] = {
 		.end	= GSBI4_QUP_IRQ,
 		.flags	= IORESOURCE_IRQ,
 	},
+	{
+		.name	= "i2c_sda",
+		.start	= 20,
+		.end	= 20,
+		.flags	= IORESOURCE_IO,
+	},
+	{
+		.name	= "i2c_clk",
+		.start	= 21,
+		.end	= 21,
+		.flags	= IORESOURCE_IO,
+	},
 };
 
 struct platform_device msm8960_device_qup_i2c_gsbi4 = {
@@ -2510,6 +2555,13 @@ static struct resource resources_qup_spi_gsbi10[] = {
 		.flags  = IORESOURCE_IO,
 	},
 #endif
+};
+
+struct platform_device msm8930_device_qup_spi_gsbi10 = {
+	.name		= "spi_qsd",
+	.id		= 1,
+	.num_resources	= ARRAY_SIZE(resources_qup_spi_gsbi10),
+	.resource	= resources_qup_spi_gsbi10,
 };
 
 /* Use GSBI10 QUP for SPI-1 */
