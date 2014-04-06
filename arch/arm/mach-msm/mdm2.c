@@ -107,6 +107,11 @@ static void mdm_power_down_common(struct mdm_modem_drv *mdm_drv)
 
 	mdm_peripheral_disconnect(mdm_drv);
 
+#ifdef CONFIG_MACH_HTC
+	if (GPIO_IS_VALID(mdm_drv->ap2mdm_status_gpio))
+		gpio_set_value(mdm_drv->ap2mdm_status_gpio, 0);
+#endif
+
 	/* Wait for the modem to complete its power down actions. */
 	for (i = 20; i > 0; i--) {
 		if (gpio_get_value(mdm_drv->mdm2ap_status_gpio) == 0) {
@@ -188,11 +193,10 @@ static void mdm_do_first_power_on(struct mdm_modem_drv *mdm_drv)
 	}
 
 	if (GPIO_IS_VALID(mdm_drv->mdm2ap_hsic_ready_gpio)) {
-		i = 100;
-		while (!gpio_get_value(mdm_drv->mdm2ap_hsic_ready_gpio) &&
-				i > 0) {
+		gpio_direction_output(mdm_drv->ap2mdm_status_gpio, 1);
+		for (i = 0; !gpio_get_value(mdm_drv->mdm2ap_hsic_ready_gpio)
+				&& i < 10; i++) {
 			msleep(10);
-			i -= 10;
 			pr_debug("%s: Waiting for AP2MDM_HSIC_READY gpio\n",
 					__func__);
 		};
@@ -288,9 +292,6 @@ static void mdm_status_changed(struct mdm_modem_drv *mdm_drv, int value)
 		if (GPIO_IS_VALID(mdm_drv->ap2mdm_wakeup_gpio))
 			gpio_direction_output(mdm_drv->ap2mdm_wakeup_gpio, 1);
 	}
-#ifdef CONFIG_MACH_HTC
-	mdm_drv->mdm_hsic_reconnected = 1;
-#endif
 }
 
 static void mdm_image_upgrade(struct mdm_modem_drv *mdm_drv, int type)

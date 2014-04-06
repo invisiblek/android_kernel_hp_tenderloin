@@ -1952,7 +1952,11 @@ static int sitar_codec_enable_micbias(struct snd_soc_dapm_widget *w,
 			SITAR_RELEASE_LOCK(sitar->codec_resource_lock);
 		}
 
+#ifdef CONFIG_MACH_M4_UL
+		snd_soc_update_bits(codec, w->reg, 0x0E, 0x0A);
+#else
 		snd_soc_update_bits(codec, w->reg, 0x1E, 0x00);
+#endif
 		sitar_codec_update_cfilt_usage(codec, cfilt_sel_val, 1);
 
 		if (strnstr(w->name, internal1_text, 30))
@@ -3400,10 +3404,17 @@ static int sitar_get_channel_map(struct snd_soc_dai *dai,
 		}
 	} else if (dai->id == AIF1_CAP) {
 		*tx_num = sitar_dai[dai->id - 1].capture.channels_max;
+#ifdef CONFIG_MACH_M4_UL
+		tx_slot[0] = tx_ch[2 + cnt];
+		tx_slot[1] = tx_ch[3 + cnt];
+		tx_slot[2] = tx_ch[cnt];
+		tx_slot[3] = tx_ch[1 + cnt];
+#else
 		tx_slot[0] = tx_ch[cnt];
 		tx_slot[1] = tx_ch[4 + cnt];
 		tx_slot[2] = tx_ch[2 + cnt];
 		tx_slot[3] = tx_ch[3 + cnt];
+#endif
 	}
 	return 0;
 }
