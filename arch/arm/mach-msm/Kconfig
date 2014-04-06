@@ -2628,4 +2628,9 @@ config REMOVE_SMI_2X_CLK
        bool "remove 2x_axi_clk for SMI"
        default n
 
+config L2_FREQ_FIXUP
+       bool "Some msm8x60 doesn't like low freqs"
+       depends on ARCH_MSM8X60
+       default n
+
 endif
