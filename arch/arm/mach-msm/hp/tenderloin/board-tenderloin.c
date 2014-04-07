@@ -155,6 +155,7 @@
 #include <linux/msm_ion.h>
 #include <mach/ion.h>
 #include <mach/msm_rtb.h>
+#include <linux/msm_tsens.h>
 
 struct pm8xxx_mpp_init_info {
 	unsigned			mpp;
@@ -1830,9 +1831,11 @@ static struct platform_device *early_devices[] __initdata = {
 	&msm_device_dmov_adm1,
 };
 
-static struct platform_device msm_tsens_device = {
-	.name   = "tsens-tm",
-	.id = -1,
+static struct tsens_platform_data tenderloin_tsens_pdata  = {
+	.tsens_factor           = 1000,
+	.hw_type                = MSM_8660,
+	.tsens_num_sensor       = 1,
+	.slope                  = {702},
 };
 
 #if defined(CONFIG_MSM_RTB)
@@ -2213,8 +2216,6 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #ifdef CONFIG_HW_RANDOM_MSM
 	&msm_device_rng,
 #endif
-	&msm_tsens_device,
-        //        &cable_detect_device,
 	&msm8660_rpm_device,
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
@@ -3314,7 +3315,7 @@ static void __init tenderloin_init(void)
           pr_err("meminfo_init() failed!\n");
 
 	platform_device_register(&msm_gpio_device);
-
+	msm_tsens_early_init(&tenderloin_tsens_pdata);
 	BUG_ON(msm_rpm_init(&msm8660_rpm_data));
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
 
