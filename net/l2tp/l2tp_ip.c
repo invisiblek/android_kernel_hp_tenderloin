@@ -612,7 +612,7 @@ out:
 }
 
 static struct proto l2tp_ip_prot = {
-	.name		   = "L2TP/IP",
+	.name		   = "L2TP_IP",
 	.owner		   = THIS_MODULE,
 	.init		   = l2tp_ip_open,
 	.close		   = l2tp_ip_close,
