@@ -418,7 +418,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 #endif
 	icodec->enabled = 1;
 
-	pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+	//pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return 0;
 
 #if defined(CONFIG_MARIMBA_CODEC)
@@ -534,7 +534,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 1;
 
-	pm_qos_update_request(&drv->tx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+	//pm_qos_update_request(&drv->tx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return 0;
 
 error_invalid_freq:
