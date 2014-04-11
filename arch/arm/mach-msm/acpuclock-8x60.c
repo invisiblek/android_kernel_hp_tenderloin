@@ -1052,6 +1052,7 @@ static __init struct clkctl_acpu_speed *select_freq_plan(void)
 		}
 	} else {
 		acpu_freq_tbl = acpu_freq_tbl_1188mhz;
+		acpu_freq_tbl = acpu_freq_tbl_1512mhz_nom;
 	}
 
 	for (f = acpu_freq_tbl; f->acpuclk_khz != 0; f++)
