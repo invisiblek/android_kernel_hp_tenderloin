@@ -157,11 +157,6 @@
 #include <mach/msm_rtb.h>
 #include <linux/msm_tsens.h>
 
-struct pm8xxx_mpp_init_info {
-	unsigned			mpp;
-	struct pm8xxx_mpp_config_data	config;
-};
-
 extern int ps_type;
 int *pin_table = NULL;
 int wm8994_reg_status = 0;
@@ -3388,10 +3383,9 @@ static void __init tenderloin_init(void)
         tenderloin_init_fb();
 
 	lcdc_lg_panel_power(1);
-        //        return 0;
-        //        tenderloin_gpio_mpp_init();
+        tenderloin_gpio_mpp_init();
         tenderloin_usb_init();
-
+        platform_device_register(&tenderloin_8901_mpp_vreg);
 #ifdef CONFIG_MSM_DSPS
 		msm8x60_init_dsps();
 #endif

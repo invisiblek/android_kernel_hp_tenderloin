@@ -432,6 +432,7 @@ void __init tenderloin_gpio_mpp_init(void)
 			break ;
 		}
 	}
+	tenderloin_pm8901_gpio_mpp_init();
 }
 
 static struct pm8xxx_vibrator_platform_data pm8058_vib_pdata = {
@@ -508,10 +509,10 @@ static int pm8058_pwm_config(struct pwm_device *pwm, int ch, int on)
 			mode = PM_PWM_CONF_NONE;
 			max_mA = 0;
 		}
-                //		rc = pm8058_pwm_config_led(pwm, id, mode, max_mA);
-                //		if (rc)
-                //			pr_err("%s: pm8058_pwm_config_led(ch=%d): rc=%d\n",
-                //			       __func__, ch, rc);
+		rc = pm8058_pwm_config_led(pwm, id, mode, max_mA);
+		if (rc)
+			pr_err("%s: pm8058_pwm_config_led(ch=%d): rc=%d\n",
+			       __func__, ch, rc);
 	}
 	return rc;
 

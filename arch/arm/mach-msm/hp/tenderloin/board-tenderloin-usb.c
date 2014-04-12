@@ -552,13 +552,15 @@ static void msm_hsusb_vbus_power(unsigned phy_info, int on)
 		votg_5v_switch = regulator_get(NULL, "8901_usb_otg");
 		if (IS_ERR(votg_5v_switch)) {
 			pr_err("%s: unable to get votg_5v_switch\n", __func__);
+			votg_5v_switch = NULL;
 			return;
 		}
 	}
 	if (!ext_5v_reg) {
-		ext_5v_reg = regulator_get(NULL, "8901_mpp0");
+		ext_5v_reg = regulator_get(NULL, "ext_5v");
 		if (IS_ERR(ext_5v_reg)) {
 			pr_err("%s: unable to get ext_5v_reg\n", __func__);
+			ext_5v_reg = NULL;
 			return;
 		}
 	}

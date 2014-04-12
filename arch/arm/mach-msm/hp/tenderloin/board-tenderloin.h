@@ -20,6 +20,7 @@
 #include <mach/rpm-regulator.h>
 #include <linux/regulator/pmic8901-regulator.h>
 #include "board-tenderloin-pins.h"
+#include <mach/board-msm8660.h>
 
 #define TENDERLOIN_PROJECT_NAME	"tenderloin"
 
@@ -194,6 +195,7 @@
 extern struct rpm_regulator_platform_data tenderloin_rpm_regulator_pdata __devinitdata;
 extern struct rpm_regulator_platform_data tenderloin_rpm_regulator_early_pdata __devinitdata;
 extern struct pm8901_vreg_pdata pm8901_regulator_pdata[];
+extern struct platform_device tenderloin_8901_mpp_vreg __devinitdata;
 extern int pm8901_regulator_pdata_len;
 extern struct platform_device msm_adc_device;
 extern u32 board_type;
@@ -224,6 +226,7 @@ void __init tenderloin_init_pmic(void);
 int __init tenderloin_wifi_init(void);
 void __init tenderloin_gpio_mpp_init(void);
 void __init tenderloin_init_gpiomux(void);
+void __init tenderloin_pm8901_gpio_mpp_init(void);
 void tenderloin_lcdc_steadycfg(void);
 void __init msm8x60_allocate_fb_region(void);
 void __init tenderloin_init_ts(void);
