@@ -557,7 +557,7 @@ static void msm_hsusb_vbus_power(unsigned phy_info, int on)
 		}
 	}
 	if (!ext_5v_reg) {
-		ext_5v_reg = regulator_get(NULL, "ext_5v");
+		ext_5v_reg = regulator_get(NULL, "8901_mpp0");
 		if (IS_ERR(ext_5v_reg)) {
 			pr_err("%s: unable to get ext_5v_reg\n", __func__);
 			ext_5v_reg = NULL;
