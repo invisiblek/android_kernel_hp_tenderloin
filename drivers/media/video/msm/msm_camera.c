@@ -1051,6 +1051,7 @@ static int msm_divert_frame(struct msm_sync *sync,
 		return rc;
 	}
 
+        memset(&(buf.fmain), 0, sizeof(struct msm_frame));
 	buf.fmain.buffer = (unsigned long)pinfo.vaddr;
 	buf.fmain.y_off = pinfo.y_off;
 	buf.fmain.cbcr_off = pinfo.cbcr_off;
