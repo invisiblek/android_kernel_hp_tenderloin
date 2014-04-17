@@ -1309,9 +1309,10 @@ rmnet_smd_unbind(struct usb_configuration *c, struct usb_function *f)
 	dev->epout = dev->epin = dev->epnotify = NULL; /* release endpoints */
 
 	destroy_workqueue(dev->wq);
+#ifdef CONFIG_DEBUG_FS
 	debugfs_remove_recursive(dent_smd);
+#endif
 	kfree(dev);
-
 }
 
 int rmnet_smd_bind_config(struct usb_configuration *c)
