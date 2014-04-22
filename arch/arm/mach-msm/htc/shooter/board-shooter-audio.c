@@ -71,14 +71,14 @@ void shooter_snddev_poweramp_on(int en)
 	pr_info("%s %d\n", __func__, en);
 	if (en) {
 		msleep(30);
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 1);
+		gpio_set_value(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 1);
 		set_speaker_amp(1);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode |= BIT_SPEAKER;
 		msleep(5);
 	} else {
 		set_speaker_amp(0);
-		gpio_direction_output(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 0);
+		gpio_set_value(PM8058_GPIO_PM_TO_SYS(SHOOTER_HAP_ENABLE), 0);
 		if (!atomic_read(&aic3254_ctl))
 			curr_rx_mode &= ~BIT_SPEAKER;
 	}
