@@ -2029,8 +2029,9 @@ static int isl29028_threoshold(int b, int c, int a, int x, int *thl_value, int *
 
 static struct isl29028_platform_data isl29028_pdata = {
 	.intr = PM8058_GPIO_PM_TO_SYS(SHOOTER_PLS_INT),
-	.levels = {17, 79, 258, 588, 918, 1250, 1962, 2673, 3384, 4095},
-	.golden_adc = 0x4E2,
+	.levels = { 1, 3, 5, 15, 29, 339,
+			588, 728, 869, 4095},
+	.golden_adc = 450,
 	.power = isl29028_power,
 	.calibrate_func = isl29028_threoshold,
 	.lt = 0x15,
@@ -2052,8 +2053,9 @@ static int isl29029_power(int pwr_device, uint8_t enable)
 
 static struct isl29029_platform_data isl29029_pdata = {
 	.intr = PM8058_GPIO_PM_TO_SYS(SHOOTER_PLS_INT),
-	.levels = {17, 79, 258, 588, 918, 1250, 1962, 2673, 3384, 4095},
-	.golden_adc = 0x4E2,
+	.levels = { 1, 3, 5, 15, 29, 339,
+			588, 728, 869, 4095},
+	.golden_adc = 450,
 	.power = isl29029_power,
 	.calibrate_func = isl29028_threoshold,
 	.lt = 0x15,
