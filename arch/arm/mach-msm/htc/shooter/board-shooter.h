@@ -172,10 +172,10 @@
 #define SHOOTER_TP_RST             PMGPIO(23)
 #define SHOOTER_GREEN_LED          PMGPIO(24)
 #define SHOOTER_AMBER_LED          PMGPIO(25)
-#define SHOOTER_AUD_MIC_SEL        PMGPIO(26)
+#define SHOOTER_AUD_MIC_SEL        PMGPIO(14)
 #define SHOOTER_CHG_STAT	   PMGPIO(33)
 #define SHOOTER_SDC3_DET           PMGPIO(34)
-#define SHOOTER_PLS_INT            PMGPIO(35)
+#define SHOOTER_PLS_INT            PMGPIO(22)
 #define SHOOTER_AUD_REMO_PRES      PMGPIO(37)
 #define SHOOTER_WIFI_BT_SLEEP_CLK  PMGPIO(38)
 
