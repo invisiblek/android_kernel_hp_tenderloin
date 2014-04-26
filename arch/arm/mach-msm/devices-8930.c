@@ -25,6 +25,8 @@
 #include <mach/iommu_domains.h>
 #include <mach/msm_rtb.h>
 #include <mach/msm_cache_dump.h>
+#include <sound/msm-dai-q6.h>
+#include <sound/apr_audio.h>
 
 #include "devices.h"
 #include "rpm_log.h"
@@ -1179,6 +1181,26 @@ void __init msm8930_add_vidc_device(void)
 struct msm_iommu_domain_name msm8930_iommu_ctx_names[] = {
 	/* Camera */
 	{
+		.name = "vpe_src",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vpe_dst",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vfe_imgwr",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
+		.name = "vfe_misc",
+		.domain = CAMERA_DOMAIN,
+	},
+	/* Camera */
+	{
 		.name = "ijpeg_src",
 		.domain = CAMERA_DOMAIN,
 	},
@@ -1312,6 +1334,16 @@ struct platform_device msm8930_iommu_domain_device = {
 	.dev = {
 		.platform_data = &msm8930_iommu_domain_pdata,
 	}
+};
+
+struct platform_device apq_cpudai_pri_i2s_rx = {
+	.name	= "msm-dai-q6",
+	.id	= 0,
+};
+
+struct platform_device apq_cpudai_pri_i2s_tx = {
+	.name	= "msm-dai-q6",
+	.id	= 1,
 };
 
 struct msm_rtb_platform_data msm8930_rtb_pdata = {
