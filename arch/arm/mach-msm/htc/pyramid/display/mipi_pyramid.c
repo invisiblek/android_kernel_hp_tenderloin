@@ -23,6 +23,7 @@
 #include "mipi_pyramid.h"
 #include <mach/debug_display.h>
 
+#define DEBUG 0
 /* -----------------------------------------------------------------------------
  *                             Constant value define
  * -----------------------------------------------------------------------------
@@ -1743,9 +1744,9 @@ static unsigned char pyd_shp_shrink_pwm(int br)
 				(BRI_SETTING_MAX - BRI_SETTING_DEF));
 	} else if (br > BRI_SETTING_MAX)
 		shrink_br = SHARP_PWM_MAX;
-	/* TODO: remove log later */
+#if DEBUG
 	PR_DISP_INFO("SHP: brightness orig=%d, transformed=%d\n", br, shrink_br);
-
+#endif
 	return shrink_br;
 }
 
@@ -1767,9 +1768,9 @@ static unsigned char pyd_auo_shrink_pwm(int br)
 				(BRI_SETTING_MAX - BRI_SETTING_DEF));
 	} else if (br > BRI_SETTING_MAX)
 		shrink_br = AUO_PWM_MAX;
-	/* TODO: remove log later */
+#if DEBUG
 	PR_DISP_INFO("AUO: brightness orig=%d, transformed=%d\n", br, shrink_br);
-
+#endif
 	return shrink_br;
 }
 
