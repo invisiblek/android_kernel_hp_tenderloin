@@ -96,12 +96,18 @@ static struct hidg_func_descriptor my_hid_data = {
 	}
 };
 
+static void release_hid_dev(struct device *dev)
+{
+	// nothing
+}
+
 static struct platform_device my_hid = {
 	.name			= "hidg",
 	.id			= 0,
 	.num_resources		= 0,
 	.resource		= 0,
 	.dev.platform_data	= &my_hid_data,
+	.dev.release = &release_hid_dev,
 };
 
 /*-------------------------------------------------------------------------*/
