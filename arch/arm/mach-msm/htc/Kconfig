@@ -31,6 +31,10 @@ config HTC_BATT_8960
 	default n
 	bool "HTC battery driver for MSM8960"
 
+config HTC_CLK_CTRL
+	default n
+	bool "HTC Fast/Sleep Clk Support"
+
 config HTC_HEADSET_MGR
 	tristate "HTC headset manager driver"
 	default n

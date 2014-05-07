@@ -23,6 +23,7 @@ obj-$(CONFIG_MACH_M7_UL) += htc_4335_wl_reg.o
 obj-$(CONFIG_HTC_BATT_CORE) += htc_battery_core.o
 obj-$(CONFIG_HTC_BATT_8x60) += htc_battery_8x60.o
 obj-$(CONFIG_HTC_BATT_8960) += htc_battery_8960.o htc_battery_cell.o
+obj-$(CONFIG_HTC_CLK_CTRL) += htc_sleep_clk.o htc_fast_clk_8k.o
 obj-$(CONFIG_FORCE_FAST_CHARGE) += fastchg.o
 obj-$(CONFIG_MSM_NATIVE_RESTART) += htc_restart_handler.o
 
