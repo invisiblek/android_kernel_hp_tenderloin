@@ -24,6 +24,28 @@
 #define SCM_SVC_CP			0xC
 #define SCM_SVC_DCVS			0xD
 #define SCM_SVC_TZSCHEDULER		0xFC
+#define SCM_SVC_OEM			0xFE
+
+#define TZ_HTC_SVC_READ_SIMLOCK_MASK	0x0D
+#define TZ_HTC_SVC_SIMLOCK_UNLOCK	0x0E
+#define TZ_HTC_SVC_GET_SECURITY_LEVEL	0x10
+#define TZ_HTC_SVC_MEMPROT		0x15
+#define TZ_HTC_SVC_LOG_OPERATOR		0x16
+#define TZ_HTC_SVC_ACCESS_ITEM		0x1A
+#define TZ_HTC_SVC_3RD_PARTY		0x1B
+
+#define ITEM_MDM9K_SERIAL		0
+#define ITEM_CRYPTO_RAMDUMP		1
+#define ITEM_ENCRYPT_RAMDUMP		3
+
+#define ITEM_KEYBOX_PROVISION		0x11
+#define ITEM_KEYBOX_DATA		0x21
+#define ITEM_DEVICE_ID			0x22
+#define ITEM_RAND_DATA			0x23
+#define ITEM_VALIDATE_KEYBOX		0x26
+#define ITEM_READ_MEM			0x28
+#define ITEM_CPRMKEY_ADDR		0x31
+#define ITEM_CPRMKEY_DATA		0x32
 
 #define DEFINE_SCM_BUFFER(__n) \
 static char __n[PAGE_SIZE] __aligned(PAGE_SIZE);
@@ -52,6 +74,16 @@ extern s32 scm_call_atomic4_3(u32 svc, u32 cmd, u32 arg1, u32 arg2, u32 arg3,
 extern u32 scm_get_version(void);
 extern int scm_is_call_available(u32 svc_id, u32 cmd_id);
 extern int scm_get_feat_version(u32 feat);
+#ifdef CONFIG_HTC_SIMLOCK
+extern int secure_read_simlock_mask(void);
+extern int secure_simlock_unlock(unsigned int unlock, unsigned char *code);
+extern int secure_get_security_level(void);
+extern int secure_memprot(void);
+extern int secure_log_operation(unsigned int address, unsigned int size,
+		unsigned int buf_addr, unsigned int buf_len, int revert);
+extern int secure_access_item(unsigned int is_write, unsigned int id, unsigned int buf_len, unsigned char *buf);
+extern int secure_3rd_party_syscall(unsigned int id, unsigned char *buf, int len);
+#endif
 
 #else
 

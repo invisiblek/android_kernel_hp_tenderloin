@@ -34,6 +34,8 @@ obj-$(CONFIG_HTC_HEADSET_ONE_WIRE) += htc_headset_one_wire.o
 obj-$(CONFIG_HTC_HEADSET_GPIO) += htc_headset_gpio.o
 obj-$(CONFIG_HTC_HEADSET_8X60) += htc_headset_8x60.o
 
+obj-$(CONFIG_HTC_SIMLOCK) += htc_simlock.o
+
 obj-$(CONFIG_ARCH_MSM8930) += ../devices-8930.o ../board-8930-gpu.o
 
 CFLAGS_devices_htc.o += -Idrivers/staging/android

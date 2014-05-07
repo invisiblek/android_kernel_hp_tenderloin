@@ -87,6 +87,11 @@ config HTC_HEADSET_GPIO
 	help
 	  Provides support for HTC GPIO headset detection.
 
+config HTC_SIMLOCK
+	bool "Enable simlock support"
+	depends on ARCH_MSM8X60
+	default n
+
 config FORCE_FAST_CHARGE
 	bool "Force AC charge mode at will"
 	depends on ARCH_MSM8X60
