@@ -1790,7 +1790,7 @@ inline void mipi_dsi_set_backlight(struct msm_fb_data_type *mfd, int level)
 			(board_mfg_mode() == 5 && !(htc_battery_get_zcharge_mode()%2))*/) {
 		led_pwm1[1] = 0;
 	}
-        mipi_shooter_send_cmd(novatek_cmd_backlight_cmds, ARRAY_SIZE(novatek_cmd_backlight_cmds), (level > 0));
+        mipi_shooter_send_cmd(novatek_cmd_backlight_cmds, ARRAY_SIZE(novatek_cmd_backlight_cmds), (true));
 
 	bl_level_prevset = mfd->bl_level;
 }
