@@ -1492,7 +1492,7 @@ CONFIG_WLAN=y
 # CONFIG_ATH_COMMON is not set
 CONFIG_BCMDHD=y
 # CONFIG_BCM4339 is not set
-CONFIG_BCMDHD_FW_PATH="/system/etc/firmware/fw_bcmdhd.bin"
+CONFIG_BCMDHD_FW_PATH="/vendor/firmware/fw_bcmdhd.bin"
 CONFIG_BCMDHD_NVRAM_PATH="/proc/calibration"
 # CONFIG_DHD_USE_STATIC_BUF is not set
 # CONFIG_DHD_USE_SCHED_SCAN is not set
