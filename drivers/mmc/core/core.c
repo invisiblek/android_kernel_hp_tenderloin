@@ -452,8 +452,9 @@ void mmc_start_idle_time_bkops(struct work_struct *work)
 	 */
 	if (card->bkops_info.cancel_delayed_work)
 		return;
-
+#ifndef CONFIG_MMC_NO_BKOPS
 	mmc_start_bkops(card, false);
+#endif
 }
 EXPORT_SYMBOL(mmc_start_idle_time_bkops);
 
@@ -576,6 +577,7 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 	if (host->areq) {
 		mmc_wait_for_req_done(host, host->areq->mrq);
 		err = host->areq->err_check(host->card, host->areq);
+#ifndef CONFIG_MMC_NO_BKOPS
 		/*
 		 * Check BKOPS urgency for each R1 response
 		 */
@@ -584,6 +586,7 @@ struct mmc_async_req *mmc_start_req(struct mmc_host *host,
 		     (mmc_resp_type(host->areq->mrq->cmd) == MMC_RSP_R1B)) &&
 		    (host->areq->mrq->cmd->resp[0] & R1_EXCEPTION_EVENT))
 			mmc_start_bkops(host->card, true);
+#endif
 	}
 
 	if (!err && areq)
