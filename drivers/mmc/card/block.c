@@ -2147,8 +2147,10 @@ static int mmc_blk_issue_rq(struct mmc_queue *mq, struct request *req)
 
 out:
 	if (!req) {
+#ifndef CONFIG_MMC_NO_BKOPS
 		if (mmc_card_need_bkops(card))
 			mmc_start_bkops(card, false);
+#endif
 		/* release host only when there are no more requests */
 		mmc_release_host(card->host);
 	}
