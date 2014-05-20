@@ -274,7 +274,11 @@ int32_t msm_sensor_write_exp_gain2(struct msm_sensor_ctrl_t *s_ctrl,
 int32_t msm_sensor_write_exp_gain1_ex(struct msm_sensor_ctrl_t *s_ctrl,
 		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line);
 int32_t msm_sensor_write_exp_gain2_ex(struct msm_sensor_ctrl_t *s_ctrl,
-		int mode, uint16_t gain, uint32_t line);
+#ifndef CONFIG_S5K3H1GX
+                int mode, uint16_t gain, uint32_t line);
+#else
+                int mode, uint16_t gain, uint16_t dig_gain, uint32_t line);
+#endif
 int32_t msm_sensor_write_exp_gain_ov (struct msm_sensor_ctrl_t *s_ctrl,
 		int mode, uint16_t gain, uint16_t dig_gain, uint32_t line); 
 int32_t msm_sensor_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl,
