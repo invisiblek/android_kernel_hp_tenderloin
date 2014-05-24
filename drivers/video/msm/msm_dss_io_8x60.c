@@ -416,20 +416,22 @@ void mipi_dsi_prepare_ahb_clocks(void)
 	clk_prepare(amp_pclk);
 	clk_prepare(dsi_m_pclk);
 	clk_prepare(dsi_s_pclk);
+	clk_prepare(dsi_byte_div_clk);
+	clk_prepare(dsi_esc_clk);
 }
 //	clk_prepare(dsi_byte_div_clk);
 //	clk_prepare(dsi_esc_clk);
 
 void mipi_dsi_unprepare_ahb_clocks(void)
 {
+	clk_unprepare(dsi_esc_clk);
+	clk_unprepare(dsi_byte_div_clk);
 	clk_unprepare(dsi_m_pclk);
 	clk_unprepare(dsi_s_pclk);
 	clk_unprepare(amp_pclk);
 }
 void mipi_dsi_unprepare_clocks(void)
 {
-	clk_unprepare(dsi_esc_clk);
-	clk_unprepare(dsi_byte_div_clk);
 }
 
 void mipi_dsi_configure_fb_divider(u32 fps_level)
@@ -477,8 +479,8 @@ void mipi_dsi_clk_enable(void)
 		pr_err("%s: clk_set_rate failed\n",	__func__);
 	mipi_dsi_pclk_ctrl(&dsi_pclk, 1);
 	mipi_dsi_clk_ctrl(&dsicore_clk, 1);
-	clk_prepare_enable(dsi_byte_div_clk);
-	clk_prepare_enable(dsi_esc_clk);
+	clk_enable(dsi_byte_div_clk);
+	clk_enable(dsi_esc_clk);
 	mipi_dsi_clk_on = 1;
 }
 
