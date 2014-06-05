@@ -24,7 +24,7 @@
 #include <linux/uaccess.h>
 #include <mach/camera.h>
 #include <mach/gpio.h>
-#include <media/msm_camera.h>
+c
 #include <media/v4l2-subdev.h>
 #include "msm_camera_i2c.h"
 #include "msm_camera_eeprom.h"

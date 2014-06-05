@@ -48,8 +48,11 @@
 #include <linux/kernel.h>
 #include <linux/pm_runtime.h>
 
-#define DRIVER_VERSION		"22-Aug-2005"
+#define DRIVER_VERSION		"22-Aug-2005-mbm"
 
+#ifndef PMSG_IS_AUTO
+#define PMSG_IS_AUTO(msg) (((msg).event & PM_EVENT_AUTO) != 0)
+#endif
 
 /*-------------------------------------------------------------------------*/
 
@@ -66,7 +69,7 @@
  */
 #define RX_MAX_QUEUE_MEMORY (60 * 1518)
 #define	RX_QLEN(dev) (((dev)->udev->speed == USB_SPEED_HIGH) ? \
-			(RX_MAX_QUEUE_MEMORY/(dev)->rx_urb_size) : 4)
+			((dev)->rx_queue_enable ? (RX_MAX_QUEUE_MEMORY/(dev)->rx_urb_size) : 1) : 4)
 #define	TX_QLEN(dev) (((dev)->udev->speed == USB_SPEED_HIGH) ? \
 			(RX_MAX_QUEUE_MEMORY/(dev)->hard_mtu) : 4)
 
@@ -97,7 +100,6 @@ module_param (msg_level, int, 0);
 MODULE_PARM_DESC (msg_level, "Override default message level");
 
 /*-------------------------------------------------------------------------*/
-
 /* handles CDC Ethernet and many other network "bulk data" interfaces */
 int usbnet_get_endpoints(struct usbnet *dev, struct usb_interface *intf)
 {
@@ -353,16 +355,13 @@ static int rx_submit (struct usbnet *dev, struct urb *urb, gfp_t flags)
 	unsigned long		lockflags;
 	size_t			size = dev->rx_urb_size;
 
-	skb = __netdev_alloc_skb_ip_align(dev->net, size, flags);
-	if (!skb) {
+	if ((skb = alloc_skb (size + NET_IP_ALIGN, flags)) == NULL) {
 		netif_dbg(dev, rx_err, dev->net, "no rx skb\n");
 		usbnet_defer_kevent (dev, EVENT_RX_MEMORY);
 		usb_free_urb (urb);
 		return -ENOMEM;
 	}
-
-	if (dev->net->type != ARPHRD_RAWIP)
-		skb_reserve(skb, NET_IP_ALIGN);
+	skb_reserve (skb, NET_IP_ALIGN);
 
 	entry = (struct skb_data *) skb->cb;
 	entry->urb = urb;
@@ -563,9 +562,6 @@ static void intr_complete (struct urb *urb)
 		break;
 	}
 
-	if (!netif_running (dev->net))
-		return;
-
 	memset(urb->transfer_buffer, 0, urb->transfer_buffer_length);
 	status = usb_submit_urb (urb, GFP_ATOMIC);
 	if (status != 0)
@@ -727,8 +723,6 @@ int usbnet_stop (struct net_device *net)
 	if (!(info->flags & FLAG_AVOID_UNLINK_URBS))
 		usbnet_terminate_urbs(dev);
 
-	usb_kill_urb(dev->interrupt);
-
 	usbnet_purge_paused_rxq(dev);
 
 	/* deferred work (task, timer, softirq) must also stop.
@@ -784,16 +778,6 @@ int usbnet_open (struct net_device *net)
 	if (info->check_connect && (retval = info->check_connect (dev)) < 0) {
 		netif_dbg(dev, ifup, dev->net, "can't open; %d\n", retval);
 		goto done;
-	}
-
-	/* start any status interrupt transfer */
-	if (dev->interrupt) {
-		retval = usb_submit_urb (dev->interrupt, GFP_KERNEL);
-		if (retval < 0) {
-			netif_err(dev, ifup, dev->net,
-				  "intr submit %d\n", retval);
-			goto done;
-		}
 	}
 
 	set_bit(EVENT_DEV_OPEN, &dev->flags);
@@ -1430,6 +1414,7 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 	 * bind() should set rx_urb_size in that case.
 	 */
 	dev->hard_mtu = net->mtu + net->hard_header_len;
+	dev->rx_queue_enable = 1;
 #if 0
 // dma_supported() is deeply broken on almost all architectures
 	// possible with some EHCI controllers
@@ -1482,6 +1467,16 @@ usbnet_probe (struct usb_interface *udev, const struct usb_device_id *prod)
 		status = init_status (dev, udev);
 	if (status < 0)
 		goto out3;
+
+ /* start any status interrupt transfer */
+	if (dev->interrupt) {
+		status = usb_submit_urb (dev->interrupt, GFP_KERNEL);
+		if (status < 0) {
+			netif_err(dev, ifup, dev->net,
+					"intr submit %d\n", status);
+			goto out3;
+		}
+	}
 
 	if (!dev->rx_urb_size)
 		dev->rx_urb_size = dev->hard_mtu;
@@ -1542,6 +1537,7 @@ int usbnet_suspend (struct usb_interface *intf, pm_message_t message)
 		if (dev->txq.qlen && PMSG_IS_AUTO(message)) {
 			dev->suspend_count--;
 			spin_unlock_irq(&dev->txq.lock);
+			netif_dbg(dev, link, dev->net, "%s return EBUSY, suspend_count=%d\n", __func__, dev->suspend_count);
 			return -EBUSY;
 		} else {
 			set_bit(EVENT_DEV_ASLEEP, &dev->flags);
@@ -1574,7 +1570,7 @@ int usbnet_resume (struct usb_interface *intf)
 
 	if (!--dev->suspend_count) {
 		/* resume interrupt URBs */
-		if (dev->interrupt && test_bit(EVENT_DEV_OPEN, &dev->flags))
+		if (dev->interrupt)
 			usb_submit_urb(dev->interrupt, GFP_NOIO);
 
 		spin_lock_irq(&dev->txq.lock);

@@ -119,6 +119,15 @@ config MT9M114
         depends on MSM_CAMERA
         ---help---
         APTINA 1.26 MP yuv Sensor
+#	This Senosr is used as a webcam.
+#	This uses the CSI interface.
+#	Need to enable CSI1 clks for this sensor.
+config WEBCAM_MT9M113
+	bool "Sensor MT9M113 (1.3M YUV)"
+	depends on MSM_CAMERA && ARCH_MSM8X60 && !MSM_CAMERA_V4L2
+	default n
+	---help---
+	  Aptina 1.3M YUV Sensor.
 config WEBCAM_OV7692
 	bool "Sensor OV7692 (VGA YUV)"
 	depends on MSM_CAMERA && ARCH_MSM8X60 && !MSM_CAMERA_V4L2

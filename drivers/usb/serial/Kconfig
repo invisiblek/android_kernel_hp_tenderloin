@@ -564,6 +564,17 @@ config USB_SERIAL_SIERRAWIRELESS
 	  To compile this driver as a module, choose M here: the
 	  module will be called sierra.
 
+config USB_SERIAL_SIERRAWIRELESS_SWI
+	tristate "Sierra edition of USB Sierra Wireless Driver"
+	help
+	  Say M here if you want to use Sierra Wireless devices.
+
+	  Many devices have a feature known as TRU-Install. For those devices
+	  to work properly, the USB Storage Sierra feature must be enabled.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called sierra.
+
 config USB_SERIAL_SYMBOL
 	tristate "USB Symbol Barcode driver (serial mode)"
 	help

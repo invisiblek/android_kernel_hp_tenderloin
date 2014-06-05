@@ -31,12 +31,12 @@ void max8903b_set_vbus_draw (unsigned ma);
 
 
 static struct resource isp1763_resources[] = {
-	{
+	[0] = {
 		.flags	= IORESOURCE_MEM,
 		.start	= ISP176x_MEM_BASE,
 		.end	= (ISP176x_MEM_BASE + ISP176x_MEM_RANGE - 1),		/* 24KB */
 	},
-	{
+	[1] = {
 		.flags	= IORESOURCE_IRQ,
 		.start	= ISP176x_IRQ_NUM,
 		.end	= ISP176x_IRQ_NUM,
@@ -48,6 +48,59 @@ static void __init msm8x60_cfg_isp1763(void)
 	isp1763_resources[1].end = gpio_to_irq(ISP1763_INT_GPIO);
 }
 
+int config_gpio_tlmm_table(uint32_t *table, int len)
+{
+	int n, rc = 0;
+	for (n = 0; n < len; n++) {
+		rc = gpio_tlmm_config(table[n], GPIO_CFG_ENABLE);
+		if (rc) {
+			pr_err("%s: gpio_tlmm_config(%#x)=%d\n",
+					__func__, table[n], rc);
+			break;
+		}
+	}
+	return rc;
+}
+
+static uint32_t msmebi2_tlmm_cfgs[]=
+{
+	//control
+	GPIO_CFG(172, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA),   // Interrupt (GPIO(INTERRUPT)
+	GPIO_CFG(152, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_8MA),   // ISP1763A.RESET_N (GPIO152)
+	GPIO_CFG(133, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_CS3_N (GPIO133)
+	GPIO_CFG(151, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_OE_N (GPIO151)
+	GPIO_CFG(157, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),	 // EBI2_WE_N (GPIO157)
+
+	//Address
+	GPIO_CFG(38, 2, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_8 (GPIO38)
+	GPIO_CFG(123, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_7 (GPIO123)
+	GPIO_CFG(124, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_6 (GPIO124)
+	GPIO_CFG(125, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_5 (GPIO125)
+	GPIO_CFG(126, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_4 (GPIO126)
+	GPIO_CFG(127, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_3 (GPIO127)
+	GPIO_CFG(128, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_2 (GPIO128)
+	GPIO_CFG(129, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_1 (GPIO129)
+	GPIO_CFG(130, 1, GPIO_CFG_OUTPUT, GPIO_CFG_PULL_DOWN, GPIO_CFG_8MA),   // EBI2_ADDR_0 (GPIO130)
+
+	//Data
+	GPIO_CFG(135, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_15 (GPIO135)
+	GPIO_CFG(136, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_14 (GPIO136)
+	GPIO_CFG(137, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_13 (GPIO137)
+	GPIO_CFG(138, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_12 (GPIO138)
+	GPIO_CFG(139, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_11 (GPIO139)
+	GPIO_CFG(140, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_10 (GPIO140)
+	GPIO_CFG(141, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_9 (GPIO141)
+	GPIO_CFG(142, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_8 (GPIO142)
+	GPIO_CFG(143, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_7 (GPIO143)
+	GPIO_CFG(144, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_6 (GPIO144)
+	GPIO_CFG(145, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_5 (GPIO145)
+	GPIO_CFG(146, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_4 (GPIO146)
+	GPIO_CFG(147, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_3 (GPIO147)
+	GPIO_CFG(148, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_2 (GPIO148)
+	GPIO_CFG(149, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_1 (GPIO149)
+	GPIO_CFG(150, 1, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_8MA),    // EBI2_AD_0 (GPIO150)
+};
+
 static int isp1763_setup_gpio(int enable)
 {
 	int status = 0;
@@ -56,6 +109,7 @@ static int isp1763_setup_gpio(int enable)
 
 	if (!gpio_requested)
 	{
+		config_gpio_tlmm_table(msmebi2_tlmm_cfgs, ARRAY_SIZE(msmebi2_tlmm_cfgs));
 		status = gpio_request(ISP1763_INT_GPIO, "isp1763_usb");
 		if (status) {
 			pr_err("%s:Failed to request GPIO %d\n",
@@ -118,7 +172,6 @@ static struct platform_device isp1763_device = {
 */
 static int isp1763_modem_gpio_init(int on)
 {
-#if 0
 	int rc;
 	static int gpio_requested=0;
 
@@ -126,6 +179,7 @@ static int isp1763_modem_gpio_init(int on)
 
 	if (!gpio_requested)
 	{
+		gpio_tlmm_config(GPIO_CFG(gpio_pwr_3g_en, 0,GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL,GPIO_CFG_2MA),GPIO_CFG_ENABLE);
 		rc = gpio_request(gpio_pwr_3g_en, "VDD_3V3_EN");
 		if (rc < 0) {
 			pr_err("%s: VDD_3V3_EN gpio %d request failed\n", __func__, gpio_pwr_3g_en);
@@ -134,7 +188,7 @@ static int isp1763_modem_gpio_init(int on)
 		{
 			pr_debug("%s: VDD_3V3_EN gpio %d statu: %d\n", __func__, gpio_pwr_3g_en, gpio_get_value(gpio_pwr_3g_en));
 		}
-
+		gpio_direction_output(gpio_pwr_3g_en, 0);
 		rc = gpio_request(GPIO_3G_DISABLE_N, "3G_DISABLE_N");
 		if (rc < 0) {
 			pr_err("%s: GPIO_3G_DISABLE_N gpio %d request failed\n", __func__, GPIO_3G_DISABLE_N);
@@ -143,12 +197,23 @@ static int isp1763_modem_gpio_init(int on)
 		{
 			pr_debug( "%s: GPIO_3G_DISABLE_N gpio %d status: %d\n", __func__, GPIO_3G_DISABLE_N, gpio_get_value(GPIO_3G_DISABLE_N));
 		}
+		gpio_direction_output(GPIO_3G_DISABLE_N, 0);
+
+		gpio_tlmm_config(GPIO_CFG(GPIO_3G_WAKE_N, 0, GPIO_CFG_INPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 
 		rc = gpio_request(GPIO_3G_WAKE_N, "3G_WAKE");
 		if (rc < 0) {
 			pr_err("%s: GPIO_3G_WAKE_N gpio %d request failed\n", __func__, GPIO_3G_WAKE_N);
 		}
 
+		gpio_direction_input(GPIO_3G_WAKE_N);
+
+		gpio_tlmm_config(GPIO_CFG(GPIO_3G_UIM_CD_N, 0, GPIO_CFG_INPUT, GPIO_CFG_PULL_UP, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
+		rc = gpio_request(GPIO_3G_UIM_CD_N, "UIM_CD");
+		if (rc < 0) {
+			printk(KERN_ERR "%s: GPIO_3G_UIM_CD_N gpio %d request failed\n", __func__, GPIO_3G_UIM_CD_N);
+		}
+		gpio_direction_input(GPIO_3G_UIM_CD_N);
 		rc = gpio_request(ISP1763_DACK_GPIO, "ISP1763A_DACK");
 		if (rc < 0) {
 			pr_err("%s: ISP1763A_DACK gpio %d request failed\n", __func__, ISP1763_DACK_GPIO);
@@ -171,7 +236,6 @@ static int isp1763_modem_gpio_init(int on)
 		gpio_set_value(GPIO_3G_DISABLE_N, 1);
 	}
 
-#endif
 	return 0;
 }
 
@@ -284,7 +348,18 @@ notify_vbus_state notify_vbus_state_func_ptr;
 
 #ifdef CONFIG_USB_EHCI_MSM_72K
 #define USB_PMIC_ID_DET_DELAY	msecs_to_jiffies(100)
+static int pmic_id_notif_supported;
 struct delayed_work pmic_id_det;
+
+static int __init usb_id_pin_rework_setup(char *support)
+{
+	if (strncmp(support, "true", 4) == 0)
+		pmic_id_notif_supported = 1;
+
+	return 1;
+}
+__setup("usb_id_pin_rework=", usb_id_pin_rework_setup);
+
 static void pmic_id_detect(struct work_struct *w)
 {
 	int val = gpio_get_value_cansleep(PM8058_GPIO_PM_TO_SYS(36));
@@ -304,6 +379,31 @@ static irqreturn_t pmic_id_on_irq(int irq, void *data)
 	schedule_delayed_work(&pmic_id_det, USB_PMIC_ID_DET_DELAY);
 
 	return IRQ_HANDLED;
+}
+
+static int msm_hsusb_phy_id_setup_init(int init)
+{
+	unsigned ret;
+
+	struct pm8xxx_mpp_config_data hsusb_phy_mpp = {
+		.type	= PM8XXX_MPP_TYPE_D_OUTPUT,
+		.level	= PM8901_MPP_DIG_LEVEL_L5,
+	};
+
+	if (init) {
+		hsusb_phy_mpp.control = PM8XXX_MPP_DOUT_CTRL_HIGH;
+		ret = pm8xxx_mpp_config(PM8901_MPP_PM_TO_SYS(1),
+							&hsusb_phy_mpp);
+		if (ret < 0)
+			pr_err("%s:MPP2 configuration failed\n", __func__);
+	} else {
+		hsusb_phy_mpp.control = PM8XXX_MPP_DOUT_CTRL_LOW;
+		ret = pm8xxx_mpp_config(PM8901_MPP_PM_TO_SYS(1),
+							&hsusb_phy_mpp);
+		if (ret < 0)
+			pr_err("%s:MPP2 un config failed\n", __func__);
+	}
+	return ret;
 }
 
 static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
@@ -541,7 +641,6 @@ static int msm_hsusb_ldo_enable(int on)
 static void msm_hsusb_vbus_power(unsigned phy_info, int on)
 {
 	static struct regulator *votg_5v_switch;
-	static struct regulator *ext_5v_reg;
 	static int vbus_is_on;
 
 	/* If VBUS is already on (or off), do nothing. */
@@ -552,22 +651,12 @@ static void msm_hsusb_vbus_power(unsigned phy_info, int on)
 		votg_5v_switch = regulator_get(NULL, "8901_usb_otg");
 		if (IS_ERR(votg_5v_switch)) {
 			pr_err("%s: unable to get votg_5v_switch\n", __func__);
+			votg_5v_switch = NULL;
 			return;
 		}
 	}
-	if (!ext_5v_reg) {
-		ext_5v_reg = regulator_get(NULL, "8901_mpp0");
-		if (IS_ERR(ext_5v_reg)) {
-			pr_err("%s: unable to get ext_5v_reg\n", __func__);
-			return;
-		}
-	}
+
 	if (on) {
-		if (regulator_enable(ext_5v_reg)) {
-			pr_err("%s: Unable to enable the regulator:"
-					" ext_5v_reg\n", __func__);
-			return;
-		}
 		if (regulator_enable(votg_5v_switch)) {
 			pr_err("%s: Unable to enable the regulator:"
 					" votg_5v_switch\n", __func__);
@@ -577,9 +666,6 @@ static void msm_hsusb_vbus_power(unsigned phy_info, int on)
 		if (regulator_disable(votg_5v_switch))
 			pr_err("%s: Unable to enable the regulator:"
 				" votg_5v_switch\n", __func__);
-		if (regulator_disable(ext_5v_reg))
-			pr_err("%s: Unable to enable the regulator:"
-				" ext_5v_reg\n", __func__);
 	}
 
 	vbus_is_on = on;
@@ -600,9 +686,11 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.pemp_level		 = PRE_EMPHASIS_WITH_20_PERCENT,
 	.cdr_autoreset		 = CDR_AUTO_RESET_DISABLE,
 	.se1_gating		 = SE1_GATING_DISABLE,
+	.bam_disable		 = 1,
 	.hsdrvslope		 = 0x05,
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	.pmic_id_notif_init = msm_hsusb_pmic_id_notif_init,
+	.phy_id_setup_init = msm_hsusb_phy_id_setup_init,
 #endif
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	.vbus_power = msm_hsusb_vbus_power,
@@ -632,6 +720,12 @@ static struct msm_hsusb_gadget_platform_data msm_gadget_pdata = {
 
 void __init tenderloin_usb_i2c_init(void)
 {
+	if (SOCINFO_VERSION_MAJOR(socinfo_get_version()) == 2 &&
+			(machine_is_msm8x60_surf() ||
+			(machine_is_msm8x60_ffa() &&
+			pmic_id_notif_supported))){
+		msm_otg_pdata.phy_can_powercollapse = 1;
+	}
 	msm_device_otg.dev.platform_data = &msm_otg_pdata;
 
 #ifdef CONFIG_USB_GADGET_MSM_72K

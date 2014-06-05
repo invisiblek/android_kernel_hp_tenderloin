@@ -42,6 +42,7 @@ static struct gpiomux_setting i2c_active = {
 	.pull = GPIOMUX_PULL_NONE,
 };
 
+#if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 static struct gpiomux_setting ebi2_a_d = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
@@ -66,11 +67,18 @@ static struct gpiomux_setting ebi2_cs2 = {
 	.pull = GPIOMUX_PULL_UP,
 };
 
+static struct gpiomux_setting ps_hold = {
+	.func = GPIOMUX_FUNC_1,
+	.drv = GPIOMUX_DRV_12MA,
+	.pull = 0,
+};
+
 static struct gpiomux_setting ebi2_cs3 = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_UP,
 };
+#endif
 
 #if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 static struct gpiomux_setting ebi2_cs4 = {
@@ -78,13 +86,13 @@ static struct gpiomux_setting ebi2_cs4 = {
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_UP,
 };
-#endif
 
 static struct gpiomux_setting ebi2_adv = {
 	.func = GPIOMUX_FUNC_1,
 	.drv = GPIOMUX_DRV_8MA,
 	.pull = GPIOMUX_PULL_UP,
 };
+#endif
 
 #ifdef CONFIG_MSM8X60_AUDIO
 static struct gpiomux_setting aux_pcm_active_config = {
@@ -297,10 +305,17 @@ static struct gpiomux_setting lcdc_active_cfg_2m =
 #define MDM2AP_STATUS_SUSPEND_CFG \
 	GPIOMUX_CFG(0, 0, GPIOMUX_PULL_NONE)
 
-#define CAM_F1_OUTH_8M_PN	GPIOMUX_DCFG(\
-	GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_HIGH)
-#define CAM_F1_OUTL_8M_PN	GPIOMUX_DCFG(\
-	GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_LOW)
+#ifdef CONFIG_A6
+static struct gpiomux_setting cam_gpio_outh_8m_pn =
+  GPIOMUX_DCFG(\
+		GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_HIGH)
+#define CAM_F1_OUTH_8M_PN &cam_gpio_outh_8m_pn
+#endif
+
+static struct gpiomux_setting cam_gpio_outl_8m_pn =
+  GPIOMUX_DCFG(\
+		GPIOMUX_FUNC_1, GPIOMUX_DRV_8MA, GPIOMUX_PULL_NONE, GPIOMUX_OUT_LOW)
+#define CAM_F1_OUTL_8M_PN &cam_gpio_outl_8m_pn
 
 #define MDM2AP_SYNC_ACTIVE_CFG \
 	GPIOMUX_CFG(GPIOMUX_FUNC_GPIO, GPIOMUX_DRV_2MA, GPIOMUX_PULL_NONE)
@@ -329,11 +344,18 @@ static struct msm_gpiomux_config msm8x60_gsbi_configs[] __initdata = {
 	},
 };
 
+#if defined(CONFIG_USB_PEHCI_HCD) || defined(CONFIG_USB_PEHCI_HCD_MODULE)
 static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 	{
 		.gpio      = 40,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_cs2,
+		},
+	},
+	{
+		.gpio      = 92,
+		.settings = {
+			[GPIOMUX_SUSPENDED] = &ps_hold,
 		},
 	},
 	{
@@ -350,12 +372,6 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 	},
 	{
 		.gpio      = 125,
-		.settings = {
-			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
-		},
-	},
-	{
-		.gpio      = 126,
 		.settings = {
 			[GPIOMUX_SUSPENDED] = &ebi2_a_d,
 		},
@@ -514,6 +530,7 @@ static struct msm_gpiomux_config msm8x60_ebi2_configs[] __initdata = {
 		},
 	},
 };
+#endif
 
 #ifdef CONFIG_USB_PEHCI_HCD
 static struct msm_gpiomux_config msm8x60_isp_usb_configs[] __initdata = {
@@ -1098,6 +1115,12 @@ static struct msm_gpiomux_config msm8x60_pmic_configs[] __initdata = {
 };
 
 #ifdef CONFIG_WEBCAM_MT9M113
+#define TENDERLOIN_CAM_I2C_DATA		47
+#define TENDERLOIN_CAM_I2C_CLK		48
+#define TENDERLOIN_CAMIF_MCLK		32
+#define TENDERLOIN_WEBCAM_RST		106
+#define TENDERLOIN_WEBCAM_PWDN		107
+
 static struct msm_gpiomux_config msm8x60_cam_configs[] __initdata = {
 	GPIOMUX_ACT_SUSP_DEF(TENDERLOIN_CAM_I2C_DATA,  CAM_F1_OUTH_8M_PN, GPIO_IN_2M_PU),
 	GPIOMUX_ACT_SUSP_DEF(TENDERLOIN_CAM_I2C_CLK, CAM_F1_OUTH_8M_PN, GPIO_IN_2M_PU),
@@ -1481,7 +1504,7 @@ tenderloin_3g_gpiomux_cfgs[] __initdata = {
 	{msm8x60_bt_configs_3g, ARRAY_SIZE(msm8x60_bt_configs_3g)},
 	{msm8x60_wlan_configs_3g, ARRAY_SIZE(msm8x60_wlan_configs_3g)},
 	{msm8x60_lcdc_configs, ARRAY_SIZE(msm8x60_lcdc_configs)},
-	{msm8x60_mdp_vsync_configs, ARRAY_SIZE(msm8x60_mdp_vsync_configs)},
+	//{msm8x60_mdp_vsync_configs, ARRAY_SIZE(msm8x60_mdp_vsync_configs)},
 	{msm8x60_sensor_cfgs_3g, ARRAY_SIZE(msm8x60_sensor_cfgs_3g)},
 	{msm8x60_lighting_cfgs_3g, ARRAY_SIZE(msm8x60_lighting_cfgs_3g)},
 
@@ -1563,7 +1586,7 @@ tenderloin_3g_dvt_gpiomux_cfgs[] __initdata = {
 	{msm8x60_bt_configs_3g, ARRAY_SIZE(msm8x60_bt_configs_3g)},
 	{msm8x60_wlan_configs_3g, ARRAY_SIZE(msm8x60_wlan_configs_3g)},
 	{msm8x60_lcdc_configs, ARRAY_SIZE(msm8x60_lcdc_configs)},
-	{msm8x60_mdp_vsync_configs, ARRAY_SIZE(msm8x60_mdp_vsync_configs)},
+	//{msm8x60_mdp_vsync_configs, ARRAY_SIZE(msm8x60_mdp_vsync_configs)},
 	{msm8x60_sensor_cfgs_3g, ARRAY_SIZE(msm8x60_sensor_cfgs_3g)},
 	{msm8x60_lighting_cfgs_3g, ARRAY_SIZE(msm8x60_lighting_cfgs_3g)},
 

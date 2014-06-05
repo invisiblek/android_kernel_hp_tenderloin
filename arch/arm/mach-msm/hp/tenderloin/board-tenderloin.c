@@ -101,6 +101,7 @@
 #include <linux/usb/android.h>
 #include <mach/usbdiag.h>
 #endif
+#include <linux/tpa2051d3.h>
 #include <linux/regulator/consumer.h>
 #include <linux/regulator/machine.h>
 #include <mach/sdio_al.h>
@@ -152,11 +153,7 @@
 #include <linux/msm_ion.h>
 #include <mach/ion.h>
 #include <mach/msm_rtb.h>
-
-struct pm8xxx_mpp_init_info {
-	unsigned			mpp;
-	struct pm8xxx_mpp_config_data	config;
-};
+#include <linux/msm_tsens.h>
 
 extern int ps_type;
 int *pin_table = NULL;
@@ -1066,6 +1063,217 @@ static struct platform_device android_usb_device = {
 	},
 };
 
+#ifdef CONFIG_MSM_CAMERA
+#ifdef CONFIG_WEBCAM_MT9M113
+
+static int camera_mt9m113_gpios[] = {
+	TENDERLOIN_CAM_I2C_DATA,
+	TENDERLOIN_CAM_I2C_CLK,
+	TENDERLOIN_CAMIF_MCLK,
+	TENDERLOIN_WEBCAM_RST,
+	TENDERLOIN_WEBCAM_PWDN,
+};
+
+struct regulator *votg_lvs0 = NULL;
+struct regulator *votg_vreg_l11 = NULL;
+bool gpios_web_cam_mt9m113_on = false;
+
+static int config_camera_on_gpios_web_cam_mt9m113(void)
+{
+	int rc = 0;
+
+	printk("+++ %s\n", __func__);
+	if ( !gpios_web_cam_mt9m113_on ) {
+
+		configure_gpiomux_gpios(1, camera_mt9m113_gpios,
+			ARRAY_SIZE(camera_mt9m113_gpios));
+
+		votg_lvs0 = regulator_get(NULL, "8058_lvs0");
+		if (IS_ERR_OR_NULL(votg_lvs0)) {
+			printk("%s: unable to get votg_lvs0\n", __func__);
+			goto err;
+		}
+
+		if (regulator_enable(votg_lvs0)) {
+			printk("%s:Unable to enable the regulator votg_lvs0\n", __func__);
+			goto err1;
+		}
+		else {
+			printk("%s:enable the regulator votg_lvs0 succeed\n", __func__);
+		}
+
+		votg_vreg_l11 = regulator_get(NULL, "8058_l11");
+		if (IS_ERR_OR_NULL(votg_vreg_l11)) {
+			printk("%s: unable to get votg_vreg_l11\n", __func__);
+			goto err1;
+		}
+
+		if(regulator_set_voltage(votg_vreg_l11, 2850000, 2850000)) {
+			printk("%s: Unable to set regulator voltage:"
+			" votg_l11\n", __func__);
+			goto err2;
+		}
+
+		if (regulator_enable(votg_vreg_l11)) {
+			printk("%s:Unable to enable the regulator votg_vreg_l11\n", __func__);
+			goto err2;
+		}
+		else {
+			printk("%s:enable the regulator votg_vreg_l11 succeed\n", __func__);
+		}
+
+		gpios_web_cam_mt9m113_on = true;
+	}
+
+	printk("--- %s\n", __func__);
+	return 0;
+
+err2:
+	regulator_disable(votg_vreg_l11);
+	regulator_put(votg_vreg_l11);
+	votg_vreg_l11 = NULL;
+
+err1:
+	regulator_disable(votg_lvs0);
+	regulator_put(votg_lvs0);
+	votg_lvs0 = NULL;
+
+err:
+	configure_gpiomux_gpios(0, camera_mt9m113_gpios,
+			ARRAY_SIZE(camera_mt9m113_gpios));
+
+	//If error code is not specified return -1
+	if (!rc) {
+		rc = -1;
+	}
+
+	printk("--- %s\n", __func__);
+	return rc;
+}
+
+static void config_camera_off_gpios_web_cam_mt9m113(void)
+{
+	printk("+++ %s\n", __func__);
+
+	if (gpios_web_cam_mt9m113_on) {
+
+		configure_gpiomux_gpios(0, camera_mt9m113_gpios,
+				ARRAY_SIZE(camera_mt9m113_gpios));
+
+		if (IS_ERR_OR_NULL(votg_lvs0)) {
+			printk("%s: unable to get votg_lvs0\n", __func__);
+		} else {
+
+			if (regulator_disable(votg_lvs0)) {
+				printk("%s:Unable to disable the regulator: votg_lvs0\n", __func__);
+			}
+			else {
+				printk("%s:disable the regulator: votg_lvs0 succeed\n", __func__);
+			}
+
+			regulator_put(votg_lvs0);
+			votg_lvs0 = NULL;
+		}
+
+		if (IS_ERR_OR_NULL(votg_vreg_l11)) {
+			printk("%s: unable to get votg_vreg_l11\n", __func__);
+		} else {
+
+			if (regulator_disable(votg_vreg_l11)) {
+				printk("%s:Unable to disable the regulator: votg_vreg_l11\n", __func__);
+			}
+			else {
+				printk("%s:disable the regulator: votg_vreg_l11 succeed\n", __func__);
+			}
+
+			regulator_put(votg_vreg_l11);
+			votg_vreg_l11 = NULL;
+		}
+
+		gpios_web_cam_mt9m113_on = false;
+	}
+
+	printk("--- %s\n", __func__);
+}
+
+struct msm_camera_device_platform_data msm_camera_device_data_web_cam_mt9m113 = {
+	.camera_gpio_on  = config_camera_on_gpios_web_cam_mt9m113,
+	.camera_gpio_off = config_camera_off_gpios_web_cam_mt9m113,
+	.ioext.csiphy = 0x04900000,
+	.ioext.csisz  = 0x00000400,
+	.ioext.csiirq = CSI_1_IRQ,
+	.ioclk.mclk_clk_rate = 24000000,
+	.ioclk.vfe_clk_rate  = 228570000,
+};
+
+struct resource msm_camera_resources[] = {
+	{
+		.start	= 0x04500000,
+		.end	= 0x04500000 + SZ_1M - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= VFE_IRQ,
+		.end	= VFE_IRQ,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct msm_camera_sensor_flash_data msm_flash_none = {
+       .flash_type = MSM_CAMERA_FLASH_NONE,
+       .flash_src  = NULL
+};
+
+static struct msm_camera_sensor_info msm_camera_sensor_mt9m113_data = {
+	.sensor_name	= "mt9m113",
+	.sensor_reset	= 106,
+	.sensor_pwd		= 107,
+	.vcm_pwd		= 1,
+	.vcm_enable		= 0,
+	.pdata			= &msm_camera_device_data_web_cam_mt9m113,
+	.resource		= msm_camera_resources,
+	.num_resources	= ARRAY_SIZE(msm_camera_resources),
+	.flash_data		= &msm_flash_none,
+	.csi_if			= 1
+};
+
+struct platform_device msm_camera_sensor_webcam_mt9m113 = {
+	.name	= "msm_camera_mt9m113",
+	.dev	= {
+		.platform_data = &msm_camera_sensor_mt9m113_data,
+	},
+};
+
+static struct i2c_board_info msm_camera_boardinfo[] __initdata = {
+	{
+		I2C_BOARD_INFO("mt9m113", 0x78),
+	},
+};
+#endif
+#endif
+
+#ifdef CONFIG_MSM_VPE
+static struct resource msm_vpe_resources[] = {
+	{
+		.start	= 0x05300000,
+		.end	= 0x05300000 + SZ_1M - 1,
+		.flags	= IORESOURCE_MEM,
+	},
+	{
+		.start	= INT_VPE,
+		.end	= INT_VPE,
+		.flags	= IORESOURCE_IRQ,
+	},
+};
+
+static struct platform_device msm_vpe_device = {
+	.name = "msm_vpe",
+	.id   = 0,
+	.num_resources = ARRAY_SIZE(msm_vpe_resources),
+	.resource = msm_vpe_resources,
+};
+#endif
+
 #ifdef CONFIG_MSM_GEMINI
 static struct resource msm_gemini_resources[] = {
 	{
@@ -1333,6 +1541,7 @@ static struct platform_device android_pmem_device = {
 	.id = 0,
 	.dev = {.platform_data = &android_pmem_pdata},
 };
+#endif
 
 static struct android_pmem_platform_data android_pmem_adsp_pdata = {
 	.name = "pmem_adsp",
@@ -1346,7 +1555,6 @@ static struct platform_device android_pmem_adsp_device = {
 	.id = 2,
 	.dev = { .platform_data = &android_pmem_adsp_pdata },
 };
-#endif
 
 static struct android_pmem_platform_data android_pmem_audio_pdata = {
 	.name = "pmem_audio",
@@ -1616,9 +1824,11 @@ static struct platform_device *early_devices[] __initdata = {
 	&msm_device_dmov_adm1,
 };
 
-static struct platform_device msm_tsens_device = {
-	.name   = "tsens-tm",
-	.id = -1,
+static struct tsens_platform_data tenderloin_tsens_pdata  = {
+	.tsens_factor           = 1000,
+	.hw_type                = MSM_8660,
+	.tsens_num_sensor       = 1,
+	.slope                  = {702},
 };
 
 #if defined(CONFIG_MSM_RTB)
@@ -1956,16 +2166,24 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
 	&android_pmem_device,
-	&android_pmem_adsp_device,
 	&android_pmem_smipool_device,
 #endif
+	&android_pmem_adsp_device,
 	&android_pmem_audio_device,
 #endif
 #ifdef CONFIG_MSM_ROTATOR
 	&msm_rotator_device,
 #endif
+#ifdef CONFIG_MSM_CAMERA
+#ifdef CONFIG_WEBCAM_MT9M113
+	&msm_camera_sensor_webcam_mt9m113,
+#endif
+#endif //CONFIG_MSM_CAMERA
 #ifdef CONFIG_MSM_GEMINI
 	&msm_gemini_device,
+#endif
+#ifdef CONFIG_MSM_VPE
+	&msm_vpe_device,
 #endif
 	&msm_device_vidc,
 #ifdef CONFIG_USER_PINS
@@ -1991,8 +2209,6 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #ifdef CONFIG_HW_RANDOM_MSM
 	&msm_device_rng,
 #endif
-	&msm_tsens_device,
-        //        &cable_detect_device,
 	&msm8660_rpm_device,
 #ifdef CONFIG_ION_MSM
 	&ion_dev,
@@ -2058,10 +2274,10 @@ static void __init size_pmem_devices(void)
 {
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION
-	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_smipool_pdata.size = MSM_PMEM_SMIPOOL_SIZE;
 	android_pmem_pdata.size = pmem_sf_size;
 #endif
+	android_pmem_adsp_pdata.size = pmem_adsp_size;
 	android_pmem_audio_pdata.size = MSM_PMEM_AUDIO_SIZE;
 #endif
 }
@@ -2422,12 +2638,21 @@ static struct lsm303dlh_acc_platform_data lsm303dlh_acc_pdata = {
 	.poll_interval = 100,
 	.min_interval = LSM303DLH_ACC_MIN_POLL_PERIOD_MS,
 	.g_range = LSM303DLH_ACC_G_2G,
-	.axis_map_x = 1,
-	.axis_map_y = 0,
-	.axis_map_z = 2,
-	.negate_x = 1,
-	.negate_y = 0,
-	.negate_z = 0,
+#ifdef CONFIG_MACH_TENDERLOIN
+    .axis_map_x = 1,
+    .axis_map_y = 0,
+    .axis_map_z = 2,
+    .negate_x = 1,
+    .negate_y = 0,
+    .negate_z = 0,
+#else
+    .axis_map_x = 0,
+    .axis_map_y = 1,
+    .axis_map_z = 2,
+    .negate_x = 0,
+    .negate_y = 0,
+    .negate_z = 0,
+#endif
 	.gpio_int1 = LSM303DLH_ACC_DEFAULT_INT1_GPIO,
 	.gpio_int2 = LSM303DLH_ACC_DEFAULT_INT2_GPIO,
 };
@@ -2436,12 +2661,21 @@ static struct lsm303dlh_mag_platform_data lsm303dlh_mag_pdata = {
 	.poll_interval = 100,
 	.min_interval = LSM303DLH_MAG_MIN_POLL_PERIOD_MS,
 	.h_range = LSM303DLH_MAG_H_8_1G,
-	.axis_map_x = 1,
-	.axis_map_y = 0,
-	.axis_map_z = 2,
-	.negate_x = 1,
-	.negate_y = 0,
-	.negate_z = 0,
+#ifdef CONFIG_MACH_TENDERLOIN
+    .axis_map_x = 1,
+    .axis_map_y = 0,
+    .axis_map_z = 2,
+    .negate_x = 1,
+    .negate_y = 0,
+    .negate_z = 0,
+#else
+    .axis_map_x = 0,
+    .axis_map_y = 1,
+    .axis_map_z = 2,
+    .negate_x = 0,
+    .negate_y = 0,
+    .negate_z = 0,
+#endif
 };
 
 static struct mpu3050_platform_data mpu3050_data = {
@@ -2851,9 +3085,9 @@ static void fixup_i2c_configs(void)
 
 	if (machine_is_tenderloin() && boardtype_is_3g()) {
 #ifdef CONFIG_INPUT_LSM303DLH
-		lsm303dlh_acc_pdata.negate_x = 1;
+		lsm303dlh_acc_pdata.negate_y = 1;
 		lsm303dlh_acc_pdata.negate_z = 1;
-		lsm303dlh_mag_pdata.negate_x = 1;
+		lsm303dlh_mag_pdata.negate_y = 1;
 		lsm303dlh_mag_pdata.negate_z = 1;
 #endif
 		mpu3050_data.orientation[0] = -mpu3050_data.orientation[0];
@@ -2864,6 +3098,75 @@ static void fixup_i2c_configs(void)
 		mpu3050_data.compass.orientation[8] = -mpu3050_data.compass.orientation[8];
 	}
 #endif
+}
+
+/*
+ * Most segments of the EBI2 bus are disabled by default.
+ */
+static void __init msm8x60_init_ebi2(void)
+{
+	uint32_t ebi2_cfg;
+	void *ebi2_cfg_ptr;
+	struct clk *mem_clk = clk_get_sys("msm_ebi2", "mem_clk");
+
+	if (IS_ERR(mem_clk)) {
+		pr_err("%s: clk_get_sys(%s,%s), failed", __func__,
+					"msm_ebi2", "mem_clk");
+		return;
+	}
+	clk_prepare_enable(mem_clk);
+	clk_put(mem_clk);
+
+	ebi2_cfg_ptr = ioremap_nocache(0x1a100000, sizeof(uint32_t));
+	if (ebi2_cfg_ptr != 0) {
+		ebi2_cfg = readl_relaxed(ebi2_cfg_ptr);
+
+		if (machine_is_msm8x60_surf() || machine_is_msm8x60_ffa() || machine_is_tenderloin())
+			ebi2_cfg |= (1 << 4) | (1 << 5); /* CS2, CS3 */
+
+		writel_relaxed(ebi2_cfg, ebi2_cfg_ptr);
+		iounmap(ebi2_cfg_ptr);
+	}
+
+	if (machine_is_tenderloin()) {
+		ebi2_cfg_ptr = ioremap_nocache(0x1a110000, SZ_4K);
+		if (ebi2_cfg_ptr != 0) {
+			/* EBI2_XMEM_CFG:PWRSAVE_MODE off */
+			writel(0UL, ebi2_cfg_ptr);
+
+			/* CS2: Delay 9 cycles (140ns@64MHz) between SMSC
+			 * LAN9221 Ethernet controller reads and writes.
+			 * The lowest 4 bits are the read delay, the next
+			 * 4 are the write delay. */
+			writel(0x031F1C99, ebi2_cfg_ptr + 0x10);
+#ifdef CONFIG_USB_PEHCI_HCD
+			if(boardtype_is_3g()) {
+				/*
+				* RECOVERY=5, HOLD_WR=1
+				* INIT_LATENCY_WR=1, INIT_LATENCY_RD=1
+				* WAIT_WR=1, WAIT_RD=2
+				*/
+				writel(0x51010112, ebi2_cfg_ptr + 0x14);
+				/*
+				* HOLD_RD=1
+				* ADV_OE_RECOVERY=0, ADDR_HOLD_ENA=1
+				*/
+				writel(0x01000020, ebi2_cfg_ptr + 0x34);
+			}
+			else {
+				/* EBI2 CS3 muxed address/data,
+				* two cyc addr enable */
+				writel(0xA3030020, ebi2_cfg_ptr + 0x34);
+			}
+#else
+			/* EBI2 CS3 muxed address/data,
+			* two cyc addr enable */
+			writel(0xA3030020, ebi2_cfg_ptr + 0x34);
+
+#endif
+			iounmap(ebi2_cfg_ptr);
+		}
+	}
 }
 
 static void __init register_i2c_devices(void)
@@ -2887,7 +3190,7 @@ static void __init register_i2c_devices(void)
 }
 
 #ifdef CONFIG_SERIAL_MSM_HS
-#if 0
+
 static int configure_uart_gpios(int on)
 {
 	int ret = 0;
@@ -2897,11 +3200,11 @@ static int configure_uart_gpios(int on)
 
 	return ret;
 }
-#endif
+
 static struct msm_serial_hs_platform_data msm_uart_dm1_pdata = {
 	.inject_rx_on_wakeup = 1,
 	.rx_to_inject = 0xFD,
-        //        .gpio_config = configure_uart_gpios,
+    .gpio_config = configure_uart_gpios,
 };
 #endif
 
@@ -3072,7 +3375,7 @@ static void __init tenderloin_init(void)
           pr_err("meminfo_init() failed!\n");
 
 	platform_device_register(&msm_gpio_device);
-
+	msm_tsens_early_init(&tenderloin_tsens_pdata);
 	BUG_ON(msm_rpm_init(&msm8660_rpm_data));
 	BUG_ON(msm_rpmrs_levels_init(&msm_rpmrs_data));
 
@@ -3119,6 +3422,13 @@ static void __init tenderloin_init(void)
 
         msm8x60_init_buses();
 
+/*
+ * Enable EBI2 only for boards which make use of it. Leave
+ * it disabled for all others for additional power savings.
+ */
+    if (boardtype_is_3g())
+       msm8x60_init_ebi2();
+
 	platform_add_devices(early_devices, ARRAY_SIZE(early_devices));
 
 	msm8x60_init_uart12dm();
@@ -3127,9 +3437,6 @@ static void __init tenderloin_init(void)
 	tenderloin_init_mpu3050();
 
         tenderloin_init_ts();
-#ifdef CONFIG_MSM_CAMERA
-        msm8x60_init_cam();
-#endif
 
 #ifdef CONFIG_BATTERY_MSM8X60
         platform_device_register(&msm_charger_device);
@@ -3145,10 +3452,9 @@ static void __init tenderloin_init(void)
         tenderloin_init_fb();
 
 	lcdc_lg_panel_power(1);
-        //        return 0;
-        //        tenderloin_gpio_mpp_init();
+    tenderloin_gpio_mpp_init();
         tenderloin_usb_init();
-
+        platform_device_register(&tenderloin_8901_mpp_vreg);
 #ifdef CONFIG_MSM_DSPS
 	msm8x60_init_dsps();
 #endif

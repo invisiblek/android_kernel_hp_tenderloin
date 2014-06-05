@@ -12,7 +12,11 @@
  */
 
 #include <linux/clk.h>
+#ifdef CONFIG_MACH_TENDERLOIN
+#include <mach/camera-tenderloin.h>
+#else
 #include <mach/camera.h>
+#endif
 #define MSM_AXI_QOS_NAME "msm_camera"
 
 static struct clk *ebi1_clk;

@@ -8,7 +8,6 @@ obj-y += clock.o clock-voter.o clock-dummy.o
 obj-y += modem_notifier.o subsystem_map.o
 obj-$(CONFIG_DEBUG_FS) += nohlt.o clock-debug.o
 obj-$(CONFIG_KEXEC) += msm_kexec.o
-
 obj-$(CONFIG_MSM_PROC_COMM) += proc_comm.o
 ifndef CONFIG_ARCH_MSM8X60
 	obj-$(CONFIG_MSM_PROC_COMM) += clock-pcom.o
@@ -214,9 +213,9 @@ ifdef CONFIG_CPU_IDLE
 	obj-$(CONFIG_ARCH_MSM8974) += cpuidle.o
 endif
 
-#ifdef CONFIG_MSM_CAMERA_V4L2
-#	obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-camera.o
-#endif
+ifdef CONFIG_MSM_CAMERA_V4L2
+	obj-$(CONFIG_ARCH_MSM8X60) += board-msm8x60-camera.o
+endif
 obj-$(CONFIG_ARCH_FSM9XXX) += devices-fsm9xxx.o
 obj-$(CONFIG_ARCH_FSM9XXX) += clock-fsm9xxx.o clock-local.o acpuclock-fsm9xxx.o
 obj-$(CONFIG_ARCH_FSM9XXX) += dfe-fsm9xxx.o rfic-fsm9xxx.o

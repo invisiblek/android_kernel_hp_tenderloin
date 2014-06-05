@@ -36,4 +36,4 @@ obj-$(CONFIG_OV5693) += ov5693_v4l2.o
 obj-$(CONFIG_S5K6A2YA) += s5k6a2ya_v4l2.o
 obj-$(CONFIG_MT9V113) += mt9v113_v4l2.o mt9v113_reg_lens_9251.o
 obj-$(CONFIG_S5K6AAFX) += s5k6aafx_v4l2.o s5k6aafx_reg_valentewx.o
-
+obj-$(CONFIG_WEBCAM_MT9M113) += mt9m113.o mt9m113_reg.o

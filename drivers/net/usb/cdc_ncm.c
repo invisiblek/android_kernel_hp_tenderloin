@@ -48,11 +48,10 @@
 #include <linux/crc32.h>
 #include <linux/usb.h>
 #include <linux/hrtimer.h>
-#include <linux/atomic.h>
 #include <linux/usb/usbnet.h>
 #include <linux/usb/cdc.h>
 
-#define	DRIVER_VERSION				"14-Mar-2012"
+#define	DRIVER_VERSION				"14-Mar-2012-mbm"
 
 /* CDC NCM subclass 3.2.1 */
 #define USB_CDC_NCM_NDP16_LENGTH_MIN		0x10
@@ -133,6 +132,7 @@ struct cdc_ncm_ctx {
 	u16 tx_seq;
 	u16 rx_seq;
 	u16 connected;
+	u16 packet_cnt;
 };
 
 static void cdc_ncm_txpath_bh(unsigned long param);
@@ -152,6 +152,21 @@ static const struct usb_device_id cdc_devs[] = {
 };
 
 MODULE_DEVICE_TABLE(usb, cdc_devs);
+
+static void cdc_ncm_set_urb_size(struct usbnet *dev, int size)
+{
+	struct cdc_ncm_ctx *ctx;
+	ctx = (struct cdc_ncm_ctx *)dev->data[0];
+
+	if ( size == ctx->rx_max) {
+		dev->rx_queue_enable = 1;
+	} else {
+		dev->rx_queue_enable = 0;
+	}
+
+	dev->rx_urb_size = size;
+	usbnet_unlink_rx_urbs(dev);
+}
 
 static void
 cdc_ncm_get_drvinfo(struct net_device *net, struct ethtool_drvinfo *info)
@@ -588,7 +603,10 @@ advance:
 	dev->out = usb_sndbulkpipe(dev->udev,
 		ctx->out_ep->desc.bEndpointAddress & USB_ENDPOINT_NUMBER_MASK);
 	dev->status = ctx->status_ep;
-	dev->rx_urb_size = ctx->rx_max;
+
+	/* MBM - Start with one bulk transfer just to check that we are in sync */
+	ctx->packet_cnt = 0;
+	cdc_ncm_set_urb_size(dev, CDC_NCM_MIN_TX_PKT);
 
 	/*
 	 * We should get an event when network connection is "connected" or
@@ -596,6 +614,18 @@ advance:
 	 * (carrier is OFF) during attach, so the IP network stack does not
 	 * start IPv6 negotiation and more.
 	 */
+
+	/* MBM - Enable autosuspend & remotewakeup on the device */
+	usb_enable_autosuspend(dev->udev);
+	if (device_can_wakeup(&dev->udev->dev))
+		device_init_wakeup(&dev->udev->dev, 1);
+
+		dev_info(&dev->udev->dev, "wakeup: %s\n", device_can_wakeup(&dev->udev->dev)
+				? (device_may_wakeup(&dev->udev->dev) ? "enabled" : "disabled")
+						: "");
+
+	/* MBM - Set friendly name for Android */
+	strcpy(dev->net->name, "rmnet%d");
 	netif_carrier_off(dev->net);
 	ctx->tx_speed = ctx->rx_speed = 0;
 	return 0;
@@ -974,11 +1004,27 @@ static int cdc_ncm_rx_fixup(struct usbnet *dev, struct sk_buff *skb_in)
 	nth16 = (struct usb_cdc_ncm_nth16 *)skb_in->data;
 
 	if (le32_to_cpu(nth16->dwSignature) != USB_CDC_NCM_NTH16_SIGN) {
-		pr_debug("invalid NTH16 signature <%u>\n",
-					le32_to_cpu(nth16->dwSignature));
-		goto error;
+		ctx->packet_cnt++;
+		pr_debug("invalid NTH16 signature <%u>, packet_cnt = %d\n",
+		le32_to_cpu(nth16->dwSignature), ctx->packet_cnt);
+
+		/* MBM - Discard any spurious 512 byte packets
+		to prevent driver from stalling */
+
+		if (skb_in->len == ctx->rx_max) {
+			cdc_ncm_set_urb_size(dev, CDC_NCM_MIN_TX_PKT);
+		} else if (ctx->packet_cnt == 15) {
+			pr_debug("next packet should be on 8k boundery. Restart the rx queue with %d urb size\n", ctx->rx_max);
+			cdc_ncm_set_urb_size(dev, ctx->rx_max);
+		}
+		goto done;
 	}
 
+	if (skb_in->len == CDC_NCM_MIN_TX_PKT && ctx->packet_cnt != 0) {
+		pr_debug("packet not on boundery\n");
+	}
+
+	ctx->packet_cnt = 0;
 	len = le16_to_cpu(nth16->wBlockLength);
 	if (len > ctx->rx_max) {
 		pr_debug("unsupported NTB block length %u/%u\n", len,
@@ -1059,11 +1105,15 @@ static int cdc_ncm_rx_fixup(struct usbnet *dev, struct sk_buff *skb_in)
 			if (!skb)
 				goto error;
 			skb->len = len;
+			/* MBM - Set truesize to enable TCP Sliding
+			Window to work properly */
+			skb->truesize = len + sizeof(struct sk_buff);
 			skb->data = ((u8 *)skb_in->data) + offset;
 			skb_set_tail_pointer(skb, len);
 			usbnet_skb_return(dev, skb);
 		}
 	}
+done:
 	return 1;
 error:
 	return 0;
@@ -1139,6 +1189,11 @@ static void cdc_ncm_status(struct usbnet *dev, struct urb *urb)
 		else {
 			netif_carrier_off(dev->net);
 			ctx->tx_speed = ctx->rx_speed = 0;
+			/* MBM - Make sure next URB is 512 bytes
+			to capture any spurious pakets during
+			next connetion */
+			ctx->packet_cnt = 0;
+			cdc_ncm_set_urb_size(dev, CDC_NCM_MIN_TX_PKT);
 		}
 		break;
 
@@ -1224,7 +1279,20 @@ static const struct ethtool_ops cdc_ncm_ethtool_ops = {
 	.nway_reset = usbnet_nway_reset,
 };
 
-module_usb_driver(cdc_ncm_driver);
+static int __init cdc_ncm_init(void)
+{
+	printk(KERN_INFO KBUILD_MODNAME ": " DRIVER_VERSION "\n");
+	return usb_register(&cdc_ncm_driver);
+}
+
+module_init(cdc_ncm_init);
+
+static void __exit cdc_ncm_exit(void)
+{
+	usb_deregister(&cdc_ncm_driver);
+}
+
+module_exit(cdc_ncm_exit);
 
 MODULE_AUTHOR("Hans Petter Selasky");
 MODULE_DESCRIPTION("USB CDC NCM host driver");
