@@ -3718,7 +3718,7 @@ int q6asm_read_nolock(struct audio_client *ac)
 		read.hdr.token = port->dsp_buf;
 
 		port->dsp_buf = (port->dsp_buf + 1) & (port->max_buf_cnt - 1);
-		pr_info("%s:buf add[0x%x] token[%d] uid[%d]\n", __func__,
+		pr_debug("%s:buf add[0x%x] token[%d] uid[%d]\n", __func__,
 					read.buf_add,
 					read.hdr.token,
 					read.uid);

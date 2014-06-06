@@ -192,7 +192,7 @@ static void __ref mpdec_cpu_up(int cpu) {
         per_cpu(msm_mpdec_cpudata, cpu).online = true;
         per_cpu(msm_mpdec_cpudata, cpu).times_cpu_hotplugged += 1;
 #if DEBUG
-        pr_info(MPDEC_TAG"CPU[%d] off->on | Mask=[%d%d%d%d]\n",
+        pr_debug(MPDEC_TAG"CPU[%d] off->on | Mask=[%d%d%d%d]\n",
                 cpu, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3));
 #endif
         mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
@@ -210,7 +210,7 @@ static void mpdec_cpu_down(int cpu) {
         per_cpu(msm_mpdec_cpudata, cpu).on_time_total += on_time;
         per_cpu(msm_mpdec_cpudata, cpu).times_cpu_unplugged += 1;
 #if DEBUG
-        pr_info(MPDEC_TAG"CPU[%d] on->off | Mask=[%d%d%d%d] | time online: %llu\n",
+        pr_debug(MPDEC_TAG"CPU[%d] on->off | Mask=[%d%d%d%d] | time online: %llu\n",
                 cpu, cpu_online(0), cpu_online(1), cpu_online(2), cpu_online(3), on_time);
 #endif
         mutex_unlock(&per_cpu(msm_mpdec_cpudata, cpu).hotplug_mutex);
