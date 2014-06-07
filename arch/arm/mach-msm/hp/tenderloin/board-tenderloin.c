@@ -157,6 +157,7 @@
 
 extern int ps_type;
 int *pin_table = NULL;
+int wm8994_reg_status = 0;
 
 #ifdef CONFIG_MAX8903B_CHARGER
 static unsigned max8903b_ps_connected = 0;
@@ -2820,13 +2821,14 @@ static unsigned int msm_wm8958_setup_power(void)
 
 		}
 		wm8994_ldo_power(1);
+		wm8994_reg_status = 1;
 		mdelay(30);
 		return rc;
 }
 
 static void msm_wm8958_shutdown_power(void)
 {
-#if 1
+	 if (wm8994_reg_status){
 		static struct regulator *tp_5v0 = NULL;
 		int rc;
 
@@ -2854,10 +2856,11 @@ static void msm_wm8958_shutdown_power(void)
 				pr_err("%s: Disable regulator 8058_s3 failed\n", __func__);
 
 		regulator_put(vreg_wm8958);
-#else
-		pr_err("%s: codec power shutdown - NOPE\n", __func__);
+		wm8994_reg_status = 0;
+	 }else{
+		pr_err("%s: Already disabled -- wm8994_reg_status = %d\n", __func__, wm8994_reg_status);
 		return;
-#endif
+	 }
 }
 
 static struct wm8994_pdata wm8958_pdata = {
