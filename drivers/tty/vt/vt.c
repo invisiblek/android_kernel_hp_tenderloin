@@ -3884,8 +3884,8 @@ void do_unblank_screen(int leaving_gfx)
 
 	if (blankinterval) {
 		mod_timer(&console_timer, jiffies + (blankinterval * HZ));
-		blank_state = blank_normal_wait;
 	}
+	blank_state = blank_normal_wait;
 
 	console_blanked = 0;
 	if (vc->vc_sw->con_blank(vc, 0, leaving_gfx) || vt_force_oops_output(vc))
