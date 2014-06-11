@@ -134,6 +134,13 @@ static int __init cdc_do_config(struct usb_configuration *c)
 	if (status < 0)
 		return status;
 
+
+	status = acm_init_port(0, "TTY");
+	if (status) {
+		pr_err("%s: acm: Cannot open port TTY", __func__);
+		return status;
+	}
+
 	status = acm_bind_config(c, 0);
 	if (status < 0)
 		return status;

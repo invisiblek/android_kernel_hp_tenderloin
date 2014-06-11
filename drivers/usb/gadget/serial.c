@@ -141,15 +141,47 @@ static int __init serial_bind_config(struct usb_configuration *c)
 {
 	unsigned i;
 	int status = 0;
+	static int serial_initialized = 0;
 
+	if (serial_initialized)
+		goto bind_config;
+
+	serial_initialized = 1;
+
+	for (i = 0; i < n_ports && status == 0; i++) {
+		status = gserial_init_port(i, "TTY");
+		if (status) {
+			pr_err("%s: serial: Cannot open port TTY", __func__);
+			goto out;
+		}
+		if (use_acm) {
+			status = acm_init_port(i, "TTY");
+			if (status) {
+				pr_err("%s: acm: Cannot open port TTY", __func__);
+				goto out;
+			}
+		}
+	}
+
+#if 0
+	status = gport_setup(c);
+	if (status) {
+		pr_err("serial: Cannot setup transports");
+		goto out;
+	}
+#endif
+
+bind_config:
 	for (i = 0; i < n_ports && status == 0; i++) {
 		if (use_acm)
 			status = acm_bind_config(c, i);
 		else if (use_obex)
 			status = obex_bind_config(c, i);
-		else
+		else {
 			status = gser_bind_config(c, i);
+		}
 	}
+out:
 	return status;
 }
 
