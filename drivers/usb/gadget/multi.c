@@ -164,9 +164,15 @@ static __init int rndis_do_config(struct usb_configuration *c)
 		c->bmAttributes |= USB_CONFIG_ATT_WAKEUP;
 	}
 
-	ret = rndis_bind_config(c, hostaddr);
+	ret = rndis_bind_config2(c, hostaddr);
 	if (ret < 0)
 		return ret;
+
+	ret = acm_init_port(0, "TTY");
+	if (ret) {
+		pr_err("%s: acm: Cannot open port TTY", __func__);
+		return ret;
+	}
 
 	ret = acm_bind_config(c, 0);
 	if (ret < 0)
@@ -218,6 +224,12 @@ static __init int cdc_do_config(struct usb_configuration *c)
 	ret = ecm_bind_config(c, hostaddr);
 	if (ret < 0)
 		return ret;
+
+	ret = acm_init_port(0, "TTY");
+	if (ret) {
+		pr_err("%s: acm: Cannot open port TTY", __func__);
+		return ret;
+	}
 
 	ret = acm_bind_config(c, 0);
 	if (ret < 0)

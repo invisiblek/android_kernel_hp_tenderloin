@@ -154,6 +154,7 @@ static int acm_port_connect(struct f_acm *acm)
 	case USB_GADGET_XPORT_TTY:
 		gserial_connect(&acm->port, port_num);
 		break;
+#if 0
 	case USB_GADGET_XPORT_SDIO:
 		gsdio_connect(&acm->port, port_num);
 		break;
@@ -175,6 +176,7 @@ static int acm_port_connect(struct f_acm *acm)
 			return ret;
 		}
 		break;
+#endif
 	default:
 		pr_err("%s: Un-supported transport: %s\n", __func__,
 				xport_to_str(acm->transport));
@@ -198,6 +200,7 @@ static int acm_port_disconnect(struct f_acm *acm)
 	case USB_GADGET_XPORT_TTY:
 		gserial_disconnect(&acm->port);
 		break;
+#if 0
 	case USB_GADGET_XPORT_SDIO:
 		gsdio_disconnect(&acm->port, port_num);
 		break;
@@ -208,6 +211,7 @@ static int acm_port_disconnect(struct f_acm *acm)
 		ghsic_ctrl_disconnect(&acm->port, port_num);
 		ghsic_data_disconnect(&acm->port, port_num);
 		break;
+#endif
 	default:
 		pr_err("%s: Un-supported transport:%s\n", __func__,
 				xport_to_str(acm->transport));
