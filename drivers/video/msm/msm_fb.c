@@ -901,6 +901,7 @@ static void msmfb_early_resume(struct early_suspend *h)
 	struct msm_fb_data_type *mfd = container_of(h, struct msm_fb_data_type,
 						early_suspend);
 	struct msm_fb_panel_data *pdata = NULL;
+	struct fb_event event;
 
 	msm_fb_pan_idle(mfd);
 	pdata = (struct msm_fb_panel_data *)mfd->pdev->dev.platform_data;
@@ -915,6 +916,11 @@ static void msmfb_early_resume(struct early_suspend *h)
 	}
 
 	msm_fb_resume_sub(mfd);
+
+	event.info = mfd->fbi;
+	event.data = NULL;
+	fb_notifier_call_chain(FB_EVENT_RESUME, &event);
+
 }
 #endif
 
