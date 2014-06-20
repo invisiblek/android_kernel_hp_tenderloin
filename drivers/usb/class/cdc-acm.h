@@ -48,6 +48,15 @@
 #define ACM_CTRL_OVERRUN	0x40
 
 /*
+ * MBM, Added Abstract state
+ */
+#define ACM_ABSTRACT_STATE	0x01
+#define ACM_ABS_IDLE		0x01
+#define ACM_ABS_MUX		0x02
+
+#define ACM_COUNTRY_SETTING	0x02
+
+/*
  * Internal driver structures.
  */
 
@@ -104,6 +113,7 @@ struct acm {
 	bool disconnected;
 	struct usb_cdc_line_coding line;		/* bits, stop, parity */
 	struct work_struct work;			/* work queue entry for line discipline waking up */
+    unsigned int state;				/* MBM, state for comm features */
 	unsigned int ctrlin;				/* input control lines (DCD, DSR, RI, break, overruns) */
 	unsigned int ctrlout;				/* output control lines (DTR, RTS) */
 	unsigned int writesize;				/* max packet size for the output bulk endpoint */
@@ -118,6 +128,10 @@ struct acm {
 	unsigned int throttle_req:1;			/* throttle requested */
 	u8 bInterval;
 	struct acm_wb *delayed_wb;			/* write queued for a device about to be woken */
+	struct usb_ctrlrequest *irq;			/* MBM, added for get_encapsulated_command */
+	struct urb *response;
+	u8 *inbuf;
+	unsigned int bMaxPacketSize0;
 };
 
 #define CDC_DATA_INTERFACE_TYPE	0x0a
@@ -128,3 +142,4 @@ struct acm {
 #define NO_CAP_LINE			4
 #define NOT_A_MODEM			8
 #define NO_DATA_INTERFACE		16
+#define NOT_REAL_ACM			32

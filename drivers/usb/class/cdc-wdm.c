@@ -28,11 +28,15 @@
 /*
  * Version Information
  */
-#define DRIVER_VERSION "v0.03"
+#define DRIVER_VERSION "v0.03-mbm"
 #define DRIVER_AUTHOR "Oliver Neukum"
 #define DRIVER_DESC "USB Abstract Control Model driver for USB WCM Device Management"
 
 #define HUAWEI_VENDOR_ID	0x12D1
+
+#ifndef PMSG_IS_AUTO
+#define PMSG_IS_AUTO(msg)       (((msg).event & PM_EVENT_AUTO) != 0)
+#endif
 
 static const struct usb_device_id wdm_ids[] = {
 	{
@@ -575,6 +579,10 @@ static unsigned int wdm_poll(struct file *file, struct poll_table_struct *wait)
 	unsigned int mask = 0;
 
 	spin_lock_irqsave(&desc->iuspin, flags);
+#ifdef CONFIG_MACH_TENDERLOIN
+	/* MBM, fixes Select() */
+	poll_wait(file, &desc->wait, wait);
+#endif
 	if (test_bit(WDM_DISCONNECTING, &desc->flags)) {
 		mask = POLLHUP | POLLERR;
 		spin_unlock_irqrestore(&desc->iuspin, flags);
@@ -587,8 +595,9 @@ static unsigned int wdm_poll(struct file *file, struct poll_table_struct *wait)
 	if (!test_bit(WDM_IN_USE, &desc->flags))
 		mask |= POLLOUT | POLLWRNORM;
 	spin_unlock_irqrestore(&desc->iuspin, flags);
-
+#ifndef CONFIG_MACH_TENDERLOIN
 	poll_wait(file, &desc->wait, wait);
+#endif
 
 desc_out:
 	return mask;
@@ -734,9 +743,11 @@ static int wdm_create(struct usb_interface *intf, struct usb_endpoint_descriptor
 	rv = -EINVAL;
 	if (!usb_endpoint_is_int_in(ep))
 		goto err;
-
+#ifndef CONFIG_MACH_TENDERLOIN
 	desc->wMaxPacketSize = usb_endpoint_maxp(ep);
-
+#else
+    desc->wMaxPacketSize = le16_to_cpu(ep->wMaxPacketSize);
+#endif
 	desc->orq = kmalloc(sizeof(struct usb_ctrlrequest), GFP_KERNEL);
 	if (!desc->orq)
 		goto err;
@@ -1042,12 +1053,14 @@ static int wdm_post_reset(struct usb_interface *intf)
 	struct wdm_device *desc = wdm_find_device(intf);
 	int rv;
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	clear_bit(WDM_OVERFLOW, &desc->flags);
+#endif
 	clear_bit(WDM_RESETTING, &desc->flags);
 	rv = recover_from_urb_loss(desc);
 	mutex_unlock(&desc->wlock);
 	mutex_unlock(&desc->rlock);
-	return 0;
+	return rv;
 }
 
 static struct usb_driver wdm_driver = {

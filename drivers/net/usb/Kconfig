@@ -493,4 +493,13 @@ config MSM_RMNET_USB
 	To compile this driver as a module, choose M here: the module
 	will be called rmnet_usb. If unsure, choose N.
 
+config USB_NET_HW_CDC
+	tristate "USB-to-WWAN Driver for Huawei Wireless modems"
+	depends on USB_USBNET
+	help
+	  Choose this option if you have a Huawei Wireless USB-to-WWAN device.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called huawei_net.
+
 endmenu
