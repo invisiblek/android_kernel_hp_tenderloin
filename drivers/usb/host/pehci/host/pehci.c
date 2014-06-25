@@ -4494,8 +4494,9 @@ pehci_hcd_start(struct usb_hcd *usb_hcd)
 	isp1763_reg_write16(pehci_hcd->dev, pehci_hcd->regs.hwmodecontrol,
 		hwmodectrl);	
 	printk(KERN_NOTICE "Mode Ctrl Value after buswidth: %x\n", hwmodectrl);
-
+	mb();
 	isp1763_reg_write16(pehci_hcd->dev, pehci_hcd->regs.scratch, 0x3344);
+	ndelay(100);
 
 	ul_scratchval =
 		isp1763_reg_read16(pehci_hcd->dev, pehci_hcd->regs.scratch,
