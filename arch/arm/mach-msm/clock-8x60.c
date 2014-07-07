@@ -3957,3 +3957,48 @@ struct clock_init_data msm8x60_clock_init_data __initdata = {
 	.post_init = msm8660_clock_post_init,
 	.late_init = msm8660_clock_late_init,
 };
+
+int is_xo_src(struct clk *clk)
+{
+	if (clk == NULL)
+		return 0;
+	if (clk == &pxo_clk.c || clk == &cxo_clk.c)
+		return 1;
+	else if (clk->ops->get_parent)
+		return is_xo_src(clk->ops->get_parent(clk));
+	else
+		return 0;
+}
+
+void clk_ignor_list_add(const char *dev_id, const char *con_id, struct clock_init_data *msm_clock_init_data)
+{
+	struct clk_lookup *p, *cl = NULL;
+	int match, best = 0;
+	int i;
+
+	for (i = 0; i < msm_clock_init_data->size; i++) {
+		p = &msm_clock_init_data->table[i];
+		match = 0;
+		if (p->dev_id) {
+			if (!dev_id || strcmp(p->dev_id, dev_id))
+				continue;
+			match += 2;
+		}
+		if (p->con_id) {
+			if (!con_id || strcmp(p->con_id, con_id))
+				continue;
+			match += 1;
+		}
+
+		if (match > best) {
+			cl = p;
+			if (match != 3)
+				best = match;
+			else
+				break;
+		}
+	}
+
+	if (cl)
+		cl->clk->flags |= CLKFLAG_IGNORE;
+}

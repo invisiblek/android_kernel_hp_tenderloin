@@ -21,6 +21,7 @@
 #define CLKFLAG_SKIP_HANDOFF		0x00000100
 #define CLKFLAG_MIN			0x00000400
 #define CLKFLAG_MAX			0x00000800
+#define CLKFLAG_IGNORE			0x10000000
 
 struct clk_lookup;
 struct clk;

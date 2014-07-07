@@ -52,6 +52,9 @@ extern struct clock_init_data msm8974_rumi_clock_init_data;
 int msm_clock_init(struct clock_init_data *data);
 int find_vdd_level(struct clk *clk, unsigned long rate);
 
+extern int is_xo_src(struct clk *);
+extern void clk_ignor_list_add(const char *dev_id, const char *con_id, struct clock_init_data *msm_clock_init_data);
+
 #ifdef CONFIG_DEBUG_FS
 int clock_debug_init(void);
 int clock_debug_register(struct clk_lookup *t, size_t s);
