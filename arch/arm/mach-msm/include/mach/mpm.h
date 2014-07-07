@@ -143,6 +143,7 @@ void msm_mpm_exit_sleep(bool from_idle);
 void __init of_mpm_init(struct device_node *node);
 
 int  msm_mpm_is_app_irq_wakeup_capable(unsigned int irq);
+void msm_mpm_set_irq_ignore_list(int *ignore_irq, unsigned num_ignore_irq);
 #else
 static inline int msm_mpm_enable_irq(unsigned int irq, unsigned int enable)
 { return -ENODEV; }
@@ -166,5 +167,6 @@ static inline void msm_mpm_exit_sleep(bool from_idle) {}
 static inline void __init of_mpm_init(struct device_node *node) {}
 static inline int  msm_mpm_is_app_irq_wakeup_capable(unsigned int irq) 
 { return -ENODEV; }
+static inline void msm_mpm_set_irq_ignore_list(int *ignore_irq, unsigned num_ignore_irq) {}
 #endif
 #endif /* __ARCH_ARM_MACH_MSM_MPM_H */

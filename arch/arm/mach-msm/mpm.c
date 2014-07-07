@@ -464,6 +464,14 @@ void msm_mpm_exit_sleep(bool from_idle)
 	msm_mpm_clear();
 }
 
+void msm_mpm_set_irq_ignore_list(int *ignore_irq, unsigned num_ignore_irq)
+{
+	int index;
+
+	for (index =0; index < num_ignore_irq; index++)
+		__clear_bit(ignore_irq[index], msm_mpm_gpio_irqs_mask);
+}
+
 static int __init msm_mpm_early_init(void)
 {
 	uint8_t mpm_irq;
