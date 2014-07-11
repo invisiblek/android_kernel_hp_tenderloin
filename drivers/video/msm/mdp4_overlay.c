@@ -4038,7 +4038,7 @@ int mdp4_overlay_commit(struct fb_info *info)
 		break;
 	case LVDS_PANEL:
 	case LCDC_PANEL:
-		mdp4_lcdc_pipe_commit(0, 1);
+		mdp4_lcdc_pipe_commit(0, 1, &release_busy);
 		break;
 #ifdef CONFIG_FB_MSM_DTV
 	case DTV_PANEL:
