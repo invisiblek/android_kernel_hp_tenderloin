@@ -979,7 +979,7 @@ pehci_hcd_qtd_schedule(phci_hcd	* hcd, struct ehci_qtd *qtd,
 	pehci_check("newqtd being scheduled, device: %d,map: %x\n",
 		    urb->dev->devnum, td_ptd_map->ptd_bitmap);
 
-	//udelay(100);
+	udelay(100);
 
 	memset(qha, 0, sizeof(isp1763_qha));
 	/*convert qtd to qha */
