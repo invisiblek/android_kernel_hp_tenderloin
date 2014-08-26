@@ -65,8 +65,8 @@
 /* PORTION_LEN defines the length of device attribute buffer */
 #define PORTION_LEN			4096
 
-static bool debug;
-static bool nmea;
+static int debug;
+static int nmea;
 
 /* sysfs attributes */
 static int sierra_create_sysfs_attrs(struct usb_serial_port *port);
@@ -1556,11 +1556,37 @@ static struct usb_serial_driver sierra_device = {
 
 };
 
-static struct usb_serial_driver * const serial_drivers[] = {
-	&sierra_device, NULL
-};
+/* Functions used by new usb-serial code. */
+static int __init sierra_init(void)
+{
+	int retval;
+	retval = usb_serial_register(&sierra_device);
+	if (retval)
+		goto failed_device_register;
 
-module_usb_serial_driver(sierra_driver, serial_drivers);
+	retval = usb_register(&sierra_driver);
+	if (retval)
+		goto failed_driver_register;
+
+	printk(KERN_INFO KBUILD_MODNAME ": " DRIVER_VERSION ":"
+	       DRIVER_DESC "\n");
+
+	return 0;
+
+failed_driver_register:
+	usb_serial_deregister(&sierra_device);
+failed_device_register:
+	return retval;
+}
+
+static void __exit sierra_exit(void)
+{
+	usb_deregister(&sierra_driver);
+	usb_serial_deregister(&sierra_device);
+}
+
+module_init(sierra_init);
+module_exit(sierra_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
