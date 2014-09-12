@@ -209,7 +209,7 @@ static void msm_fb_set_bl_brightness(struct led_classdev *led_cdev,
 
 static struct led_classdev backlight_led = {
 	.name		= "lcd-backlight",
-	.brightness	= (MAX_BACKLIGHT_BRIGHTNESS * .75),
+	.brightness	= (MAX_BACKLIGHT_BRIGHTNESS * .25),
 	.brightness_set	= msm_fb_set_bl_brightness,
 };
 #endif
