@@ -55,7 +55,7 @@
 #define ISL29023_REG_IRQ_TH_HI_MSB	0x07
 
 #define ISL29023_NUM_CACHABLE_REGS	8
-#define DEF_RANGE			2
+#define DEF_RANGE			0
 
 struct isl29023_data {
 	struct i2c_client *client;
@@ -322,7 +322,7 @@ static int isl29023_get_power_state(struct i2c_client *client)
 static int isl29023_get_adc_value(struct i2c_client *client)
 {
         struct isl29023_data *data = NULL;
-	int lsb, msb, range, bitdepth;
+	int lsb, msb, range, bitdepth, raw, lux, scale;
 
         client = i2c_client;
 	data = i2c_get_clientdata(client);
@@ -344,8 +344,12 @@ static int isl29023_get_adc_value(struct i2c_client *client)
 	range = isl29023_get_range(client);
 	bitdepth = (4 - isl29023_get_resolution(client)) * 4;
 
-	return (((msb << 8) | lsb) * ((gain_range[range] * 499) / data->rext))
-		>> bitdepth;
+	raw = (msb << 8) | lsb;
+	scale = gain_range[range] >> bitdepth;
+	if (!scale)
+		scale = 1;
+	lux = raw * scale;
+	return lux;
 }
 
 static int isl29023_get_int_lt_value(struct i2c_client *client)
@@ -826,7 +830,7 @@ static int isl29023_init_client(struct i2c_client *client)
 	isl29023_set_int_persists(client, ISL29023_INT_PERSISTS_8);
 	isl29023_set_int_ht(client, 0xffff);
 	isl29023_set_int_lt(client, 0x0);
-	isl29023_set_range(client, ISL29023_RANGE_16K);
+	isl29023_set_range(client, DEF_RANGE);
 	isl29023_set_resolution(client, ISL29023_RES_16);
 	isl29023_set_mode(client, ISL29023_ALS_ONCE_MODE);
 	isl29023_set_int_flag(client, 0);
