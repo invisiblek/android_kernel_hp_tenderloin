@@ -863,8 +863,6 @@ kgsl_mmu_unmap(struct kgsl_pagetable *pagetable,
 	/* Remove the statistics */
 	pagetable->stats.entries--;
 	pagetable->stats.mapped -= size;
-        if (KGSL_MMU_TYPE_GPU == kgsl_mmu_get_mmutype() && kgsl_memdesc_is_global(memdesc))
-                gen_pool_free(pagetable->pool, memdesc->gpuaddr, memdesc->size);
 
 	spin_unlock(&pagetable->lock);
 	if (!kgsl_memdesc_is_global(memdesc))
