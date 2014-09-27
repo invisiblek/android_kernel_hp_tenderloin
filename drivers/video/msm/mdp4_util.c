@@ -2001,7 +2001,7 @@ int mdp4_csc_config(struct mdp_csc_cfg_data *config)
 
 	base = mdp4_csc_block2base(config->block);
 	if (!base) {
-		pr_warn("%s: Block type %d isn't supported by CSC.\n",
+		pr_debug("%s: Block type %d isn't supported by CSC.\n",
 				__func__, config->block);
 		return -EINVAL;
 	}
