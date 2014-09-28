@@ -202,7 +202,7 @@ static ssize_t store_currentlimit(struct device *dev, struct device_attribute *a
 	}
 	else {
 		printk(KERN_INFO "Invalid charging command: %s\n", buf);
-		return 0;
+		return -EINVAL;
 	}
 
 	max8903b_current_setup(value);
