@@ -360,103 +360,6 @@ static int __init usb_id_pin_rework_setup(char *support)
 }
 __setup("usb_id_pin_rework=", usb_id_pin_rework_setup);
 
-static void pmic_id_detect(struct work_struct *w)
-{
-	int val = gpio_get_value_cansleep(PM8058_GPIO_PM_TO_SYS(36));
-	pr_info("%s(): gpio_read_value = %d\n", __func__, val);
-
-	if (notify_vbus_state_func_ptr)
-		(*notify_vbus_state_func_ptr) (val);
-}
-
-static irqreturn_t pmic_id_on_irq(int irq, void *data)
-{
-	/*
-	 * Spurious interrupts are observed on pmic gpio line
-	 * even though there is no state change on USB ID. Schedule the
-	 * work to to allow debounce on gpio
-	 */
-	schedule_delayed_work(&pmic_id_det, USB_PMIC_ID_DET_DELAY);
-
-	return IRQ_HANDLED;
-}
-
-static int msm_hsusb_phy_id_setup_init(int init)
-{
-	unsigned ret;
-
-	struct pm8xxx_mpp_config_data hsusb_phy_mpp = {
-		.type	= PM8XXX_MPP_TYPE_D_OUTPUT,
-		.level	= PM8901_MPP_DIG_LEVEL_L5,
-	};
-
-	if (init) {
-		hsusb_phy_mpp.control = PM8XXX_MPP_DOUT_CTRL_HIGH;
-		ret = pm8xxx_mpp_config(PM8901_MPP_PM_TO_SYS(1),
-							&hsusb_phy_mpp);
-		if (ret < 0)
-			pr_err("%s:MPP2 configuration failed\n", __func__);
-	} else {
-		hsusb_phy_mpp.control = PM8XXX_MPP_DOUT_CTRL_LOW;
-		ret = pm8xxx_mpp_config(PM8901_MPP_PM_TO_SYS(1),
-							&hsusb_phy_mpp);
-		if (ret < 0)
-			pr_err("%s:MPP2 un config failed\n", __func__);
-	}
-	return ret;
-}
-
-static int msm_hsusb_pmic_id_notif_init(void (*callback)(int online), int init)
-{
-	unsigned ret = -ENODEV;
-
-	if (!callback)
-		return -EINVAL;
-
-	if (SOCINFO_VERSION_MAJOR(socinfo_get_version()) != 2) {
-		pr_debug("%s: USB_ID pin is not routed to PMIC"
-					"on V1 surf/ffa\n", __func__);
-		return -ENOTSUPP;
-	}
-
-	if (machine_is_msm8x60_ffa() || machine_is_tenderloin()) {
-		pr_debug("%s: USB_ID is not routed to PMIC"
-			"on V2 ffa\n", __func__);
-		return -ENOTSUPP;
-	}
-
-	if (init) {
-		notify_vbus_state_func_ptr = callback;
-		ret = pm8xxx_mpp_config_digital_out(1,
-			PM8901_MPP_DIG_LEVEL_L5, 1);
-		if (ret) {
-			pr_err("%s: MPP2 configuration failed\n", __func__);
-			return -ENODEV;
-		}
-		INIT_DELAYED_WORK(&pmic_id_det, pmic_id_detect);
-		ret = request_threaded_irq(PMICID_INT, NULL, pmic_id_on_irq,
-			(IRQF_TRIGGER_RISING|IRQF_TRIGGER_FALLING),
-						"msm_otg_id", NULL);
-		if (ret) {
-			pm8xxx_mpp_config_digital_out(1,
-					PM8901_MPP_DIG_LEVEL_L5, 0);
-			pr_err("%s:pmic_usb_id interrupt registration failed",
-					__func__);
-			return ret;
-		}
-	} else {
-		free_irq(PMICID_INT, 0);
-		cancel_delayed_work_sync(&pmic_id_det);
-		notify_vbus_state_func_ptr = NULL;
-		ret = pm8xxx_mpp_config_digital_out(1,
-			PM8901_MPP_DIG_LEVEL_L5, 0);
-		if (ret) {
-			pr_err("%s:MPP2 configuration failed\n", __func__);
-			return -ENODEV;
-		}
-	}
-	return 0;
-}
 #endif
 
 #define USB_PHY_SUSPEND_MIN_VDD_DIG_VOL		750000
@@ -688,10 +591,6 @@ static struct msm_otg_platform_data msm_otg_pdata = {
 	.se1_gating		 = SE1_GATING_DISABLE,
 	.bam_disable		 = 1,
 	.hsdrvslope		 = 0x05,
-#ifdef CONFIG_USB_EHCI_MSM_72K
-	.pmic_id_notif_init = msm_hsusb_pmic_id_notif_init,
-	.phy_id_setup_init = msm_hsusb_phy_id_setup_init,
-#endif
 #ifdef CONFIG_USB_EHCI_MSM_72K
 	.vbus_power = msm_hsusb_vbus_power,
 #endif
