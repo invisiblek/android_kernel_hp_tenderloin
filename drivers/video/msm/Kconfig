@@ -675,6 +675,12 @@ config FB_MSM_MDDI_SHARP_QVGA_128x128
 	---help---
 	  Support for MDDI Sharp QVGA (240x320) and 128x128 dual panel
 
+config FB_MSM_MDDI_NT35560_WVGA
+	bool "MDDI NT35560 WVGA panel"
+	select FB_MSM_MDDI
+	---help---
+	  Support for MDDI NT35560 (480x800) WVGA panel
+
 config FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT_PANEL
 	bool "MIPI LG Display WXGA PT Panel"
 	select FB_MSM_MIPI_LGIT_VIDEO_WXGA_PT
