@@ -468,6 +468,24 @@ config USB_SIERRA_NET
 	  To compile this driver as a module, choose M here: the
 	  module will be called sierra_net.
 
+config USB_GOBI3K_NET
+	tristate "USB-to-WWAN Driver for Gobi3K modems"
+	depends on USB_USBNET
+	default m
+	help
+	  Choose this option if you have a Sierra Wireless USB-to-WWAN device with Gobi support.
+	  To compile this driver as a module, choose M here: the
+	  module will be called GobiNet.
+
+config USB_NET_HW_CDC
+	tristate "USB-to-WWAN Driver for Huawei Wireless modems"
+	depends on USB_USBNET
+	help
+	  Choose this option if you have a Huawei Wireless USB-to-WWAN device.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called huawei_net.
+
 config USB_VL600
 	tristate "LG VL600 modem dongle"
 	depends on USB_NET_CDCETHER
@@ -492,5 +510,13 @@ config MSM_RMNET_USB
 
 	To compile this driver as a module, choose M here: the module
 	will be called rmnet_usb. If unsure, choose N.
+
+config USB_NET_RAW_IP
+	tristate "RAW-IP Driver for XMM6260 modems"
+	help
+	  Choose this option if you have a XMM6260 modem device with RAW-IP suport.
+
+	  To compile this driver as a module, choose M here: the
+	  module will be called rmnet.
 
 endmenu
