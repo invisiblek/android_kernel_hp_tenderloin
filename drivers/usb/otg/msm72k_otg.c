@@ -1125,6 +1125,11 @@ phy_resumed:
 		msm_otg_start_host(dev->phy.otg, REQUEST_RESUME);
 	}
 
+	if (!work_pending(&dev->sm_work) && !hrtimer_active(&dev->timer) &&
+			!work_pending(&dev->otg_resume_work)) {
+		wake_lock_timeout(&dev->wlock, msecs_to_jiffies(2000));
+	}
+
 	/* Enable irq which was disabled before scheduling this work.
 	 * But don't release wake_lock, as we got async interrupt and
 	 * there will be some work pending for OTG state machine.
