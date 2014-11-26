@@ -456,6 +456,7 @@ z180_cmdstream_issueibcmds(struct kgsl_device_private *dev_priv,
 	    (ctrl & KGSL_CONTEXT_CTX_SWITCH)) {
 		KGSL_CMD_INFO(device, "context switch %d -> %d\n",
 			context->id, z180_dev->ringbuffer.prevctx);
+		z180_idle(device);
 		kgsl_mmu_setstate(&device->mmu, pagetable,
 				KGSL_MEMSTORE_GLOBAL);
 		cnt = PACKETSIZE_STATESTREAM;
