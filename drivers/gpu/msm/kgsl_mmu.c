@@ -601,9 +601,12 @@ void kgsl_setstate(struct kgsl_mmu *mmu, unsigned int context_id,
 	struct kgsl_device *device = mmu->device;
 	struct adreno_device *adreno_dev = ADRENO_DEVICE(device);
 
-	if (!(flags & (KGSL_MMUFLAGS_TLBFLUSH | KGSL_MMUFLAGS_PTUPDATE))
-		&& !adreno_is_a2xx(adreno_dev))
-		return;
+	if (!(flags & (KGSL_MMUFLAGS_TLBFLUSH | KGSL_MMUFLAGS_PTUPDATE))) {
+		if (device->id == KGSL_DEVICE_3D0 
+			&& !adreno_is_a2xx(adreno_dev)) {
+			return;
+		}
+	}
 
 	if (KGSL_MMU_TYPE_NONE == kgsl_mmu_type)
 		return;
