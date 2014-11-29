@@ -2525,11 +2525,18 @@ static struct clk_freq_tbl clk_tbl_pixel_mdp[] = {
 	F_PIXEL_MDP( 48000000, pll8, 4,   1,    2),
 	F_PIXEL_MDP( 53990000, pll8, 2, 169,  601),
 	F_PIXEL_MDP( 64000000, pll8, 2,   1,    3),
+#ifndef CONFIG_MACH_TENDERLOIN
 	F_PIXEL_MDP( 69300000, pll8, 1, 231, 1280),
+#endif
 	F_PIXEL_MDP( 76800000, pll8, 1,   1,    5),
+#ifndef CONFIG_MACH_TENDERLOIN
 	F_PIXEL_MDP( 85333000, pll8, 1,   2,    9),
 	F_PIXEL_MDP(106500000, pll8, 1,  71,  256),
 	F_PIXEL_MDP(109714000, pll8, 1,   2,    7),
+#else
+	F_PIXEL_MDP( 96000000, pll8, 4,   0,   0),
+	F_PIXEL_MDP(100030000, pll8, 1, 10003, 38400), // HP Wade, this clock is over CPU spec
+#endif
 	F_END
 };
 
@@ -3569,10 +3576,10 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"spi_qsd.3"),
 	CLK_LOOKUP("core_clk",		gsbi8_qup_clk.c,	"qup_i2c.3"),
 	CLK_LOOKUP("core_clk",		gsbi9_qup_clk.c,	"qup_i2c.2"),
-	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.11"),
 #ifdef CONFIG_MACH_TENDERLOIN
 	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.5"),
 #else
+	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"qup_i2c.11"),
 	CLK_LOOKUP("core_clk",		gsbi10_qup_clk.c,	"spi_qsd.1"),
 #endif
 	CLK_LOOKUP("core_clk",		gsbi11_qup_clk.c,	""),
@@ -3618,12 +3625,12 @@ static struct clk_lookup msm_clocks_8x60[] = {
 	CLK_LOOKUP("iface_clk",		gsbi8_p_clk.c,		"spi_qsd.3"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c, "msm_serial_hsl.1"),
 	CLK_LOOKUP("iface_clk",		gsbi9_p_clk.c,		"qup_i2c.2"),
-	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.11"),
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"msm_uartdm.1"),
 	CLK_LOOKUP("iface_clk",		gsbi11_p_clk.c,		"msm_serial_hsl.3"),
 #ifdef CONFIG_MACH_TENDERLOIN
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.5"),
 #else
+	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"qup_i2c.11"),
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"spi_qsd.1"),
 #endif
 	CLK_LOOKUP("iface_clk",		gsbi10_p_clk.c,		"msm_uartdm.1"),
