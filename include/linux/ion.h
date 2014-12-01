@@ -300,6 +300,20 @@ int ion_map_iommu(struct ion_client *client, struct ion_handle *handle,
 			unsigned long *buffer_size,
 			unsigned long flags, unsigned long iommu_flags);
 
+/**
+ * ion_map_iommu_by_force - map the given handle into an iommu by force
+ *
+ * Does the same thing as ion_map_iommu(), but if the handle that is
+ * attempting to be mapped is already mapped then it will be unmapped first,
+ * ensuring success. This should be used in areas where hard-to-debug
+ * memory leaks are expected and where the success of ion_map_iommu() is crucial.
+ */
+int ion_map_iommu_by_force(struct ion_client *client, struct ion_handle *handle,
+			int domain_num, int partition_num, unsigned long align,
+			unsigned long iova_length, unsigned long *iova,
+			unsigned long *buffer_size,
+			unsigned long flags, unsigned long iommu_flags);
+
 
 /**
  * ion_handle_get_size - get the allocated size of a given handle

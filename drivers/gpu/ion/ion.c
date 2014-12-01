@@ -734,6 +734,95 @@ out:
 }
 EXPORT_SYMBOL(ion_map_iommu);
 
+int ion_map_iommu_by_force(struct ion_client *client, struct ion_handle *handle,
+			int domain_num, int partition_num, unsigned long align,
+			unsigned long iova_length, unsigned long *iova,
+			unsigned long *buffer_size,
+			unsigned long flags, unsigned long iommu_flags)
+{
+	struct ion_buffer *buffer;
+	struct ion_iommu_map *iommu_map;
+	int ret = 0;
+
+	if (ION_IS_CACHED(flags)) {
+		pr_err("%s: Cannot map iommu as cached.\n", __func__);
+		return -EINVAL;
+	}
+
+	mutex_lock(&client->lock);
+	if (!ion_handle_validate(client, handle)) {
+		pr_err("%s: invalid handle passed to map_kernel.\n",
+		       __func__);
+		mutex_unlock(&client->lock);
+		return -EINVAL;
+	}
+
+	buffer = handle->buffer;
+	mutex_lock(&buffer->lock);
+
+	if (!handle->buffer->heap->ops->map_iommu) {
+		pr_err("%s: map_iommu is not implemented by this heap.\n",
+		       __func__);
+		ret = -ENODEV;
+		goto out;
+	}
+
+	/*
+	 * If clients don't want a custom iova length, just use whatever
+	 * the buffer size is
+	 */
+	if (!iova_length)
+		iova_length = buffer->size;
+
+	if (buffer->size > iova_length) {
+		pr_debug("%s: iova length %lx is not at least buffer size"
+			" %x\n", __func__, iova_length, buffer->size);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	if (buffer->size & ~PAGE_MASK) {
+		pr_debug("%s: buffer size %x is not aligned to %lx", __func__,
+			buffer->size, PAGE_SIZE);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	if (iova_length & ~PAGE_MASK) {
+		pr_debug("%s: iova_length %lx is not aligned to %lx", __func__,
+			iova_length, PAGE_SIZE);
+		ret = -EINVAL;
+		goto out;
+	}
+
+	iommu_map = ion_iommu_lookup(buffer, domain_num, partition_num);
+	_ion_map(&buffer->iommu_map_cnt, &handle->iommu_map_cnt);
+
+	if (iommu_map) {
+		pr_warn("%s: handle %p is already mapped, unmapping first\n", __func__, handle);
+		_ion_unmap(&buffer->iommu_map_cnt, &handle->iommu_map_cnt);
+		kref_put(&iommu_map->ref, ion_iommu_release);
+	}
+
+	iommu_map = __ion_iommu_map(buffer, domain_num, partition_num,
+				    align, iova_length, flags, iova);
+	if (IS_ERR_OR_NULL(iommu_map)) {
+		_ion_unmap(&buffer->iommu_map_cnt,
+			   &handle->iommu_map_cnt);
+	} else {
+		iommu_map->flags = iommu_flags;
+
+		if (iommu_map->flags & ION_IOMMU_UNMAP_DELAYED)
+			kref_get(&iommu_map->ref);
+	}
+	*buffer_size = buffer->size;
+out:
+	mutex_unlock(&buffer->lock);
+	mutex_unlock(&client->lock);
+	return ret;
+}
+EXPORT_SYMBOL(ion_map_iommu_by_force);
+
 static void ion_iommu_release(struct kref *kref)
 {
 	struct ion_iommu_map *map = container_of(kref, struct ion_iommu_map,
