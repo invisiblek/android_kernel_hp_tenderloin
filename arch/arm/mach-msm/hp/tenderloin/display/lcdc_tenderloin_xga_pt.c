@@ -21,7 +21,7 @@ static int __init lcdc_tenderloin_panel_init(void)
 	pinfo.fb_num = 2;
         pinfo.clk_rate = 96000000;
 	pinfo.bl_max = PWM_LEVEL;
-	pinfo.bl_min = 0;
+	pinfo.bl_min = PWM_LEVEL_MIN;
 
 	pinfo.lcdc.h_back_porch = 400;
 	pinfo.lcdc.h_front_porch = 272;
