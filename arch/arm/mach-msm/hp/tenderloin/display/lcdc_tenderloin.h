@@ -15,5 +15,7 @@
 #define PWM_PERIOD_USEC (USEC_PER_SEC / PWM_FREQ_HZ)
 #define PWM_LEVEL 256
 #define PWM_DUTY_LEVEL (PWM_PERIOD_USEC / PWM_LEVEL)
+// prevent pwm level 3 and under to prevent cut-out
+#define PWM_LEVEL_MIN 3
 
 #endif /* !__LCDC_TENDERLOIN_H__ */
