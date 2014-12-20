@@ -796,24 +796,22 @@ int ion_map_iommu_by_force(struct ion_client *client, struct ion_handle *handle,
 	}
 
 	iommu_map = ion_iommu_lookup(buffer, domain_num, partition_num);
-	_ion_map(&buffer->iommu_map_cnt, &handle->iommu_map_cnt);
 
 	if (iommu_map) {
 		pr_warn("%s: handle %p is already mapped, unmapping first\n", __func__, handle);
-		_ion_unmap(&buffer->iommu_map_cnt, &handle->iommu_map_cnt);
 		kref_put(&iommu_map->ref, ion_iommu_release);
+		buffer->iommu_map_cnt--;
 	}
 
 	iommu_map = __ion_iommu_map(buffer, domain_num, partition_num,
 				    align, iova_length, flags, iova);
-	if (IS_ERR_OR_NULL(iommu_map)) {
-		_ion_unmap(&buffer->iommu_map_cnt,
-			   &handle->iommu_map_cnt);
-	} else {
+	if (!IS_ERR_OR_NULL(iommu_map)) {
 		iommu_map->flags = iommu_flags;
 
 		if (iommu_map->flags & ION_IOMMU_UNMAP_DELAYED)
 			kref_get(&iommu_map->ref);
+
+		buffer->iommu_map_cnt++;
 	}
 	*buffer_size = buffer->size;
 out:
