@@ -3659,6 +3659,8 @@ static void wm8958_hp_micdet(u16 status, void *data)
 	struct wm8994_priv *wm8994 = snd_soc_codec_get_drvdata(codec);
 	int oldtype = 0;
 
+	printk(KERN_DEBUG "%s: status=%x\n", __func__, status);
+
 	oldtype = wm8994->micdet[0].jack->jack->type;
 	if(0x203 == status && !(wm8994->pdata->jack_is_mic) ){
 		headphone_plugged = 1;
@@ -3670,7 +3672,7 @@ static void wm8958_hp_micdet(u16 status, void *data)
 						    SW_MICROPHONE_INSERT,
 					        1);
 	}else if(7 == status && wm8994->pdata->jack_is_mic == false) {
-		headphone_plugged = 1;
+		headphone_plugged = 2;
 		dev_err(codec->dev, "  Reporting headphones inserted\n");
 		input_report_switch(wm8994->micdet[0].jack->jack->input_dev,
 							    SW_HEADPHONE_INSERT,
