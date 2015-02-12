@@ -1010,6 +1010,12 @@ static __init struct clkctl_acpu_speed *select_freq_plan(void)
 	uint32_t pte_efuse, speed_bin, pvs;
 	struct clkctl_acpu_speed *f;
 
+#ifdef CONFIG_MSM_FORCE_MAX_CPU_TABLE
+	int setmaxcpu = 1;
+#else
+	int setmaxcpu = 0;
+#endif
+
 	pte_efuse = readl_relaxed(QFPROM_PTE_EFUSE_ADDR);
 
 	speed_bin = pte_efuse & 0xF;
@@ -1020,7 +1026,7 @@ static __init struct clkctl_acpu_speed *select_freq_plan(void)
 	if (pvs == 0x7)
 		pvs = (pte_efuse >> 13) & 0x7;
 
-	if (speed_bin == 0x2) {
+	if ((speed_bin == 0x2) && (setmaxcpu == 0)) {
 		switch (pvs) {
 		case 0x7:
 		case 0x4:
@@ -1044,7 +1050,7 @@ static __init struct clkctl_acpu_speed *select_freq_plan(void)
 			pr_warn("ACPU PVS: Unknown. Defaulting to slower.\n");
 			break;
 		}
-	} else if (speed_bin == 0x1) {
+	} else if ((speed_bin == 0x1) && (setmaxcpu == 0)){
 		switch (pvs) {
 		case 0x0:
 		case 0x7:
