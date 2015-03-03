@@ -816,11 +816,4 @@ config SENSORS_LSM330_GYRO
 
 	  Say Y here if you have a device containing LSM330 chip.
 
-if CONFIG_MACH_HTC
 source "drivers/input/misc/mpu3050/Kconfig"
-endif
-
-if !CONFIG_MACH_HTC
-source "drivers/input/misc/mpu3050_hp/Kconfig"
-endif
-
