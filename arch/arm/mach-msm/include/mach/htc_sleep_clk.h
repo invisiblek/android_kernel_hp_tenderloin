@@ -14,14 +14,20 @@
  *
  */
 
-#define ID_WIFI	0
-#define ID_BT	1
-#define CLK_OFF	0
-#define CLK_ON	1
+#ifndef __ASM_ARCH_HTC_SLEEP_CLK_H
+#define __ASM_ARCH_HTC_SLEEP_CLK_H
+
+#define ID_WIFI	(0)
+#define ID_BT	(1)
+#define CLK_OFF	(0)
+#define CLK_ON	(1)
+
+#define M4_SLEEP_CLK_PIN 8
 
 struct htc_sleep_clk_platform_data {
-	/* sleep clock control pin */
-	int sleep_clk_pin;
+	int sleep_clk_pin; /* sleep clock control pin */
 };
 
 int htc_wifi_bt_sleep_clk_ctl(int on, int id);
+
+#endif
