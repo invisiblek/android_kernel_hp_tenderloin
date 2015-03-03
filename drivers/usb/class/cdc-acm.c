@@ -262,19 +262,9 @@ static int acm_write_start(struct acm *acm, int wbn)
 							acm->susp_count);
 	usb_autopm_get_interface_async(acm->control);
 	if (acm->susp_count) {
-		if (!acm->delayed_wb)
-			acm->delayed_wb = wb;
-		else {
-			if (acm->delayed_wb->len + wb->len <= acm->writesize ) {
-				memcpy(acm->delayed_wb->buf + acm->delayed_wb->len, wb->buf, wb->len);
-				acm->delayed_wb->len += wb->len;
-			}
-			wb->use = 0;
-			usb_autopm_put_interface_async(acm->control);
-        }
-
+		usb_anchor_urb(wb->urb, &acm->delayed);
 		spin_unlock_irqrestore(&acm->write_lock, flags);
-		return 0;	/* A white lie */
+		return 0;
 	}
 	usb_mark_last_busy(acm->dev);
 
