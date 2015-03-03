@@ -32,6 +32,7 @@ config HTC_BATT_8960
 	bool "HTC battery driver for MSM8960"
 
 config HTC_CLK_CTRL
+	depends on ARCH_MSM8X60
 	default n
 	bool "HTC Fast/Sleep Clk Support"
 
