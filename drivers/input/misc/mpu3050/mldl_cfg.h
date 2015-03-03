@@ -17,31 +17,18 @@
   $
  */
 
-/**
- *  @addtogroup MLDL
- *
- *  @{
- *      @file   mldl_cfg.h
- *      @brief  The Motion Library Driver Layer Configuration header file.
- */
 
 #ifndef __MLDL_CFG_H__
 #define __MLDL_CFG_H__
 
-/* ------------------ */
-/* - Include Files. - */
-/* ------------------ */
 
 #include "mlsl.h"
-#include <linux/mpu.h>
+#include "mpu.h"
 
-/* --------------------- */
-/* -    Defines.       - */
-/* --------------------- */
 
-/*************************************************************************/
-/*  Sensors                                                              */
-/*************************************************************************/
+    
+    
+    
 
 #define ML_X_GYRO			(0x0001)
 #define ML_Y_GYRO			(0x0002)
@@ -85,25 +72,10 @@
 	(((((mldl_cfg)->lpf) == 0) || (((mldl_cfg)->lpf) == 7))		\
 		? (8000)						\
 		: (1000)))
-/* --------------------- */
-/* -    Variables.     - */
-/* --------------------- */
 
-/* Compat version of mpu3050_platform_data struct */
-struct mpu_compat_platform_data {
-	unsigned char int_config;
-	signed char orientation[GYRO_NUM_AXES * GYRO_NUM_AXES];
-	unsigned char level_shifter;
-	struct ext_slave_platform_data accel;
-	struct ext_slave_platform_data compass;
-	struct ext_slave_platform_data pressure;
-};
-
-/* Platform data for the MPU */
 struct mldl_cfg {
-	/* MPU related configuration */
+	
 	unsigned long requested_sensors;
-	unsigned char ignore_system_suspend;
 	unsigned char addr;
 	unsigned char int_config;
 	unsigned char ext_sync;
@@ -115,19 +87,18 @@ struct mldl_cfg {
 	unsigned char fifo_enable;
 	unsigned char dmp_cfg1;
 	unsigned char dmp_cfg2;
-	unsigned char offset_tc[GYRO_NUM_AXES];
-	unsigned short offset[GYRO_NUM_AXES];
+	unsigned char gyro_power;
+	unsigned char offset_tc[MPU_NUM_AXES];
+	unsigned short offset[MPU_NUM_AXES];
 	unsigned char ram[MPU_MEM_NUM_RAM_BANKS][MPU_MEM_BANK_SIZE];
 
-	/* MPU Related stored status and info */
-	unsigned char product_revision;
+	
 	unsigned char silicon_revision;
 	unsigned char product_id;
 	unsigned short trim;
 
-	/* Driver/Kernel related state information */
+	
 	int gyro_is_bypassed;
-	int i2c_slaves_enabled;
 	int dmp_is_running;
 	int gyro_is_suspended;
 	int accel_is_suspended;
@@ -135,12 +106,12 @@ struct mldl_cfg {
 	int pressure_is_suspended;
 	int gyro_needs_reset;
 
-	/* Slave related information */
+	
 	struct ext_slave_descr *accel;
 	struct ext_slave_descr *compass;
 	struct ext_slave_descr *pressure;
 
-	/* Platform Data */
+	
 	struct mpu3050_platform_data *pdata;
 };
 
@@ -202,7 +173,6 @@ int mpu3050_get_config_pressure(struct mldl_cfg *mldl_cfg,
 				void *pressure_handle,
 				struct ext_slave_config *data);
 
-extern struct mutex mutex_fifo_reading_access_lock;
 
-#endif				/* __MLDL_CFG_H__ */
+#endif				
 

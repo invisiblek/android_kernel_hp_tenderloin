@@ -784,5 +784,11 @@ config INPUT_ISL29023
 	  This driver can also be built as a module.  If so, the module
 	  will be called isl29023.
 
+if CONFIG_MACH_HTC
 source "drivers/input/misc/mpu3050/Kconfig"
+endif
+
+if !CONFIG_MACH_HTC
+source "drivers/input/misc/mpu3050_hp/Kconfig"
+endif
 

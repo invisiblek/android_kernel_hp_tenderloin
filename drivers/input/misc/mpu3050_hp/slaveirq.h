@@ -17,29 +17,21 @@
   $
  */
 
-#ifndef __MPUIRQ__
-#define __MPUIRQ__
+#ifndef __SLAVEIRQ__
+#define __SLAVEIRQ__
 
-#ifdef __KERNEL__
 #include <linux/i2c-dev.h>
-#endif
 
-#define MPUIRQ_ENABLE_DEBUG          (1)
-#define MPUIRQ_GET_INTERRUPT_CNT     (2)
-#define MPUIRQ_GET_IRQ_TIME          (3)
-#define MPUIRQ_GET_LED_VALUE         (4)
-#define MPUIRQ_SET_TIMEOUT           (5)
-#define MPUIRQ_SET_ACCEL_INFO        (6)
-#define MPUIRQ_SET_FREQUENCY_DIVIDER (7)
-#define MPUIRQ_GET_DEBUG_FLAG        (8)
+#include <linux/mpu.h>
+#include "mpuirq.h"
 
-extern int mpu_debug_flag;
+#define SLAVEIRQ_SET_TIMEOUT           _IOW(MPU_IOCTL, 0x50, unsigned long)
+#define SLAVEIRQ_GET_INTERRUPT_CNT     _IOR(MPU_IOCTL, 0x51, unsigned long)
+#define SLAVEIRQ_GET_IRQ_TIME          _IOR(MPU_IOCTL, 0x52, unsigned long)
 
-#ifdef __KERNEL__
 
-void mpuirq_exit(void);
-int mpuirq_init(struct i2c_client *mpu_client);
-
-#endif
-
+void slaveirq_exit(struct ext_slave_platform_data *pdata);
+int slaveirq_init(struct i2c_adapter *slave_adapter,
+		struct ext_slave_platform_data *pdata,
+		char *name);
 #endif

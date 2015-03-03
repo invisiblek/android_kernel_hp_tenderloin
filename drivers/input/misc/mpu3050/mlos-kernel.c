@@ -16,16 +16,6 @@
     along with this program.  If not, see <http://www.gnu.org/licenses/>.
   $
  */
-/**
- * @defgroup
- * @brief
- *
- * @{
- * @file     mlos-kernel.c
- * @brief
- *
- *
- */
 
 #include "mlos.h"
 #include <linux/delay.h>
@@ -36,54 +26,54 @@ void *MLOSMalloc(unsigned int numBytes)
 	return kmalloc(numBytes, GFP_KERNEL);
 }
 
-unchar MLOSFree(void *ptr)
+tMLError MLOSFree(void *ptr)
 {
 	kfree(ptr);
 	return ML_SUCCESS;
 }
 
-unchar MLOSCreateMutex(uint *mutex)
+tMLError MLOSCreateMutex(HANDLE *mutex)
 {
-	/* @todo implement if needed */
+	
 	return ML_ERROR_FEATURE_NOT_IMPLEMENTED;
 }
 
-unchar MLOSLockMutex(uint mutex)
+tMLError MLOSLockMutex(HANDLE mutex)
 {
-	/* @todo implement if needed */
+	
 	return ML_ERROR_FEATURE_NOT_IMPLEMENTED;
 }
 
-unchar MLOSUnlockMutex(uint mutex)
+tMLError MLOSUnlockMutex(HANDLE mutex)
 {
-	/* @todo implement if needed */
+	
 	return ML_ERROR_FEATURE_NOT_IMPLEMENTED;
 }
 
-unchar MLOSDestroyMutex(uint handle)
+tMLError MLOSDestroyMutex(HANDLE handle)
 {
-	/* @todo implement if needed */
+	
 	return ML_ERROR_FEATURE_NOT_IMPLEMENTED;
 }
 
-uint *MLOSFOpen(char *filename)
+FILE *MLOSFOpen(char *filename)
 {
-	/* @todo implement if needed */
+	
 	return NULL;
 }
 
-void MLOSFClose(uint *fp)
+void MLOSFClose(FILE *fp)
 {
-	/* @todo implement if needed */
+	
 }
 
 void MLOSSleep(int mSecs)
 {
-	hr_msleep(mSecs);
+	msleep(mSecs);
 }
 
 unsigned long MLOSGetTickCount(void)
 {
-	/* @todo implement if needed */
+	
 	return ML_ERROR_FEATURE_NOT_IMPLEMENTED;
 }
