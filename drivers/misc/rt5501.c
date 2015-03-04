@@ -614,15 +614,13 @@ static void hs_imp_detec_func(struct work_struct *work)
 
 	rt5501_write_reg(0x0,0xc0);
 	rt5501_write_reg(0x81,0x30);
-	
 	rt5501_write_reg(0x90,0xd0);
 	rt5501_write_reg(0x93,0x9d);
 	rt5501_write_reg(0x95,0x7b);
-	rt5501_write_reg(0xa4,0x01);
-	
-	rt5501_write_reg(0x97,0x11);
+	rt5501_write_reg(0xa4,0x52);
+	rt5501_write_reg(0x97,0x00);
 	rt5501_write_reg(0x98,0x22);
-	rt5501_write_reg(0x99,0x44);
+	rt5501_write_reg(0x99,0x33);
 	rt5501_write_reg(0x9a,0x55);
 	rt5501_write_reg(0x9b,0x66);
 	rt5501_write_reg(0x9c,0x99);
@@ -975,7 +973,6 @@ static struct miscdevice rt5501_device = {
 int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 {
 	int ret = 0;
-        int err = 0;
 	MFG_MODE = board_mfg_mode();
 	pdata = client->dev.platform_data;
 
@@ -1002,10 +999,10 @@ int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		goto err_free_gpio_all;
 	}
 
-	if(pdata->gpio_rt5501_spk_en) {
+	if(gpio_is_valid(pdata->gpio_rt5501_spk_en)) {
 		char temp[2];
 
-		err = gpio_request(pdata->gpio_rt5501_spk_en, "hp_en");
+		gpio_request(pdata->gpio_rt5501_spk_en, "hp_en");
 
 		ret = gpio_direction_output(pdata->gpio_rt5501_spk_en, 1);
 
@@ -1030,15 +1027,13 @@ int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 
 		rt5501_write_reg(0x0,0xc0);
 		rt5501_write_reg(0x81,0x30);
-		
 		rt5501_write_reg(0x90,0xd0);
 		rt5501_write_reg(0x93,0x9d);
 		rt5501_write_reg(0x95,0x7b);
-		rt5501_write_reg(0xa4,0x01);
-		
-		rt5501_write_reg(0x97,0x11);
+		rt5501_write_reg(0xa4,0x52);
+		rt5501_write_reg(0x97,0x00);
 		rt5501_write_reg(0x98,0x22);
-		rt5501_write_reg(0x99,0x44);
+		rt5501_write_reg(0x99,0x33);
 		rt5501_write_reg(0x9a,0x55);
 		rt5501_write_reg(0x9b,0x66);
 		rt5501_write_reg(0x9c,0x99);
@@ -1047,9 +1042,6 @@ int rt5501_probe(struct i2c_client *client, const struct i2c_device_id *id)
 		rt5501_write_reg(0x1,0xc7);
 
 		gpio_direction_output(pdata->gpio_rt5501_spk_en, 0);
-
-		if(!err)
-			gpio_free(pdata->gpio_rt5501_spk_en);
 
 		if(ret < 0) {
 			pr_err("%s: gpio %d off error %d\n", __func__,pdata->gpio_rt5501_spk_en,ret);
@@ -1140,6 +1132,9 @@ static void rt5501_shutdown(struct i2c_client *client)
 			rt5501_query.s4status = AMP_S4_AUTO;
 		}
 	}
+
+	if(gpio_is_valid(pdata->gpio_rt5501_spk_en))
+		gpio_free(pdata->gpio_rt5501_spk_en);
 
         mutex_unlock(&rt5501_query.mlock);
 	mutex_unlock(&hp_amp_lock);

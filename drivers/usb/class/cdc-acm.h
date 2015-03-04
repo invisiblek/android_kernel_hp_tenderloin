@@ -113,7 +113,7 @@ struct acm {
 	bool disconnected;
 	struct usb_cdc_line_coding line;		/* bits, stop, parity */
 	struct work_struct work;			/* work queue entry for line discipline waking up */
-    unsigned int state;				/* MBM, state for comm features */
+	unsigned int state;				/* MBM, state for comm features */
 	unsigned int ctrlin;				/* input control lines (DCD, DSR, RI, break, overruns) */
 	unsigned int ctrlout;				/* output control lines (DTR, RTS) */
 	unsigned int writesize;				/* max packet size for the output bulk endpoint */
@@ -127,7 +127,7 @@ struct acm {
 	unsigned int throttled:1;			/* actually throttled */
 	unsigned int throttle_req:1;			/* throttle requested */
 	u8 bInterval;
-	struct acm_wb *delayed_wb;			/* write queued for a device about to be woken */
+	struct usb_anchor delayed;			/* writes queued for a device about to be woken */
 	struct usb_ctrlrequest *irq;			/* MBM, added for get_encapsulated_command */
 	struct urb *response;
 	u8 *inbuf;

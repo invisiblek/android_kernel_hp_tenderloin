@@ -1055,9 +1055,9 @@ static void m7_set_backlight(struct msm_fb_data_type *mfd)
 			resume_blk = 0;
 			gpio_tlmm_config(GPIO_CFG(BL_HW_EN, 0, GPIO_CFG_OUTPUT, GPIO_CFG_NO_PULL, GPIO_CFG_2MA), GPIO_CFG_ENABLE);
 			gpio_set_value(BL_HW_EN, 1);
-			hr_msleep(1);
+			hr_msleep(4);
 			pwmic_config(idx, val, sizeof(idx));
-			hr_msleep(1);
+			hr_msleep(12);
 			pwmic_config(idx0, val0, sizeof(idx0));
 		}
 	} else {
@@ -1337,22 +1337,39 @@ static int __devinit mipi_m7_lcd_probe(struct platform_device *pdev)
 {
 	switch (panel_type) {
 	case PANEL_ID_DLXJ_SHARP_RENESAS:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_DLXJ_SHARP_RENESAS");
+		sharp_renesas_panel_init();
+		break;
 	case PANEL_ID_M7_SHARP_RENESAS:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_SHARP_RENESAS");
 		sharp_renesas_panel_init();
 		break;
 	case PANEL_ID_DLXJ_SONY_RENESAS:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_DLXJ_SONY_RENESAS");
 		sony_panel_init();
 		break;
 	case PANEL_ID_M7_JDI_SAMSUNG:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_JDI_SAMSUNG");
+		samsung_panel_init();
+		break;
 	case PANEL_ID_M7_JDI_SAMSUNG_C2:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_JDI_SAMSUNG_C2");
+		samsung_panel_init();
+		break;
 	case PANEL_ID_M7_JDI_SAMSUNG_C2_1:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_JDI_SAMSUNG_C2_1");
+		samsung_panel_init();
+		break;
 	case PANEL_ID_M7_JDI_SAMSUNG_C2_2:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_JDI_SAMSUNG_C2_2");
 		samsung_panel_init();
 		break;
 	case PANEL_ID_M7_SHARP_RENESAS_C1:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_SHARP_RENESAS_C1");
 		sharp_panel_init();
 		break;
 	case PANEL_ID_M7_JDI_RENESAS:
+		pr_info("%s: panel type: %s\n", __func__, "PANEL_ID_M7_JDI_RENESAS");
 		jdi_renesas_panel_init();
 		break;
 	default:

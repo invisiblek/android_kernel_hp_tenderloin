@@ -37,7 +37,6 @@
 #include <asm/mach/arch.h>
 #include <asm/hardware/gic.h>
 #include <asm/mach/mmc.h>
-#include <linux/platform_data/qcom_wcnss_device.h>
 
 #include <mach/board.h>
 #include <mach/msm_iomap.h>
@@ -2156,47 +2155,6 @@ static struct attribute_group syn_properties_attr_group = {
 };
 #endif
 
-#define MSM_WCNSS_PHYS	0x03000000
-#define MSM_WCNSS_SIZE	0x280000
-
-static struct resource resources_wcnss_wlan[] = {
-	{
-		.start	= RIVA_APPS_WLAN_RX_DATA_AVAIL_IRQ,
-		.end	= RIVA_APPS_WLAN_RX_DATA_AVAIL_IRQ,
-		.name	= "wcnss_wlanrx_irq",
-		.flags	= IORESOURCE_IRQ,
-	},
-	{
-		.start	= RIVA_APPS_WLAN_DATA_XFER_DONE_IRQ,
-		.end	= RIVA_APPS_WLAN_DATA_XFER_DONE_IRQ,
-		.name	= "wcnss_wlantx_irq",
-		.flags	= IORESOURCE_IRQ,
-	},
-	{
-		.start	= MSM_WCNSS_PHYS,
-		.end	= MSM_WCNSS_PHYS + MSM_WCNSS_SIZE - 1,
-		.name	= "wcnss_mmio",
-		.flags	= IORESOURCE_MEM,
-	},
-	{
-		.start	= 64,
-		.end	= 68,
-		.name	= "wcnss_gpios_5wire",
-		.flags	= IORESOURCE_IO,
-	},
-};
-
-static struct qcom_wcnss_opts qcom_wcnss_pdata = {
-	.has_48mhz_xo	= 1,
-};
-
-static struct platform_device msm_device_wcnss_wlan = {
-	.name		= "wcnss_wlan",
-	.id		= 0,
-	.num_resources	= ARRAY_SIZE(resources_wcnss_wlan),
-	.resource	= resources_wcnss_wlan,
-	.dev		= {.platform_data = &qcom_wcnss_pdata},
-};
 
 #ifdef CONFIG_QSEECOM
 /* qseecom bus scaling */
@@ -3245,6 +3203,9 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.chg_limit_active_mask = HTC_BATT_CHG_LIMIT_BIT_TALK |
 								HTC_BATT_CHG_LIMIT_BIT_NAVI |
 								HTC_BATT_CHG_LIMIT_BIT_THRML,
+#ifdef CONFIG_DUTY_CYCLE_LIMIT
+	.chg_limit_timer_sub_mask = HTC_BATT_CHG_LIMIT_BIT_THRML,
+#endif
 	.critical_low_voltage_mv = 3200,
 	.critical_alarm_vol_ptr = critical_alarm_voltage_mv,
 	.critical_alarm_vol_cols = sizeof(critical_alarm_voltage_mv) / sizeof(int),
@@ -3278,6 +3239,9 @@ static struct htc_battery_platform_data htc_battery_pdev_data = {
 	.igauge.get_battery_id = pm8921_get_batt_id,
 	.igauge.get_battery_soc = pm8921_bms_get_batt_soc,
 	.igauge.get_battery_cc = pm8921_bms_get_batt_cc,
+	.igauge.store_battery_data = pm8921_bms_store_battery_data_emmc,
+	.igauge.store_battery_ui_soc = pm8921_bms_store_battery_ui_soc,
+	.igauge.get_battery_ui_soc = pm8921_bms_get_battery_ui_soc,
 	.igauge.is_battery_temp_fault = pm8921_is_batt_temperature_fault,
 	.igauge.is_battery_full = pm8921_is_batt_full,
 	.igauge.get_attr_text = pm8921_gauge_get_attr_text,
@@ -3605,7 +3569,6 @@ static struct platform_device *common_devices[] __initdata = {
 	&msm_device_smd_apq8064,
 	&apq8064_device_otg,
 	&apq8064_device_hsusb_host,
-	&msm_device_wcnss_wlan,
 	&apq8064_fmem_device,
 #ifdef CONFIG_ANDROID_PMEM
 #ifndef CONFIG_MSM_MULTIMEDIA_USE_ION

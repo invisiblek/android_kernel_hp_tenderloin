@@ -21,79 +21,66 @@
 #define __MSSL_H__
 
 #include "mltypes.h"
-#include <linux/mpu.h>
+#include "mpu.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/* ------------ */
-/* - Defines. - */
-/* ------------ */
 
-/*
- * NOTE : to properly support Yamaha compass reads,
- * the max transfer size should be at least 9 B.
- * Length in bytes, typically a power of 2 >= 2
- */
 #define SERIAL_MAX_TRANSFER_SIZE 128
 
-/* ---------------------- */
-/* - Types definitions. - */
-/* ---------------------- */
 
-/* --------------------- */
-/* - Function p-types. - */
-/* --------------------- */
 
-unchar MLSLSerialOpen(char const *port,
-			void **sl_handle);
-unchar MLSLSerialReset(void *sl_handle);
-unchar MLSLSerialClose(void *sl_handle);
+	tMLError MLSLSerialOpen(char const *port,
+				void **sl_handle);
+	tMLError MLSLSerialReset(void *sl_handle);
+	tMLError MLSLSerialClose(void *sl_handle);
 
-unchar MLSLSerialWriteSingle(void *sl_handle,
-			       unsigned char slaveAddr,
-			       unsigned char registerAddr,
-			       unsigned char data);
+	tMLError MLSLSerialWriteSingle(void *sl_handle,
+				       unsigned char slaveAddr,
+				       unsigned char registerAddr,
+				       unsigned char data);
 
-unchar MLSLSerialRead(void *sl_handle,
-			unsigned char slaveAddr,
-			unsigned char registerAddr,
-			unsigned short length,
-			unsigned char *data);
+	tMLError MLSLSerialRead(void *sl_handle,
+				unsigned char slaveAddr,
+				unsigned char registerAddr,
+				unsigned short length,
+				unsigned char *data);
 
-unchar MLSLSerialWrite(void *sl_handle,
-			 unsigned char slaveAddr,
-			 unsigned short length,
-			 unsigned char const *data);
+	tMLError MLSLSerialWrite(void *sl_handle,
+				 unsigned char slaveAddr,
+				 unsigned short length,
+				 unsigned char const *data);
 
-unchar MLSLSerialReadMem(void *sl_handle,
-			   unsigned char slaveAddr,
-			   unsigned short memAddr,
-			   unsigned short length,
-			   unsigned char *data);
+	tMLError MLSLSerialReadMem(void *sl_handle,
+				   unsigned char slaveAddr,
+				   unsigned short memAddr,
+				   unsigned short length,
+				   unsigned char *data);
 
-unchar MLSLSerialWriteMem(void *sl_handle,
-			    unsigned char slaveAddr,
-			    unsigned short memAddr,
-			    unsigned short length,
-			    unsigned char const *data);
+	tMLError MLSLSerialWriteMem(void *sl_handle,
+				    unsigned char slaveAddr,
+				    unsigned short memAddr,
+				    unsigned short length,
+				    unsigned char const *data);
 
-unchar MLSLSerialReadFifo(void *sl_handle,
-			    unsigned char slaveAddr,
-			    unsigned short length,
-			    unsigned char *data);
+	tMLError MLSLSerialReadFifo(void *sl_handle,
+				    unsigned char slaveAddr,
+				    unsigned short length,
+				    unsigned char *data);
 
-unchar MLSLSerialWriteFifo(void *sl_handle,
-			     unsigned char slaveAddr,
-			     unsigned short length,
-			     unsigned char const *data);
+	tMLError MLSLSerialWriteFifo(void *sl_handle,
+				     unsigned char slaveAddr,
+				     unsigned short length,
+				     unsigned char const *data);
 
-unchar MLSLWriteCal(unsigned char *cal, unsigned int len);
-unchar MLSLReadCal(unsigned char *cal, unsigned int len);
-unchar MLSLGetCalLength(unsigned int *len);
+	tMLError MLSLWriteCal(unsigned char *cal, unsigned int len);
+	tMLError MLSLReadCal(unsigned char *cal, unsigned int len);
+	tMLError MLSLGetCalLength(unsigned int *len);
 
 #ifdef __cplusplus
 }
 #endif
-#endif				/* MLSL_H */
+
+#endif				

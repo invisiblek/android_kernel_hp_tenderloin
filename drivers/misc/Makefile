@@ -93,3 +93,4 @@ obj-$(CONFIG_USER_PINS)		+= user-pins.o
 obj-$(CONFIG_KERNEL_LOG)	+= klog.o
 obj-$(CONFIG_HSUART)		+= hsuart.o hsuart_tty.o
 obj-$(CONFIG_MDMGPIO)		+= mdmgpio.o
+obj-$(CONFIG_FPR_SPI)		+= fpr/

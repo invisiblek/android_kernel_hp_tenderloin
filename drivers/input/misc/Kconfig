@@ -708,6 +708,12 @@ config SENSORS_BMA250
 	help
 	  BMA250 G-sensor driver for HTC
 
+config SENSORS_ONLY_BMA250
+	tristate "BMA250 acceleration sensor support"
+	depends on I2C=y
+	help
+	  BMA250 ONLY G-sensor Driver implemented by HTC.
+
 config SENSORS_BMA250_BOSCH
 	tristate "BMA250 accelerometer sensor support (M7)"
 	depends on I2C=y
@@ -784,5 +790,30 @@ config INPUT_ISL29023
 	  This driver can also be built as a module.  If so, the module
 	  will be called isl29023.
 
-source "drivers/input/misc/mpu3050/Kconfig"
+config SENSORS_LSM330_ACC
+	tristate "ST LSM330 3-axis accelerometer"
+	depends on I2C=y
+	default n
+	help
+	  This driver provides support for the LSM330 chip which is a
+	  3-axis accelerometer.
 
+	  This driver can also be built as modules.  If so, the module for
+	  accelerometer will be called lsm330.
+
+	  Say Y here if you have a device containing lsm330 chip.
+
+config SENSORS_LSM330_GYRO
+	tristate "ST LSM330 3-axis gyroscope"
+	depends on I2C=y
+	default n
+	help
+	  This driver provides support for the LSM330 chip which is a
+	  3-axis gyroscope.
+
+	  This driver can also be built as modules.  If so, the module for
+	  accelerometer will be called LSM330.
+
+	  Say Y here if you have a device containing LSM330 chip.
+
+source "drivers/input/misc/mpu3050/Kconfig"

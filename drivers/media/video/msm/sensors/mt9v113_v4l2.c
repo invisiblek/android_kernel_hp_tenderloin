@@ -1007,7 +1007,7 @@ static int mt9v113_set_sensor_mode(struct msm_sensor_ctrl_t *s_ctrl, int mode)
 					NOTIFY_CSID_CFG, &mt9v113_s_ctrl.curr_csi_params->csid_params);
 
 			v4l2_subdev_notify(&(mt9v113_s_ctrl.sensor_v4l2_subdev),
-					NOTIFY_CID_CHANGE, NULL);
+					NOTIFY_CID_CHANGE, &mt9v113_s_ctrl.intf);
 			dsb();
 
 			v4l2_subdev_notify(&(mt9v113_s_ctrl.sensor_v4l2_subdev),
@@ -1915,7 +1915,7 @@ static int mt9v113_vreg_disable(struct platform_device *pdev)
 }
 #endif
 
-static int mt9v113_probe_init_sensor(const struct msm_camera_sensor_info *data)
+static int mt9v113_probe_init_sensor(struct msm_camera_sensor_info *data)
 {
 	
 	int rc = 0;
@@ -1936,7 +1936,7 @@ static int mt9v113_probe_init_sensor(const struct msm_camera_sensor_info *data)
 		gpio_direction_output(data->sensor_reset, 0);
 		msleep(1);
 
-		rc = msm_camio_clk_enable(CAMIO_CAM_MCLK_CLK);
+		rc = msm_camio_clk_enable(data, CAMIO_CAM_MCLK_CLK);
 		if (rc < 0) {
 			goto probe_init_fail;
 		}
@@ -1993,9 +1993,9 @@ init_probe_done:
 	return rc;
 }
 
-
-
-int mt9v113_sensor_open_init(const struct msm_camera_sensor_info *data)
+static int suspend_fail_retry_count_2;
+#define SUSPEND_FAIL_RETRY_MAX_2 3
+int mt9v113_sensor_open_init(struct msm_camera_sensor_info *data)
 {
 	int rc = 0;
 	uint16_t check_value = 0;
@@ -2428,7 +2428,7 @@ int32_t mt9v113_power_down(struct msm_sensor_ctrl_t *s_ctrl)
 
 	if (!sdata->use_rawchip) {
 		pr_info("%s MCLK disable clk\n", __func__);
-		msm_camio_clk_disable(CAMIO_CAM_MCLK_CLK);
+		msm_camio_clk_disable(sdata, CAMIO_CAM_MCLK_CLK);
 		if (rc < 0)
 			pr_err("%s: msm_camio_sensor_clk_off failed:%d\n",
 				 __func__, rc);
