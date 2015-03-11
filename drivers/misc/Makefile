@@ -92,3 +92,4 @@ obj-$(CONFIG_KERNEL_LOG)	+= klog.o
 obj-$(CONFIG_HSUART)		+= hsuart.o hsuart_tty.o
 obj-$(CONFIG_MDMGPIO)		+= mdmgpio.o
 obj-$(CONFIG_FPR_SPI)		+= fpr/
+obj-$(CONFIG_UID_CPUTIME) += uid_cputime.o
