@@ -806,6 +806,12 @@ config AMP_TFA9887L
         help
          NXP TFA9887L Speaker AMP Driver implemented by HTC.
 
+config UID_CPUTIME
+	tristate "Per-UID cpu time statistics"
+	default n
+	help
+	  Per UID based cpu time statistics exported to /proc/uid_cputime
+
 source "drivers/misc/c2port/Kconfig"
 source "drivers/misc/eeprom/Kconfig"
 source "drivers/misc/cb710/Kconfig"
