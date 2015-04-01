@@ -1156,6 +1156,7 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 	unsigned long flags;
 	struct qseecom_registered_app_list *ptr_app;
 	bool found_app = false;
+	int name_len = 0;
 
 	reqd_len_sb_in = req->cmd_req_len + req->resp_len;
 
@@ -1163,10 +1164,11 @@ static int __qseecom_send_cmd(struct qseecom_dev_handle *data,
 	spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
 	list_for_each_entry(ptr_app, &qseecom.registered_app_list_head,
 							list) {
+		name_len = min(strlen(data->client.app_name),
+				strlen(ptr_app->app_name));
 		if ((ptr_app->app_id == data->client.app_id) &&
-			 (!memcmp((void *)ptr_app->app_name,
-				(void *)data->client.app_name,
-				strlen(data->client.app_name)))) {
+			 (!memcmp(ptr_app->app_name,
+				data->client.app_name, name_len))) {
 			found_app = true;
 			break;
 		}
@@ -1590,6 +1592,12 @@ int qseecom_start_app(struct qseecom_handle **handle,
 		return -EINVAL;
 	}
 
+	if (!app_name || strlen(app_name) >= MAX_APP_NAME_SIZE) {
+		pr_err("The app_name (%s) with length %zu is not valid\n",
+			app_name, strlen(app_name));
+		return -EINVAL;
+	}
+
 	*handle = kzalloc(sizeof(struct qseecom_handle), GFP_KERNEL);
 	if (!(*handle)) {
 		pr_err("failed to allocate memory for kernel client handle\n");
@@ -1664,6 +1672,7 @@ int qseecom_start_app(struct qseecom_handle **handle,
 			return ret;
 		}
 		data->client.app_id = ret;
+		memcpy(data->client.app_name, app_name, MAX_APP_NAME_SIZE);
 	}
 	if (!found_app) {
 		entry = kmalloc(sizeof(*entry), GFP_KERNEL);
@@ -1676,6 +1685,7 @@ int qseecom_start_app(struct qseecom_handle **handle,
 		}
 		entry->app_id = ret;
 		entry->ref_cnt = 1;
+		memcpy(entry->app_name, app_name, MAX_APP_NAME_SIZE);
 
 		spin_lock_irqsave(&qseecom.registered_app_list_lock, flags);
 		list_add_tail(&entry->list, &qseecom.registered_app_list_head);
@@ -1728,6 +1738,9 @@ int qseecom_shutdown_app(struct qseecom_handle **handle)
 		return -EINVAL;
 	}
 	data =	(struct qseecom_dev_handle *) ((*handle)->dev);
+	mutex_lock(&app_access_lock);
+	atomic_inc(&data->ioctl_count);
+
 	spin_lock_irqsave(&qseecom.registered_kclient_list_lock, flags);
 	list_for_each_entry(kclient, &qseecom.registered_kclient_list_head,
 				list) {
@@ -1742,12 +1755,17 @@ int qseecom_shutdown_app(struct qseecom_handle **handle)
 		pr_err("Unable to find the handle, exiting\n");
 	else
 		ret = qseecom_unload_app(data, false);
+
+	atomic_dec(&data->ioctl_count);
+	mutex_unlock(&app_access_lock);
+
 	if (ret == 0) {
 		kzfree(data);
 		kzfree(*handle);
 		kzfree(kclient);
 		*handle = NULL;
 	}
+
 	return ret;
 }
 EXPORT_SYMBOL(qseecom_shutdown_app);

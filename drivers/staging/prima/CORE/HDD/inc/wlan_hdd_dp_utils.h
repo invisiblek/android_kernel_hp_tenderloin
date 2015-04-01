@@ -50,13 +50,8 @@
   Description...
                Copyright 2008 (c) Qualcomm, Incorporated.
                All Rights Reserved.
-<<<<<<< HEAD:CORE/HDD/inc/wlan_hdd_dp_utils.h
-               Qualcomm Confidential and Proprietary.
-  
-=======
                Qualcomm Technologies Confidential and Proprietary.
 
->>>>>>> 009551c... wlan: hdd: remove obsolete "WLAN_SOFTAP_FEATURE" featurization:prima/CORE/HDD/inc/wlan_hdd_dp_utils.h
   ==============================================================================**/
 /* $HEADER$ */
 
