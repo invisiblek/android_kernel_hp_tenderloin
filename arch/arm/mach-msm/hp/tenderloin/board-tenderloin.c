@@ -1426,12 +1426,12 @@ static void __init msm8x60_init_dsps(void)
 }
 #endif 
 
-#define MSM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
+#define MSM_PMEM_SF_SIZE 0x200000 /* 2 Mbytes */
 #define MSM_HDMI_PRIM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
 
 #define MSM_PMEM_KERNEL_EBI1_SIZE  0x600000
-#define MSM_PMEM_ADSP_SIZE         0x4200000
-#define MSM_PMEM_AUDIO_SIZE        0x4CF000
+#define MSM_PMEM_ADSP_SIZE         0x600000 /* 6 Mbytes */
+#define MSM_PMEM_AUDIO_SIZE        0x28B000
 
 #define MSM_SMI_BASE          0x38000000
 #define MSM_SMI_SIZE          0x4000000
@@ -1448,7 +1448,7 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_PMEM_SMIPOOL_SIZE USER_SMI_SIZE
 
 #define MSM_ION_SF_SIZE		0x4000000 /* 64MB */
-#define MSM_ION_CAMERA_SIZE     MSM_PMEM_ADSP_SIZE
+#define MSM_ION_CAMERA_SIZE   0x4000000 /* 64MB */
 #define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
