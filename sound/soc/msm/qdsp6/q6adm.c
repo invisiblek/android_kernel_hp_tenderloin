@@ -885,6 +885,7 @@ int adm_multi_ch_copp_open(int port_id, int path, int rate, int channel_mode,
           open.topology_id = topology;
 
 		open.channel_config = channel_mode & 0x00FF;
+		open.reserved = 24;
 		open.rate  = rate;
 
 		pr_debug("%s: channel_config=%d port_id=%d rate=%d"

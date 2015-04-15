@@ -57,7 +57,8 @@ static int dapm_up_seq[] = {
 	[snd_soc_dapm_pre] = 0,
 	[snd_soc_dapm_supply] = 1,
 	[snd_soc_dapm_micbias] = 2,
-	[snd_soc_dapm_adc] = 3,
+	[snd_soc_dapm_aif_in] = 3,
+	[snd_soc_dapm_aif_out] = 3,
 	[snd_soc_dapm_mic] = 4,
 	[snd_soc_dapm_mux] = 5,
 	[snd_soc_dapm_virt_mux] = 5,
@@ -66,21 +67,20 @@ static int dapm_up_seq[] = {
 	[snd_soc_dapm_mixer] = 7,
 	[snd_soc_dapm_mixer_named_ctl] = 7,
 	[snd_soc_dapm_pga] = 8,
-	[snd_soc_dapm_aif_in] = 8,
-	[snd_soc_dapm_aif_out] = 8,
+	[snd_soc_dapm_adc] = 9,
 	[snd_soc_dapm_out_drv] = 10,
 	[snd_soc_dapm_hp] = 10,
 	[snd_soc_dapm_spk] = 10,
+	[snd_soc_dapm_line] = 10,
 	[snd_soc_dapm_post] = 11,
 };
 
 static int dapm_down_seq[] = {
 	[snd_soc_dapm_pre] = 0,
-	[snd_soc_dapm_aif_in] = 1,
-	[snd_soc_dapm_aif_out] = 1,
-	[snd_soc_dapm_adc] = 5,
+	[snd_soc_dapm_adc] = 1,
 	[snd_soc_dapm_hp] = 2,
 	[snd_soc_dapm_spk] = 2,
+	[snd_soc_dapm_line] = 2,
 	[snd_soc_dapm_out_drv] = 2,
 	[snd_soc_dapm_pga] = 4,
 	[snd_soc_dapm_mixer_named_ctl] = 5,
@@ -91,6 +91,8 @@ static int dapm_down_seq[] = {
 	[snd_soc_dapm_mux] = 9,
 	[snd_soc_dapm_virt_mux] = 9,
 	[snd_soc_dapm_value_mux] = 9,
+	[snd_soc_dapm_aif_in] = 10,
+	[snd_soc_dapm_aif_out] = 10,
 	[snd_soc_dapm_supply] = 11,
 	[snd_soc_dapm_post] = 12,
 };
@@ -1320,6 +1322,11 @@ static void dapm_seq_run(struct snd_soc_dapm_context *dapm,
 			else if (event == SND_SOC_DAPM_STREAM_STOP)
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_PRE_PMD);
+#ifdef CONFIG_MACH_TENDERLOIN
+			else {
+				ret = w->event(w, NULL, 0);
+			}
+#endif
 			break;
 
 		case snd_soc_dapm_post:
@@ -1333,6 +1340,11 @@ static void dapm_seq_run(struct snd_soc_dapm_context *dapm,
 			else if (event == SND_SOC_DAPM_STREAM_STOP)
 				ret = w->event(w,
 					       NULL, SND_SOC_DAPM_POST_PMD);
+#ifdef CONFIG_MACH_TENDERLOIN
+			else {
+				ret = w->event(w, NULL, 0);
+			}
+#endif
 			break;
 
 		default:
@@ -2139,7 +2151,6 @@ static int snd_soc_dapm_add_route(struct snd_soc_dapm_context *dapm,
 	char prefixed_sink[80];
 	char prefixed_source[80];
 	int ret = 0;
-
 	if (dapm->codec && dapm->codec->name_prefix) {
 		snprintf(prefixed_sink, sizeof(prefixed_sink), "%s %s",
 			 dapm->codec->name_prefix, route->sink);
@@ -3015,10 +3026,19 @@ static void soc_dapm_stream_event(struct snd_soc_dapm_context *dapm,
 			dapm_mark_dirty(w, "stream event");
 			switch(event) {
 			case SND_SOC_DAPM_STREAM_START:
+#ifndef CONFIG_MACH_TENDERLOIN
 				w->active = 1;
+#else
+				w->active++;
+#endif
 				break;
 			case SND_SOC_DAPM_STREAM_STOP:
+#ifndef CONFIG_MACH_TENDERLOIN
 				w->active = 0;
+#else
+				if (w->active)
+					w->active--;
+#endif
 				break;
 			case SND_SOC_DAPM_STREAM_SUSPEND:
 			case SND_SOC_DAPM_STREAM_RESUME:
