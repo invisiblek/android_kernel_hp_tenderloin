@@ -95,8 +95,8 @@ int load_565rle_image(char *filename, bool bf_supported)
 		goto err_logo_free_data;
 	}
 	if (info->screen_base) {
-		bits = (unsigned short *)(info->screen_base);
 #ifdef CONFIG_MACH_TENDERLOIN
+         bits = (unsigned int *)(info->screen_base);
                 while (count > 1) {
                   compressed = *ptr;
                   *bits = (from565_r(compressed) << 16) |
@@ -106,6 +106,7 @@ int load_565rle_image(char *filename, bool bf_supported)
                   count -= 2;
                 }
 #else
+        bits = (unsigned short *)(info->screen_base);
 		while (count > 3) {
                   unsigned n = ptr[0];
                   if (n > max)
