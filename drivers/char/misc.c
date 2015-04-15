@@ -59,7 +59,7 @@ static DEFINE_MUTEX(misc_mtx);
 /*
  * Assigned numbers, used for dynamic minors
  */
-#ifdef CONFIG_MACH_HTC
+#if defined(CONFIG_MACH_HTC) || defined(CONFIG_MACH_HP)
 #define DYNAMIC_MINORS 128 /* like dynamic majors */
 #else
 #define DYNAMIC_MINORS 64 /* like dynamic majors */
