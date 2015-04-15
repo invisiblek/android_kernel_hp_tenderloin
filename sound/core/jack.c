@@ -236,7 +236,9 @@ void snd_jack_report(struct snd_jack *jack, int status)
 					    status & testbit);
 	}
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	input_sync(jack->input_dev);
+#endif
 }
 EXPORT_SYMBOL(snd_jack_report);
 
