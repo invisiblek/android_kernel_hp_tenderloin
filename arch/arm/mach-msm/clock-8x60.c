@@ -2525,11 +2525,18 @@ static struct clk_freq_tbl clk_tbl_pixel_mdp[] = {
 	F_PIXEL_MDP( 48000000, pll8, 4,   1,    2),
 	F_PIXEL_MDP( 53990000, pll8, 2, 169,  601),
 	F_PIXEL_MDP( 64000000, pll8, 2,   1,    3),
+#ifndef CONFIG_MACH_TENDERLOIN
 	F_PIXEL_MDP( 69300000, pll8, 1, 231, 1280),
+#endif
 	F_PIXEL_MDP( 76800000, pll8, 1,   1,    5),
+#ifndef CONFIG_MACH_TENDERLOIN
 	F_PIXEL_MDP( 85333000, pll8, 1,   2,    9),
 	F_PIXEL_MDP(106500000, pll8, 1,  71,  256),
 	F_PIXEL_MDP(109714000, pll8, 1,   2,    7),
+#else
+	F_PIXEL_MDP( 96000000, pll8, 4,   0,   0),
+	F_PIXEL_MDP(100030000, pll8, 1, 10003, 38400), // HP Wade, this clock is over CPU spec
+#endif
 	F_END
 };
 
@@ -3009,7 +3016,7 @@ static struct clk_freq_tbl clk_tbl_aif_osr[] = {
 		.c = { \
 			.dbg_name = #i "_clk", \
 			.ops = &clk_ops_rcg, \
-			VDD_DIG_FMAX_MAP1(LOW, 27000000), \
+			VDD_DIG_FMAX_MAP1(LOW, 24576000), \
 			CLK_INIT(i##_clk.c), \
 		}, \
 	}
