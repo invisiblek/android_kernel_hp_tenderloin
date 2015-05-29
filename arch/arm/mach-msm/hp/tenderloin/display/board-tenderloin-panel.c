@@ -523,10 +523,9 @@ static int lcdc_panel_power(int on)
                   }
               }
 
-            gpio_set_value(GPIO_LCD_PWR_EN, 1);
-            udelay(500);
-            gpio_set_value(GPIO_LVDS_SHDN_N, 1);
-            msleep(200);
+            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 1);
+            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 1);
+            msleep(20);
             gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
             mdelay(20);
             bPanelPowerOn = true;
@@ -553,11 +552,16 @@ static int lcdc_panel_power(int on)
               }
             
             gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
-            
-            // msleep(200);
-            gpio_set_value(GPIO_LVDS_SHDN_N, 0);
-            gpio_set_value(GPIO_LCD_PWR_EN, 0);
-            // msleep(400);
+    		mdelay(5);
+            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
+            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 0);
+            msleep(20);
+        	if (gpio_is_valid(GPIO_BACKLIGHT_EN))
+        		gpio_free(GPIO_BACKLIGHT_EN);
+        	if (gpio_is_valid(GPIO_LVDS_SHDN_N))
+        		gpio_free(GPIO_LVDS_SHDN_N);
+        	if (gpio_is_valid(GPIO_LCD_PWR_EN))
+        		gpio_free(GPIO_LCD_PWR_EN);
             bPanelPowerOn = false;
           }
 

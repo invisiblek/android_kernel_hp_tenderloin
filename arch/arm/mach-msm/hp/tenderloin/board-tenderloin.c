@@ -3417,8 +3417,8 @@ void __init tenderloin_fixup_pins(void)
 	bt_pins[1].gpio = pin_table[BT_HOST_WAKE_PIN];
 
 	// Lighting
-        //	lm8502_platform_data.interrupt_gpio = pin_table[LM8502_LIGHTING_INT_IRQ_PIN];
-        //	lm8502_board_info[0].irq = MSM_GPIO_TO_INT(pin_table[LM8502_LIGHTING_INT_IRQ_PIN]);
+	lm8502_platform_data.interrupt_gpio = pin_table[LM8502_LIGHTING_INT_IRQ_PIN];
+	lm8502_board_info[0].irq = MSM_GPIO_TO_INT(pin_table[LM8502_LIGHTING_INT_IRQ_PIN]);
 
 	// Charging
 	max8903b_charger_pdata.IUSB_in = pin_table[MAX8903B_GPIO_USB_CHG_MODE_PIN];
