@@ -428,6 +428,7 @@ int lcdc_lg_panel_power(int on)
 }
 
 static bool lcdc_power_on;
+extern int lcdc_gpio_request(bool on);
 
 static int lcdc_panel_power(int on)
 {
@@ -564,65 +565,9 @@ static int lcdc_panel_power(int on)
         		gpio_free(GPIO_LCD_PWR_EN);
             bPanelPowerOn = false;
           }
-
+    	lcdc_gpio_request(on);
 	/* configure lcdc gpios */
         configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
-#if 0
-	/*
-	 * Right BEFORE the first display power off after boot
-	 * the GPIOs will be requested (so that they can be
-	 * freed).
-	 *
-	 * (TODO: These gpios should have been requested earlier
-	 *        during init. However, one of the GPIOs is on
-	 *        the PMIC, and it cannot be requested properly)
-         */
-
-	if (!lcdc_power_save_on && !lcdc_steadycfg) {
-
-		rc = gpio_request(GPIO_LVDS_SHDN_N,"LVDS_SHDN_N");
-		if (rc) {
-			pr_err("%s: LVDS gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LVDS_SHDN_N);
-			return rc;
-		}
-
-		/* LCD_PWR_EN */
-		rc = gpio_request(GPIO_LCD_PWR_EN, "LCD_PWR_EN");
-		if (rc) {
-			pr_err("%s: LCD Power gpio %d request"
-						"failed\n", __func__,
-						 GPIO_LCD_PWR_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			return rc;
-		}
-
-		/* BACKLIGHT */
-		rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
-		if(rc) {
-			pr_err("%s: BACKLIGHT gpio %d request"
-						"failed\n", __func__,
-						GPIO_BACKLIGHT_EN);
-			gpio_free(GPIO_LVDS_SHDN_N);
-			gpio_free(GPIO_LCD_PWR_EN);
-			return rc;
-		}
-	}
-
-	rc = lcdc_tenderloin_panel_power(on);
-
-	/*
-	 * Right AFTER the first display power on after boot,
-	 * apply steady configuration.
-         */
-	if (lcdc_power_save_on && !lcdc_steadycfg) {
-                tenderloin_lcdc_steadycfg();
-		lcdc_steadycfg = 1;
-	}
-
-	return rc;
-#endif
         return 0;
 }
 

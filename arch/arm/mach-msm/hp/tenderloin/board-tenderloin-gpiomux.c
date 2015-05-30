@@ -624,7 +624,7 @@ static struct msm_gpiomux_config msm8x60_aux_pcm_configs[] __initdata = {
 
 /* boot configuration: pins are already muxed */
 /* TBD: review as gpiomux evolves */
-static struct msm_gpiomux_config msm8x60_lcdc_configs[] __initdata = {
+static struct msm_gpiomux_config msm8x60_lcdc_configs[] = {
 	/* lcdc_pclk */
 	{
 		.gpio = 0,
@@ -1624,6 +1624,54 @@ tenderloin_3g_dvt_gpiomux_cfgs[] __initdata = {
 	{NULL, 0},
 };
 
+/* HP_Hover[20101105][Workaround]Add special gpio request interface here for lcdc,
+ * to keep the related gpio's reference counter balenced, since we set the lcdc
+ * active when bootup(ref=1).
+ */
+int lcdc_gpio_request(bool on)
+{
+	int n, ret=0;
+	static bool first_time = true;
+
+for (n = 0; n < ARRAY_SIZE(msm8x60_lcdc_configs); n++) {
+		if (on) {
+			ret = gpio_request(msm8x60_lcdc_configs[n].gpio, "LCDC_GPIO");
+			if (unlikely(ret)) {
+				printk("%s not able to get gpio\n", __func__);
+				break;
+			}
+			if (first_time) {
+				msm_gpiomux_put(msm8x60_lcdc_configs[n].gpio);
+			}
+		} else {
+			gpio_free(msm8x60_lcdc_configs[n].gpio);
+		}
+	}
+
+	if (ret) {
+		for (n--; n >= 0; n--)
+			gpio_free(msm8x60_lcdc_configs[n].gpio);
+	}
+	else {
+		first_time = false;
+	}
+	return ret;
+
+}
+
+static int lcdc_gpio_get(void)
+{
+	int n,ret=0;
+	for (n = 0; n < ARRAY_SIZE(msm8x60_lcdc_configs); n++) {
+		ret = msm_gpiomux_get(msm8x60_lcdc_configs[n].gpio);
+		if(unlikely(ret)){
+			printk("%s not able to get gpio\n", __func__);
+			break;
+		}
+	}
+	return ret;
+}
+
 
 void __init tenderloin_init_gpiomux(void)
 {
@@ -1654,6 +1702,11 @@ void __init tenderloin_init_gpiomux(void)
                   printk(KERN_ERR "%s: < TOPAZ_DVT\n", __func__);
 			cfgs = tenderloin_gpiomux_cfgs;
 		}
+	}
+	rc = lcdc_gpio_get();
+	if (rc) {
+		pr_err("%s failure: lcdc_gpio_get: %d\n", __func__, rc);
+		return;
 	}
 	while (cfgs->cfg) {
 		msm_gpiomux_install(cfgs->cfg, cfgs->ncfg);
