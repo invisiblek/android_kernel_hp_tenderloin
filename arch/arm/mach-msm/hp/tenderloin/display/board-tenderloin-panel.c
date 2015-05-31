@@ -557,12 +557,6 @@ static int lcdc_panel_power(int on)
             gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
             gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 0);
             msleep(20);
-        	if (gpio_is_valid(GPIO_BACKLIGHT_EN))
-        		gpio_free(GPIO_BACKLIGHT_EN);
-        	if (gpio_is_valid(GPIO_LVDS_SHDN_N))
-        		gpio_free(GPIO_LVDS_SHDN_N);
-        	if (gpio_is_valid(GPIO_LCD_PWR_EN))
-        		gpio_free(GPIO_LCD_PWR_EN);
             bPanelPowerOn = false;
           }
     	lcdc_gpio_request(on);
