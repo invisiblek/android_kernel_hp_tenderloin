@@ -9,7 +9,7 @@
 #include <mach/gpiomux.h>
 #include "devices.h"
 #include "board-tenderloin.h"
-//#include "board-storage-common-a.h"
+#include "board-storage-common-a.h"
 
 static void config_gpio_table(uint32_t *table, int len)
 {
@@ -211,11 +211,6 @@ static int msm_sdcc_setup_pad(int dev_id, unsigned int enable)
 
 	if (enable) {
 		for (n = 0; n < curr->pad_drv_data_size; n++) {
-			if (curr->sdio_lpm_gpio_cfg) {
-				if (curr->pad_drv_on_data[n].drv ==
-						TLMM_HDRV_SDC4_DATA)
-					continue;
-			}
 			msm_tlmm_set_hdrive(curr->pad_drv_on_data[n].drv,
 				curr->pad_drv_on_data[n].drv_val);
 		}
@@ -231,21 +226,11 @@ static int msm_sdcc_setup_pad(int dev_id, unsigned int enable)
 	} else {
 		
 		for (n = 0; n < curr->pad_drv_data_size; n++) {
-			if (curr->sdio_lpm_gpio_cfg) {
-				if (curr->pad_drv_off_data[n].drv ==
-						TLMM_HDRV_SDC4_DATA)
-					continue;
-			}
 			msm_tlmm_set_hdrive(
 				curr->pad_drv_off_data[n].drv,
 				curr->pad_drv_off_data[n].drv_val);
 		}
 		for (n = 0; n < curr->pad_pull_data_size; n++) {
-			if (curr->sdio_lpm_gpio_cfg) {
-				if (curr->pad_pull_off_data[n].pull ==
-						TLMM_PULL_SDC4_DATA)
-					continue;
-			}
 			msm_tlmm_set_pull(
 				curr->pad_pull_off_data[n].pull,
 				curr->pad_pull_off_data[n].pull_val);
@@ -537,9 +522,9 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 	.msmsdcc_fmin	= 400000,
 	.msmsdcc_fmid	= 24000000,
 	.msmsdcc_fmax	= 48000000,
-	.nonremovable	= 1,
+	.nonremovable	= 0,
         //        .hc_erase_group_def =1,
-        //      .msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
         //        .bkops_support = 1,
 };
 #endif
@@ -557,9 +542,9 @@ static struct mmc_platform_data msm8x60_sdc4_data = {
 	.msmsdcc_fmax	= 48000000,
 	.board_probe	= tenderloin_probe_wifi,
 	.board_remove	= tenderloin_remove_wifi,
-	.nonremovable	= 1,
+	//.nonremovable	= 1,
 	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC4_DAT1,
-	//	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
 	//	.cfg_mpm_sdiowakeup = msm_sdcc_cfg_mpm_sdiowakeup,
 	//	.dummy52_required = 1,
 };
