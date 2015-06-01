@@ -79,7 +79,7 @@ void MLOSFClose(uint *fp)
 
 void MLOSSleep(int mSecs)
 {
-	hr_msleep(mSecs);
+	msleep(mSecs);
 }
 
 unsigned long MLOSGetTickCount(void)
