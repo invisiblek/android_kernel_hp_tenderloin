@@ -288,6 +288,8 @@ static int isl29023_set_mode(struct i2c_client *client, int mode)
 		ISL29023_MODE_MASK, ISL29023_MODE_SHIFT, mode);
 }
 
+int first_run = 1;
+
 /* power_state */
 static int isl29023_set_power_state(struct i2c_client *client, int state)
 {
@@ -302,9 +304,12 @@ static int isl29023_set_power_state(struct i2c_client *client, int state)
 		if (state)
 			schedule_delayed_work(&data->polled_work,
 				msecs_to_jiffies(data->poll_interval));
-		else
-			cancel_delayed_work_sync(&data->polled_work);
+		else{
+			if(!first_run)
+				cancel_delayed_work_sync(&data->polled_work);
+			first_run = 0;
 		}
+	}
 	return rc;
 }
 
