@@ -1410,8 +1410,8 @@ struct wmi_connect_event {
 			__le32 nw_type;
 		} sta;
 		struct {
-			u8 phymode;
 			u8 aid;
+			u8 phymode;
 			u8 mac_addr[ETH_ALEN];
 			u8 auth;
 			u8 keymgmt;
