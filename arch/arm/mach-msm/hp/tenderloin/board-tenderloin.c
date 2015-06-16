@@ -488,6 +488,37 @@ static struct platform_device tenderloin_fixed_reg_device = {
 		}
 };
 
+#define GPIO_ETHERNET_RESET_N ((PM8901_MPP_BASE + PM8901_MPPS) + 9)
+
+static struct resource smsc911x_resources[] = {
+	[0] = {
+		.flags = IORESOURCE_MEM,
+		.start = 0x1b800000,
+		.end   = 0x1b8000ff
+	},
+	[1] = {
+		.flags = IORESOURCE_IRQ | IORESOURCE_IRQ_LOWLEVEL,
+	},
+};
+
+static struct smsc911x_platform_config smsc911x_config = {
+	.irq_polarity	= SMSC911X_IRQ_POLARITY_ACTIVE_LOW,
+	.irq_type	= SMSC911X_IRQ_TYPE_PUSH_PULL,
+	.flags		= SMSC911X_USE_16BIT,
+	.has_reset_gpio	= 1,
+	.reset_gpio	= GPIO_ETHERNET_RESET_N
+};
+
+static struct platform_device smsc911x_device = {
+	.name          = "smsc911x",
+	.id            = 0,
+	.num_resources = ARRAY_SIZE(smsc911x_resources),
+	.resource      = smsc911x_resources,
+	.dev           = {
+		.platform_data = &smsc911x_config
+	}
+};
+
 #ifdef CONFIG_NDUID
 static struct nduid_config nduid_cfg[] = {
 	{
@@ -3134,6 +3165,14 @@ static void __init board_setup_S3A_1V8 (void)
 	return;
 }
 
+static void __init msm8x60_cfg_smsc911x(void)
+{
+	smsc911x_resources[1].start =
+		PM8058_GPIO_IRQ(PM8058_IRQ_BASE, 6);
+	smsc911x_resources[1].end =
+		PM8058_GPIO_IRQ(PM8058_IRQ_BASE, 6);
+}
+
 static void fixup_i2c_configs(void)
 {
 #ifdef CONFIG_I2C
@@ -3455,13 +3494,14 @@ static void __init tenderloin_init(void)
 		max8903b_charger_pdata.USUS_in_polarity = 1;
 	}
 #endif
-
+	msm8x60_cfg_smsc911x();
         platform_add_devices(asoc_devices,
 			ARRAY_SIZE(asoc_devices));
 
 	fixup_i2c_configs();
 
 	register_i2c_devices();
+	platform_device_register(&smsc911x_device);
 
 	BUG_ON(msm_pm_boot_init(&msm_pm_boot_pdata));
 
