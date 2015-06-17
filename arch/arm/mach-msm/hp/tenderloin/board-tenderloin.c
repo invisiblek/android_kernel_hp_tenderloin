@@ -3575,12 +3575,11 @@ static void __init tenderloin_init(void)
 	platform_add_devices(tenderloin_devices,
 			     ARRAY_SIZE(tenderloin_devices));
 
-        tenderloin_init_fb();
+	tenderloin_init_fb();
 
-	lcdc_lg_panel_power(1);
-    tenderloin_gpio_mpp_init();
-        tenderloin_usb_init();
-        platform_device_register(&tenderloin_8901_mpp_vreg);
+	tenderloin_gpio_mpp_init();
+	tenderloin_usb_init();
+	platform_device_register(&tenderloin_8901_mpp_vreg);
 #ifdef CONFIG_MSM_DSPS
 	msm8x60_init_dsps();
 #endif
