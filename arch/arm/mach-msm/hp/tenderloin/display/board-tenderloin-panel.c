@@ -422,14 +422,9 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 	return ret;
 }
 
-int lcdc_lg_panel_power(int on)
-{
-  return 0;
-}
-
 static bool lcdc_power_on;
 
-static int lcdc_panel_power(int on)
+static int lcdc_common_panel_power(int on)
 {
 	static bool bPanelPowerOn = false;
         static struct regulator *votg_l10, *votg_vdd5v;
@@ -625,6 +620,21 @@ static int lcdc_panel_power(int on)
         return 0;
 }
 
+static int lcdc_panel_power(int on)
+{
+	int rc = 0;
+	int flag_on = !!on;
+	static int lcdc_power_save_on = 0;
+
+	if (lcdc_power_save_on == flag_on)
+		return 0;
+
+	lcdc_power_save_on = flag_on;
+	rc = lcdc_common_panel_power(on);
+
+	return rc;
+}
+
 static struct lcdc_platform_data lcdc_pdata = {
 	.lcdc_power_save   = lcdc_panel_power,
 };
@@ -632,6 +642,65 @@ static struct lcdc_platform_data lcdc_pdata = {
 static struct platform_device lcdc_tenderloin_panel_device = {
 	.name = "lcdc_tenderloin",
 	.id = 0,
+};
+
+/*
+ * MIPI_DSI only use 8058_LDO0 which need always on
+ * therefore it need to be put at low power mode if
+ * it was not used instead of turn it off.
+ */
+static int mipi_dsi_panel_power(int on)
+{
+	int flag_on = !!on;
+	static int mipi_dsi_power_save_on;
+	static struct regulator *ldo0;
+	int rc = 0;
+
+	if (mipi_dsi_power_save_on == flag_on)
+		return 0;
+
+	mipi_dsi_power_save_on = flag_on;
+
+	if (ldo0 == NULL) {	/* init */
+		ldo0 = regulator_get(NULL, "8058_l0");
+		if (IS_ERR(ldo0)) {
+			pr_debug("%s: LDO0 failed\n", __func__);
+			rc = PTR_ERR(ldo0);
+			return rc;
+		}
+
+		rc = regulator_set_voltage(ldo0, 1200000, 1200000);
+		if (rc)
+			goto out;
+
+		rc = regulator_enable(ldo0);
+		if (rc)
+			goto out;
+	}
+
+	if (on) {
+		/* set ldo0 to HPM */
+		rc = regulator_set_optimum_mode(ldo0, 100000);
+		if (rc < 0)
+			goto out;
+	} else {
+		/* set ldo0 to LPM */
+		rc = regulator_set_optimum_mode(ldo0, 1000);
+		if (rc < 0)
+			goto out;
+	}
+
+	return 0;
+out:
+	regulator_disable(ldo0);
+	regulator_put(ldo0);
+	ldo0 = NULL;
+	return rc;
+}
+
+static struct mipi_dsi_platform_data mipi_dsi_pdata = {
+	.vsync_gpio = MDP_VSYNC_GPIO,
+	.dsi_power_save   = mipi_dsi_panel_power,
 };
 
 #ifdef CONFIG_MSM_BUS_SCALING
@@ -701,7 +770,7 @@ void __init tenderloin_init_fb(void)
 	platform_device_register(&lcdc_tenderloin_panel_device);
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("lcdc", &lcdc_pdata);
-        //	msm_fb_register_device("mipi_dsi", 0);
+	msm_fb_register_device("mipi_dsi", &mipi_dsi_pdata);
 #ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
         //	platform_device_register(&hdmi_msm_device);
 #endif
