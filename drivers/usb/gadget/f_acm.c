@@ -141,7 +141,7 @@ static int acm_port_setup(struct usb_configuration *c)
 static int acm_port_connect(struct f_acm *acm)
 {
 	unsigned port_num;
-	int ret=0;
+	//int ret=0;
 
 	port_num = gacm_ports[acm->port_num].client_port_num;
 
