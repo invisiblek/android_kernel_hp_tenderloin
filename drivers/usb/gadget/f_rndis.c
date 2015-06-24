@@ -971,5 +971,5 @@ rndis_bind_config2(struct usb_configuration *c, u8 ethaddr[ETH_ALEN])
 	u32 vid = 0x1234;
 	const char *man = "MAGIC";
 
-return rndis_bind_config(c, ethaddr, vid, man);
+return rndis_bind_config_vendor(c, ethaddr, vid, man);
 }

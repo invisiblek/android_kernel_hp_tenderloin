@@ -325,7 +325,7 @@ static int gport_setup(struct usb_configuration *c)
 static int gport_connect(struct f_gser *gser)
 {
 	unsigned	port_num;
-	int		ret;
+	//int		ret;
 
 	pr_debug("%s: transport: %s f_gser: %p gserial: %p port_num: %d\n",
 			__func__, xport_to_str(gser->transport),
