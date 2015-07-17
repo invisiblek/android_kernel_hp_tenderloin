@@ -2918,6 +2918,7 @@ static int mdp4_calc_req_blt(struct msm_fb_data_type *mfd,
 			     struct mdp_overlay *req)
 {
 	int ret = 0;
+	int clk = 0;
 
 	if (!req) {
 		pr_err("%s: req is null!\n", __func__);
@@ -2929,10 +2930,15 @@ static int mdp4_calc_req_blt(struct msm_fb_data_type *mfd,
 		return ret;
 	}
 
-	if (mdp4_calc_req_mdp_clk
+	clk = mdp4_calc_req_mdp_clk
 		(mfd, req->src_rect.h, req->dst_rect.h,
-		 req->src_rect.w, req->dst_rect.w) > mdp_max_clk)
+		 req->src_rect.w, req->dst_rect.w);
+
+	if (clk > mdp_max_clk * 2) {
+		pr_err("%s: blt required, clk=%d max=%d\n",
+			 __func__, clk, mdp_max_clk * 2);
 		ret = -EINVAL;
+	}
 
 	return ret;
 }
