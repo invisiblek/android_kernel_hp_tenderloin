@@ -175,7 +175,9 @@ phci_hcd *g_pehci_hcd;
 #endif
 
 
+#if 0
 struct wake_lock pehci_wake_lock;
+#endif
 
 /*---------------------------------------------------
  *    Globals for EHCI
@@ -5916,9 +5918,11 @@ pehci_hcd_probe(struct isp1763_dev *isp1763_dev, isp1763_id * ids)
 	INIT_LIST_HEAD(&(pehci_hcd->cleanup_urb.urb_list));
 #endif
 	enable_irq_wake(isp1763_dev->irq);
+#if 0
 	wake_lock_init(&pehci_wake_lock, WAKE_LOCK_SUSPEND,
 						dev_name(&dev->dev));
 	wake_lock(&pehci_wake_lock);
+#endif
 
 	pehci_entry("--	%s: Exit\n", __FUNCTION__);
 	isp1763_hcd=isp1763_dev;
@@ -6020,8 +6024,10 @@ pehci_hcd_powerdown(struct	isp1763_dev *dev)
 
 	isp1763_reg_write32(dev, HC_POWER_DOWN_CONTROL_REG, 0xffff0800);
 
+#if 0
 	wake_unlock(&pehci_wake_lock);
 	wake_lock_destroy(&pehci_wake_lock);
+#endif
 
 	hcdpowerdown = 1;
 	
@@ -6088,7 +6094,9 @@ static int pehci_bus_suspend(struct usb_hcd *usb_hcd)
 
 	printk("-- %s \n",__FUNCTION__);
 
+#if 0
 	wake_unlock(&pehci_wake_lock);
+#endif
 
 	return 0;
 	
@@ -6144,7 +6152,9 @@ static int pehci_bus_resume(struct usb_hcd *usb_hcd)
 		return -1;
 	}
 
+#if 0
 	wake_lock(&pehci_wake_lock);
+#endif
 
 	printk("%s: Powerdown Reg Val: 0x%08x -- %d\n", __func__, i, temp);
 
@@ -6238,7 +6248,9 @@ pehci_hcd_resume(struct	isp1763_dev *dev)
 		return;
 	}
 
+#if 0
 	wake_lock(&pehci_wake_lock);
+#endif
 
 	isp1763_reg_write16(dev, HC_INTENABLE_REG,0); //0xD6
 	isp1763_reg_write32(dev,HC_INTERRUPT_REG_EHCI,0x4); //0x94 
@@ -6326,7 +6338,9 @@ pehci_hcd_suspend(struct isp1763_dev *dev)
 
 	isp1763_reg_write32(dev, HC_POWER_DOWN_CONTROL_REG, 0xffff0830);
 
+#if 0
 	wake_unlock(&pehci_wake_lock);
+#endif
 	
 }
 
@@ -6368,8 +6382,10 @@ pehci_hcd_remove(struct	isp1763_dev *isp1763_dev)
 //	isp1763_free_irq(isp1763_dev,usb_hcd);
 	usb_remove_hcd(usb_hcd);
 
+#if 0
 	wake_unlock(&pehci_wake_lock);
 	wake_lock_destroy(&pehci_wake_lock);
+#endif
 
 	return ;
 }
