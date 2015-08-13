@@ -80,7 +80,7 @@ void __init msm8x60_allocate_fb_region(void)
 		pr_info("passing from bootie %lu bytes at %lx physical for fb\n",
 			size, fb_phys);
 	} else {
-                addr = alloc_bootmem_align(size, 0x1000);
+		addr = alloc_bootmem_align(size, 0x1000);
 		msm_fb_resources[0].start = __pa(addr);
 		msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
 		pr_info("allocating %lu bytes at %p (%lx physical) for fb\n",
@@ -227,19 +227,19 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 #define MDP_VSYNC_GPIO	28
 
 static struct msm_panel_common_pdata mdp_pdata = {
-        .gpio = MDP_VSYNC_GPIO,
-        .mdp_max_clk = 200000000,
+	.gpio = MDP_VSYNC_GPIO,
+	.mdp_max_clk = 200000000,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
 #endif
 	.mdp_rev = MDP_REV_41,
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
-        .mem_hid = BIT(ION_CP_MM_HEAP_ID),
+	.mem_hid = BIT(ION_CP_MM_HEAP_ID),
 #else
 	.mem_hid = MEMTYPE_EBI1,
 #endif
-	.cont_splash_enabled = 0x01,
-        .mdp_iommu_split_domain = 0,
+	.cont_splash_enabled = 0x00,
+	.mdp_iommu_split_domain = 0,
 };
 
 static int lcd_panel_gpios[] = {
@@ -299,7 +299,7 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 
 int lcdc_lg_panel_power(int on)
 {
-  return 0;
+	return 0;
 }
 
 static bool lcdc_power_on;
@@ -308,10 +308,10 @@ extern int lcdc_gpio_request(bool on);
 static int lcdc_panel_power(int on)
 {
 	static bool bPanelPowerOn = false;
-        static struct regulator *votg_l10, *votg_vdd5v;
+	static struct regulator *votg_l10, *votg_vdd5v;
 	int rc = 0;
 
-        printk(KERN_ERR "[DISP] %s: ++ %d\n", __func__, on);
+		printk(KERN_ERR "[DISP] %s: ++ %d\n", __func__, on);
 
 	if (!lcdc_power_on) { // If panel is shut down (first init)
 		votg_l10 = regulator_get(NULL, "8058_l10");
@@ -403,7 +403,7 @@ static int lcdc_panel_power(int on)
 			pr_err("%s: Unable to disable votg_l10\n",__func__);
 			return rc;
 		}
-            
+
 		/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
 		if (board_type < TOPAZ_EVT1) {
 			rc = regulator_disable(votg_vdd5v);
@@ -412,7 +412,7 @@ static int lcdc_panel_power(int on)
 				return rc;
 			}
 		}
-            
+
 		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
 		mdelay(5);
 		gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
@@ -420,11 +420,11 @@ static int lcdc_panel_power(int on)
 		msleep(20);
 		bPanelPowerOn = false;
 	}
-    	lcdc_gpio_request(on);
-	/* configure lcdc gpios */
-        configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
+		lcdc_gpio_request(on);
+		/* configure lcdc gpios */
+		configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
 
-        return 0;
+		return 0;
 }
 
 static struct lcdc_platform_data lcdc_pdata = {
