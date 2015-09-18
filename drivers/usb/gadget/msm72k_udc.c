@@ -525,9 +525,9 @@ static void usb_chg_detect(struct work_struct *w)
 	}
 }
 
+#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 static int usb_multi_chg_detect(struct usb_info *ui)
 {
-#ifdef CONFIG_USB_MULTIPLE_CHARGER_DETECT
 	struct msm_otg *otg = to_msm_otg(ui->xceiv);
 	enum chg_type temp = USB_CHG_TYPE__INVALID;
 	int maxpower = -EINVAL;
@@ -622,8 +622,8 @@ static int usb_multi_chg_detect(struct usb_info *ui)
 	ui->chg_current = maxpower;
 
 	return maxpower;
-#endif //CONFIG_USB_MULTIPLE_CHARGER_DETECT
 }
+#endif //CONFIG_USB_MULTIPLE_CHARGER_DETECT
 
 static int usb_ep_get_stall(struct msm_endpoint *ept)
 {
