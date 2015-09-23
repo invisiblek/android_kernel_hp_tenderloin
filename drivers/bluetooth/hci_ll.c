@@ -125,7 +125,7 @@ static int ll_open(struct hci_uart *hu)
 
 	BT_DBG("hu %p", hu);
 
-	ll = kzalloc(sizeof(*ll), GFP_ATOMIC);
+	ll = kzalloc(sizeof(*ll), GFP_KERNEL);
 	if (!ll)
 		return -ENOMEM;
 
@@ -207,7 +207,7 @@ static void ll_device_want_to_wakeup(struct hci_uart *hu)
 		/*
 		 * This state means that both the host and the BRF chip
 		 * have simultaneously sent a wake-up-indication packet.
-		 * Traditionaly, in this case, receiving a wake-up-indication
+		 * Traditionally, in this case, receiving a wake-up-indication
 		 * was enough and an additional wake-up-ack wasn't needed.
 		 * This has changed with the BRF6350, which does require an
 		 * explicit wake-up-ack. Other BRF versions, which do not
@@ -348,7 +348,7 @@ static int ll_enqueue(struct hci_uart *hu, struct sk_buff *skb)
 
 static inline int ll_check_data_len(struct ll_struct *ll, int len)
 {
-	register int room = skb_tailroom(ll->rx_skb);
+	int room = skb_tailroom(ll->rx_skb);
 
 	BT_DBG("len %d room %d", len, room);
 
@@ -374,11 +374,11 @@ static inline int ll_check_data_len(struct ll_struct *ll, int len)
 static int ll_recv(struct hci_uart *hu, void *data, int count)
 {
 	struct ll_struct *ll = hu->priv;
-	register char *ptr;
+	char *ptr;
 	struct hci_event_hdr *eh;
 	struct hci_acl_hdr   *ah;
 	struct hci_sco_hdr   *sh;
-	register int len, type, dlen;
+	int len, type, dlen;
 
 	BT_DBG("hu %p count %d rx_state %ld rx_count %ld", hu, count, ll->rx_state, ll->rx_count);
 
@@ -481,7 +481,7 @@ static int ll_recv(struct hci_uart *hu, void *data, int count)
 			hu->hdev->stat.err_rx++;
 			ptr++; count--;
 			continue;
-		};
+		}
 
 		ptr++; count--;
 

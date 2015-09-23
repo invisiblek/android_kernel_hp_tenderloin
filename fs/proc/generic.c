@@ -850,3 +850,9 @@ void remove_proc_entry(const char *name, struct proc_dir_entry *parent)
 	pde_put(de);
 }
 EXPORT_SYMBOL(remove_proc_entry);
+
+void *PDE_DATA(const struct inode *inode)
+{
+	return __PDE_DATA(inode);
+}
+EXPORT_SYMBOL(PDE_DATA);

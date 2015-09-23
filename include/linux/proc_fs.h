@@ -174,6 +174,7 @@ extern struct proc_dir_entry *proc_net_mkdir(struct net *net, const char *name,
 	struct proc_dir_entry *parent);
 
 extern struct file *proc_ns_fget(int fd);
+extern void *PDE_DATA(const struct inode *);
 
 #else
 
@@ -228,6 +229,8 @@ static inline struct file *proc_ns_fget(int fd)
 {
 	return ERR_PTR(-EINVAL);
 }
+
+static inline void *PDE_DATA(const struct inode *inode) {BUG(); return NULL;}
 
 #endif /* CONFIG_PROC_FS */
 

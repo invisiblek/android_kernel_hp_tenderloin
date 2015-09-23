@@ -11,7 +11,6 @@ menuconfig BT
 	select CRYPTO_BLKCIPHER
 	select CRYPTO_AES
 	select CRYPTO_ECB
-	select CRYPTO_HMAC
 	select CRYPTO_SHA256
 	help
 	  Bluetooth is low-cost, low-power, short-range wireless technology.
@@ -49,4 +48,3 @@ source "net/bluetooth/cmtp/Kconfig"
 source "net/bluetooth/hidp/Kconfig"
 
 source "drivers/bluetooth/Kconfig"
-

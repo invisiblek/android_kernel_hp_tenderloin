@@ -1181,6 +1181,22 @@ EXPORT_SYMBOL_GPL(hid_output_report);
  * device.
  */
 
+/*
+ * Allocator for buffer that is going to be passed to hid_output_report()
+ */
+u8 *hid_alloc_report_buf(struct hid_report *report, gfp_t flags)
+{
+	/*
+	 * 7 extra bytes are necessary to achieve proper functionality
+	 * of implement() working on 8 byte chunks
+	 */
+
+	int len = ((report->size - 1) >> 3) + 1 + (report->id > 0) + 7;
+
+	return kmalloc(len, flags);
+}
+EXPORT_SYMBOL_GPL(hid_alloc_report_buf);
+
 int hid_set_field(struct hid_field *field, unsigned offset, __s32 value)
 {
 	unsigned size;
@@ -2238,7 +2254,7 @@ static const struct hid_device_id hid_mouse_ignore_list[] = {
 	{ }
 };
 
-static bool hid_ignore(struct hid_device *hdev)
+bool hid_ignore(struct hid_device *hdev)
 {
 	switch (hdev->vendor) {
 	case USB_VENDOR_ID_CODEMERCS:

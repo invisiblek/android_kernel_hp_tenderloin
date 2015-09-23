@@ -723,6 +723,7 @@ struct hid_ll_driver {
 
 extern int hid_debug;
 
+extern bool hid_ignore(struct hid_device *);
 extern int hid_add_device(struct hid_device *);
 extern void hid_destroy_device(struct hid_device *);
 
@@ -746,6 +747,7 @@ int hidinput_find_field(struct hid_device *hid, unsigned int type, unsigned int 
 struct hid_field *hidinput_get_led_field(struct hid_device *hid);
 unsigned int hidinput_count_leds(struct hid_device *hid);
 void hid_output_report(struct hid_report *report, __u8 *data);
+u8 *hid_alloc_report_buf(struct hid_report *report, gfp_t flags);
 struct hid_device *hid_allocate_device(void);
 struct hid_report *hid_register_report(struct hid_device *device, unsigned type, unsigned id);
 int hid_open_report(struct hid_device *device);

@@ -33,6 +33,46 @@ void tty_port_init(struct tty_port *port)
 }
 EXPORT_SYMBOL(tty_port_init);
 
+/**
+ * tty_port_link_device - link tty and tty_port
+ * @port: tty_port of the device
+ * @driver: tty_driver for this device
+ * @index: index of the tty
+ *
+ * Provide the tty layer wit ha link from a tty (specified by @index) to a
+ * tty_port (@port). Use this only if neither tty_port_register_device nor
+ * tty_port_install is used in the driver. If used, this has to be called before
+ * tty_register_driver.
+ */
+void tty_port_link_device(struct tty_port *port,
+		struct tty_driver *driver, unsigned index)
+{
+	if (WARN_ON(index >= driver->num))
+		return;
+	driver->ports[index] = port;
+}
+EXPORT_SYMBOL_GPL(tty_port_link_device);
+
+/**
+ * tty_port_register_device - register tty device
+ * @port: tty_port of the device
+ * @driver: tty_driver for this device
+ * @index: index of the tty
+ * @device: parent if exists, otherwise NULL
+ *
+ * It is the same as tty_register_device except the provided @port is linked to
+ * a concrete tty specified by @index. Use this or tty_port_install (or both).
+ * Call tty_port_link_device as a last resort.
+ */
+struct device *tty_port_register_device(struct tty_port *port,
+		struct tty_driver *driver, unsigned index,
+		struct device *device)
+{
+	tty_port_link_device(port, driver, index);
+	return tty_register_device(driver, index, device);
+}
+EXPORT_SYMBOL_GPL(tty_port_register_device);
+
 int tty_port_alloc_xmit_buf(struct tty_port *port)
 {
 	/* We may sleep in get_zeroed_page() */

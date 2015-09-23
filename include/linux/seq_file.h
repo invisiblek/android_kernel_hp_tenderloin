@@ -142,6 +142,16 @@ int seq_put_decimal_ull(struct seq_file *m, char delimiter,
 int seq_put_decimal_ll(struct seq_file *m, char delimiter,
 			long long num);
 
+static inline struct user_namespace *seq_user_ns(struct seq_file *seq)
+{
+#ifdef CONFIG_USER_NS
+	return seq->user_ns;
+#else
+	extern struct user_namespace init_user_ns;
+	return &init_user_ns;
+#endif
+}
+
 #define SEQ_START_TOKEN ((void *)1)
 /*
  * Helpers for iteration over list_head-s in seq_files

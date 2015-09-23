@@ -92,6 +92,11 @@ static inline int proc_fd(struct inode *inode)
 	return PROC_I(inode)->fd;
 }
 
+static inline void *__PDE_DATA(const struct inode *inode)
+{
+	return PDE(inode)->data;
+}
+
 struct dentry *proc_lookup_de(struct proc_dir_entry *de, struct inode *ino,
 		struct dentry *dentry);
 int proc_readdir_de(struct proc_dir_entry *de, struct file *filp, void *dirent,
