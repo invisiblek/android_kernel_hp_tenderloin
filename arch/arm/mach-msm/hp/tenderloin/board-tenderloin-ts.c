@@ -266,7 +266,7 @@ static void board_cy8ctma395_vdd_enable(int enable)
 
 		rc = regulator_disable(tp_l10);
 		if (rc < 0) {
-			pr_err("failed to enable regulator '8058_l10' with %d\n", rc);
+			pr_err("failed to disable regulator '8058_l10' with %d\n", rc);
 			return;
 		}
 	}
