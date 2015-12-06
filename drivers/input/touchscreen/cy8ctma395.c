@@ -1169,22 +1169,7 @@ static struct platform_driver cy8ctma395_driver = {
 	.remove = __devexit_p(cy8ctma395_device_remove),
 };
 
-static int __init cy8ctma395_module_init(void)
-{
-	int rc;
-
-	rc = platform_driver_register(&cy8ctma395_driver);
-
-	return (rc);
-}
-
-static void __exit cy8ctma395_module_exit(void)
-{
-	platform_driver_unregister(&cy8ctma395_driver);
-}
-
-module_init(cy8ctma395_module_init);
-module_exit(cy8ctma395_module_exit);
+module_platform_driver(cy8ctma395_driver);
 
 MODULE_DESCRIPTION("cy8ctma395 driver");
 MODULE_LICENSE("GPL");
