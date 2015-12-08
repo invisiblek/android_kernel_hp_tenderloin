@@ -4448,11 +4448,11 @@ struct file_operations a6_pmem_fops = {
 	.release = a6_pmem_close,
 };
 
-static int a6_fish_battery_get_percent(struct device *dev)
+static int a6_fish_battery_get_percent(struct device *dev, int *val)
 {
 	int temp_val = 0;
 
-	a6_reg_get (dev, A6_REG_TS2_I2C_BAT_RARC, &temp_val);
+	if (a6_reg_get(dev, A6_REG_TS2_I2C_BAT_RARC, &temp_val)) return -EIO;
 
 #if defined(CONFIG_A6_BATTERY_SCALED_MIN) && CONFIG_A6_BATTERY_SCALED_MIN != 0
 	temp_val = (temp_val - CONFIG_A6_BATTERY_SCALED_MIN) * 100
@@ -4460,51 +4460,61 @@ static int a6_fish_battery_get_percent(struct device *dev)
 	if (temp_val < 0) temp_val = 0;
 #endif
 
-	return temp_val;
+	*val = temp_val;
+
+	return 0;
 }
 
-static unsigned a6_calc_connected_ps(void)
+static int a6_calc_connected_ps(unsigned *connected)
 {
 	struct power_supply *psy;
 	struct a6_device_state *state;
 	unsigned int temp_val = 0;
-	unsigned connected = 0;
+
+	*connected = 0;
 
 	psy = &a6_fish_power_supplies[0];
 
 	if (!(psy->dev)) {
 		printk(KERN_ERR "%s: psy->dev is NULL\n", __func__);
-		return 0;
+		return -ENODEV;
 	}
 	if (!(psy->dev->parent)) {
 		printk(KERN_ERR "%s: psy->dev->parent is NULL\n", __func__);
-		return 0;
+		return -ENODEV;
 	}
 
 	state = (struct a6_device_state*)dev_get_drvdata(psy->dev->parent);
 
-	a6_reg_get (psy->dev->parent, A6_REG_TS2_I2C_FLAGS_2, &temp_val);
+	if (a6_reg_get(psy->dev->parent, A6_REG_TS2_I2C_FLAGS_2, &temp_val)) {
+		return -EIO;
+	}
 
 	if (state->otg_chg_type == USB_CHG_TYPE__WALLCHARGER) {
-		connected |= MAX8903B_CONNECTED_PS_AC;
+		*connected |= MAX8903B_CONNECTED_PS_AC;
 	}
 
 	if (state->otg_chg_type == USB_CHG_TYPE__SDP
 			&& (temp_val & TS2_I2C_FLAGS_2_WIRED_CHARGE)) {
 		/* NOTE: USB will not show as connected if DOCK is connected */
-		connected |= MAX8903B_CONNECTED_PS_USB;
+		*connected |= MAX8903B_CONNECTED_PS_USB;
 	}
 
 	if(temp_val & TS2_I2C_FLAGS_2_PUCK_CHARGE) {
-		connected |= MAX8903B_CONNECTED_PS_DOCK;
+		*connected |= MAX8903B_CONNECTED_PS_DOCK;
 	}
 
-	return connected;
+	return 0;
 }
 
 static void a6_update_connected_ps()
 {
-	unsigned connected = a6_calc_connected_ps();
+	unsigned connected;
+
+	if (a6_calc_connected_ps(&connected)) {
+		printk(KERN_ERR "%s: a6_calc_connected_ps failed\n", __func__);
+		return;
+	}
 
 	printk(KERN_INFO "%s: ac=%d usb=%d dock=%d\n", __func__,
 			(connected & MAX8903B_CONNECTED_PS_AC) ? 1 : 0,
@@ -4525,7 +4535,7 @@ static int a6_fish_power_get_property(struct power_supply *psy,
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_ONLINE:
-		connected = a6_calc_connected_ps();
+		if (a6_calc_connected_ps(&connected)) return -EIO;
 
 		if (
 				(psy->type == POWER_SUPPLY_TYPE_MAINS
@@ -4568,30 +4578,37 @@ static int a6_fish_battery_get_property(struct power_supply *psy,
 {
 	int temp_val = 0;
 	unsigned connected;
+	unsigned regnum;
 
 	if (a6_simulate_error) return -a6_simulate_error;
 
 	switch (psp) {
 	case POWER_SUPPLY_PROP_STATUS:
-		if (a6_fish_battery_get_percent(psy->dev->parent) == 100) {
+		if (a6_fish_battery_get_percent(psy->dev->parent, &temp_val)) {
+			return -EIO;
+		}
+		if (temp_val == 100) {
 			val->intval = POWER_SUPPLY_STATUS_FULL;
 		} else if (a6_last_ps_connect &&
 				jiffies > a6_last_ps_connect + A6_BATT_STATS_DELAY) {
-			a6_reg_get (psy->dev->parent, 
-					A6_REG_TS2_I2C_BAT_AVG_CUR_LSB_MSB, &temp_val);
+			if (a6_reg_get (psy->dev->parent,
+					A6_REG_TS2_I2C_BAT_AVG_CUR_LSB_MSB, &temp_val)) {
+				return -EIO;
+			}
 			if (temp_val > 0) {
 				val->intval = POWER_SUPPLY_STATUS_CHARGING;
 			} else {
 				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 			}
 		} else {
-			connected = a6_calc_connected_ps();
+			if (a6_calc_connected_ps(&connected)) return -EIO;
 			if (connected && !(connected == MAX8903B_CONNECTED_PS_USB)) {
 				val->intval = POWER_SUPPLY_STATUS_CHARGING;
 			} else {
 				val->intval = POWER_SUPPLY_STATUS_DISCHARGING;
 			}
 		}
+		return 0;
 		break;
 	case POWER_SUPPLY_PROP_HEALTH:
 #if 0
@@ -4601,45 +4618,45 @@ static int a6_fish_battery_get_property(struct power_supply *psy,
 		// TODO: parse temps and set OVERHEAT, parse "age" and set DEAD */
 
 		val->intval = POWER_SUPPLY_HEALTH_GOOD;
+		return 0;
 		break;
 	case POWER_SUPPLY_PROP_PRESENT:
 		val->intval = 1;
+		return 0;
 		break;
 	case POWER_SUPPLY_PROP_TECHNOLOGY:
 		val->intval = POWER_SUPPLY_TECHNOLOGY_LION;
+		return 0;
 		break;
 	case POWER_SUPPLY_PROP_CAPACITY:
-		val->intval = a6_fish_battery_get_percent(psy->dev->parent);
+		if (a6_fish_battery_get_percent(psy->dev->parent, &temp_val)) {
+			return -EIO;
+		}
+		val->intval = temp_val;
+		return 0;
 		break;
 	case POWER_SUPPLY_PROP_CURRENT_NOW:
-		a6_reg_get(psy->dev->parent, 
-				A6_REG_TS2_I2C_BAT_CUR_LSB_MSB, &temp_val);
-		val->intval = temp_val;
+		regnum = A6_REG_TS2_I2C_BAT_CUR_LSB_MSB;
 		break;
 	case POWER_SUPPLY_PROP_VOLTAGE_NOW:
-		a6_reg_get (psy->dev->parent,
-			A6_REG_TS2_I2C_BAT_VOLT_LSB_MSB, &temp_val);
-		val->intval = temp_val;
+		regnum = A6_REG_TS2_I2C_BAT_VOLT_LSB_MSB;
 		break;
 	case POWER_SUPPLY_PROP_TEMP:
-		a6_reg_get (psy->dev->parent,
-			A6_REG_TS2_I2C_BAT_TEMP_LSB_MSB, &temp_val);
-		val->intval = temp_val;
+		regnum = A6_REG_TS2_I2C_BAT_TEMP_LSB_MSB;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_FULL:
-		a6_reg_get (psy->dev->parent,
-			A6_REG_TS2_I2C_BAT_FULL40_LSB_MSB, &temp_val);
-		val->intval = temp_val;
+		regnum = A6_REG_TS2_I2C_BAT_FULL40_LSB_MSB;
 		break;
 	case POWER_SUPPLY_PROP_CHARGE_NOW:
-		a6_reg_get (psy->dev->parent,
-			A6_REG_TS2_I2C_BAT_COULOMB_LSB_MSB, &temp_val);
-		val->intval = temp_val;
+		regnum = A6_REG_TS2_I2C_BAT_COULOMB_LSB_MSB;
 		break;
 	default:
 		return -EINVAL;
 	}
-
+	if (a6_reg_get(psy->dev->parent, regnum, &temp_val)) {
+		return -EIO;
+	}
+	val->intval = temp_val;
 	return 0;
 }
 
@@ -4673,9 +4690,9 @@ static void a6_battery_heartbeat(struct work_struct *a6_battery_work)
 	if (state->stop_heartbeat)
 		return;
 
-	if ( (percent = a6_fish_battery_get_percent(&state->i2c_dev->dev))
-			!= state->last_percent){
+	if (a6_fish_battery_get_percent(&state->i2c_dev->dev, &percent)) return;
 
+	if (percent != state->last_percent) {
 		state->last_percent = percent;
 		power_supply_changed(&a6_fish_power_supplies[0]);
 	}
@@ -4764,16 +4781,18 @@ static ssize_t a6_dock_print_name(struct switch_dev *sdev, char *buf)
 static void a6_dock_update_state(struct a6_device_state *state)
 {
 	unsigned int value, dock;
+	int rc;
 
 	if (state->dock_switch == NULL) {
 		return;
 	}
 
-	a6_reg_get (&state->i2c_dev->dev, A6_REG_TS2_I2C_FLAGS_2, &value);
+	rc = a6_reg_get (&state->i2c_dev->dev, A6_REG_TS2_I2C_FLAGS_2, &value);
 
 	if (a6_disable_dock_switch) {
 		dock = 0;
 	} else {
+		if (rc) return;
 		dock = value & TS2_I2C_FLAGS_2_PUCK ? 1 : 0;
 	}
 	switch_set_state(state->dock_switch, dock);
