@@ -157,11 +157,12 @@ static int msm_snddev_rx_mclk_request(void)
 #endif
 	return rc;
 }
+
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 static int msm_snddev_tx_mclk_request(void)
 {
 	int rc = 0;
 
-#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	rc = gpio_request(the_msm_cdcclk_ctl_state.tx_mclk,
 		"MSM_SNDDEV_TX_MCLK");
 	if (rc < 0) {
@@ -169,9 +170,9 @@ static int msm_snddev_tx_mclk_request(void)
 		return rc;
 	}
 	the_msm_cdcclk_ctl_state.tx_mclk_requested = 1;
-#endif
 	return rc;
 }
+#endif
 static void msm_snddev_rx_mclk_free(void)
 {
 #if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
@@ -181,15 +182,16 @@ static void msm_snddev_rx_mclk_free(void)
 	}
 #endif
 }
+
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 static void msm_snddev_tx_mclk_free(void)
 {
-#if !defined(CONFIG_MSM8X60_AUDIO) || !defined(CONFIG_MACH_HTC)
 	if (the_msm_cdcclk_ctl_state.tx_mclk_requested) {
 		gpio_free(the_msm_cdcclk_ctl_state.tx_mclk);
 		the_msm_cdcclk_ctl_state.tx_mclk_requested = 0;
 	}
-#endif
 }
+#endif
 static int get_msm_cdcclk_ctl_gpios(struct platform_device *pdev)
 {
 	int rc = 0;
@@ -247,10 +249,10 @@ static int snddev_icodec_open_lb(struct snddev_icodec_state *icodec)
 		vreg_mode_vote(drv->snddev_vreg, 1,
 					SNDDEV_LOW_POWER_MODE);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	if (icodec->data->voltage_on)
 		icodec->data->voltage_on();
 
-#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
 	if (IS_ERR_VALUE(trc))
 		pr_err("%s: adie codec open failed\n", __func__);
@@ -369,6 +371,7 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 	}
 	clk_prepare_enable(drv->rx_bitclk);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	if (icodec->data->voltage_on)
 		icodec->data->voltage_on();
 
@@ -381,7 +384,6 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
                                           icodec->data->aic3254_id);
         }
 
-#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
         /* Configure ADIE */
         trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
         if (IS_ERR_VALUE(trc))
@@ -430,7 +432,6 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
           adie_codec_set_master_mode(icodec->adie_path, 1);
         else
           adie_codec_set_master_mode(icodec->adie_path, 0);
-#endif
 
 	/* Enable power amplifier */
 	if (icodec->data->pamp_on) {
@@ -439,13 +440,15 @@ static int snddev_icodec_open_rx(struct snddev_icodec_state *icodec)
 			goto error_pamp;
 		}
 	}
-
+#endif
 	icodec->enabled = 1;
 
-	//pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+	pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return 0;
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 error_pamp:
+#endif
 error_adie:
 	clk_disable_unprepare(drv->rx_osrclk);
 error_invalid_freq:
@@ -469,6 +472,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 1, SNDDEV_HIGH_POWER_MODE);
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	/* Reuse pamp_on for TX platform-specific setup  */
 	if (icodec->data->pamp_on) {
 		if (icodec->data->pamp_on()) {
@@ -478,7 +482,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 	}
 
 	msm_snddev_tx_mclk_request();
-
+#endif
 	drv->tx_osrclk = clk_get_sys(NULL, "i2s_mic_osr_clk");
 	if (IS_ERR(drv->tx_osrclk))
 		pr_err("%s master clock Error\n", __func__);
@@ -508,6 +512,7 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
 
 	clk_prepare_enable(drv->tx_bitclk);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
         if (aic3254_ops->aic3254_set_mode) {
           if (msm_get_call_state() == 1)
             aic3254_ops->aic3254_set_mode(AIC3254_CONFIG_TX,
@@ -517,7 +522,6 @@ static int snddev_icodec_open_tx(struct snddev_icodec_state *icodec)
                                           icodec->data->aic3254_id);
         }
 
-#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
         /* Enable ADIE */
         trc = adie_codec_open(icodec->data->profile, &icodec->adie_path);
         if (IS_ERR_VALUE(trc))
@@ -572,8 +576,11 @@ error_invalid_freq:
 		icodec->data->pamp_off();
 
 	pr_err("%s: encounter error\n", __func__);
+
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 error_pamp:
 	pm_qos_update_request(&drv->tx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+#endif
 	return -ENODEV;
 }
 
@@ -595,11 +602,10 @@ static int snddev_icodec_close_lb(struct snddev_icodec_state *icodec)
 		adie_codec_close(icodec->adie_path);
 		icodec->adie_path = NULL;
 	}
-#endif
 
 	if (icodec->data->voltage_off)
 		icodec->data->voltage_off();
-
+#endif
 	return 0;
 }
 
@@ -616,9 +622,11 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 	if (drv->snddev_vreg)
 		vreg_mode_vote(drv->snddev_vreg, 0, SNDDEV_HIGH_POWER_MODE);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	/* Disable power amplifier */
 	if (icodec->data->pamp_off)
 		icodec->data->pamp_off();
+#endif
 
 #ifdef CONFIG_SPI_AIC3254
 	/* Restore default id for A3254 */
@@ -641,8 +649,10 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 
 	afe_close(icodec->data->copp_id);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	if (icodec->data->voltage_off)
 		icodec->data->voltage_off();
+#endif
 
 	clk_disable_unprepare(drv->rx_bitclk);
 	clk_disable_unprepare(drv->rx_osrclk);
@@ -651,7 +661,7 @@ static int snddev_icodec_close_rx(struct snddev_icodec_state *icodec)
 
 	icodec->enabled = 0;
 
-	//pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
+	pm_qos_update_request(&drv->rx_pm_qos_req, PM_QOS_DEFAULT_VALUE);
 	return 0;
 }
 
@@ -692,11 +702,13 @@ static int snddev_icodec_close_tx(struct snddev_icodec_state *icodec)
 	clk_disable_unprepare(drv->tx_bitclk);
 	clk_disable_unprepare(drv->tx_osrclk);
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 	msm_snddev_tx_mclk_free();
 
 	/* Reuse pamp_off for TX platform-specific setup  */
 	if (icodec->data->pamp_off)
 		icodec->data->pamp_off();
+#endif
 
 	icodec->enabled = 0;
 
@@ -869,6 +881,7 @@ error:
 	return rc;
 }
 
+#if defined(CONFIG_TIMPANI_CODEC) || defined(CONFIG_MARIMBA_CODEC)
 static int snddev_icodec_check_freq(u32 req_freq)
 {
 	int rc = -EINVAL;
@@ -886,6 +899,7 @@ static int snddev_icodec_check_freq(u32 req_freq)
 	}
 	return rc;
 }
+#endif
 
 static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 {
@@ -904,7 +918,7 @@ static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 		rc = -EINVAL;
 		goto error;
 	} else
-#endif
+
           {
 		if (snddev_icodec_check_freq(rate) != 0) {
 			pr_err("%s: check_freq failed\n", __func__);
@@ -913,6 +927,7 @@ static int snddev_icodec_set_freq(struct msm_snddev_info *dev_info, u32 rate)
 		} else
 			icodec->sample_rate = rate;
 	}
+#endif
 
 	if (icodec->enabled) {
 		snddev_icodec_close(dev_info);

@@ -63,22 +63,37 @@ static struct {
 	{ WM8994_RIGHT_OUTPUT_VOLUME, WM8994_HPOUT1_VU },
 	{ WM8994_LEFT_OPGA_VOLUME, WM8994_MIXOUT_VU },
 	{ WM8994_RIGHT_OPGA_VOLUME, WM8994_MIXOUT_VU },
-
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF1_DAC1_LEFT_VOLUME, WM8994_AIF1DAC1_VU },
+#endif
 	{ WM8994_AIF1_DAC1_RIGHT_VOLUME, WM8994_AIF1DAC1_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF1_DAC2_LEFT_VOLUME, WM8994_AIF1DAC2_VU },
+#endif
 	{ WM8994_AIF1_DAC2_RIGHT_VOLUME, WM8994_AIF1DAC2_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF2_DAC_LEFT_VOLUME, WM8994_AIF2DAC_VU },
+#endif
 	{ WM8994_AIF2_DAC_RIGHT_VOLUME, WM8994_AIF2DAC_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF1_ADC1_LEFT_VOLUME, WM8994_AIF1ADC1_VU },
+#endif
 	{ WM8994_AIF1_ADC1_RIGHT_VOLUME, WM8994_AIF1ADC1_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF1_ADC2_LEFT_VOLUME, WM8994_AIF1ADC2_VU },
+#endif
 	{ WM8994_AIF1_ADC2_RIGHT_VOLUME, WM8994_AIF1ADC2_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_AIF2_ADC_LEFT_VOLUME, WM8994_AIF2ADC_VU },
+#endif
 	{ WM8994_AIF2_ADC_RIGHT_VOLUME, WM8994_AIF1ADC2_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_DAC1_LEFT_VOLUME, WM8994_DAC1_VU },
+#endif
 	{ WM8994_DAC1_RIGHT_VOLUME, WM8994_DAC1_VU },
+#ifndef CONFIG_MACH_TENDERLOIN
 	{ WM8994_DAC2_LEFT_VOLUME, WM8994_DAC2_VU },
+#endif
 	{ WM8994_DAC2_RIGHT_VOLUME, WM8994_DAC2_VU },
 };
 
@@ -2731,7 +2746,7 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 		return -EINVAL;
 	}
 
-	bclk_rate = params_rate(params) * 4;
+	bclk_rate = params_rate(params) * 2;
 	switch (params_format(params)) {
 	case SNDRV_PCM_FORMAT_S16_LE:
 		bclk_rate *= 16;
@@ -2749,6 +2764,7 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 		aif1 |= 0x60;
 		break;
 	default:
+		printk(KERN_WARNING "%s: PCM format invalid\n", __func__);
 		return -EINVAL;
 	}
 
@@ -2796,12 +2812,22 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 	 */
 	best = 0;
 	for (i = 0; i < ARRAY_SIZE(bclk_divs); i++) {
+#ifdef CONFIG_MACH_TENDERLOIN
+		if (bclk_divs[i] < 0) {
+			printk(KERN_WARNING "%s: bclk_divs[%d]<0\n", __func__, i);
+			continue;
+		}
+#endif
 		cur_val = (wm8994->aifclk[id] * 10 / bclk_divs[i]) - bclk_rate;
 		if (cur_val < 0) /* BCLK table is sorted */
 			break;
 		best = i;
 	}
+#if defined(CONFIG_MACH_TENDERLOIN)
+	bclk_rate = wm8994->aifclk[id] / bclk_divs[best];
+#else
 	bclk_rate = wm8994->aifclk[id] * 10 / bclk_divs[best];
+#endif
 	dev_dbg(dai->dev, "Using BCLK_DIV %d for actual BCLK %dHz\n",
 		bclk_divs[best], bclk_rate);
 	bclk |= best << WM8994_AIF1_BCLK_DIV_SHIFT;
@@ -2815,7 +2841,9 @@ int wm8994_hw_params(struct snd_pcm_substream *substream,
 	dev_dbg(dai->dev, "Using LRCLK rate %d for actual LRCLK %dHz\n",
 		lrclk, bclk_rate / lrclk);
 
-	snd_soc_update_bits(codec, aif1_reg, WM8994_AIF1_WL_MASK, aif1);
+	snd_soc_update_bits(codec, aif1_reg, WM8994_AIF1_WL_MASK
+					| WM8994_AIF1ADC_TDM_MASK // -JCS
+					, aif1);
 	snd_soc_update_bits(codec, aif2_reg, WM8994_AIF1_MONO, aif2);
 	snd_soc_update_bits(codec, bclk_reg, WM8994_AIF1_BCLK_DIV_MASK, bclk);
 	snd_soc_update_bits(codec, lrclk_reg, WM8994_AIF1DAC_RATE_MASK,
@@ -4136,8 +4164,10 @@ static int wm8994_codec_probe(struct snd_soc_codec *codec)
 	switch (control->type) {
 	case WM8994:
 	case WM8958:
+#ifndef CONFIG_MACH_TENDERLOIN
 		snd_soc_update_bits(codec, WM8994_AIF1_CONTROL_1,
 				    WM8994_AIF1ADC_TDM, WM8994_AIF1ADC_TDM);
+#endif
 		break;
 	default:
 		break;

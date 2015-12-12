@@ -3245,6 +3245,24 @@ int snd_soc_dapm_get_pin_status(struct snd_soc_dapm_context *dapm,
 EXPORT_SYMBOL_GPL(snd_soc_dapm_get_pin_status);
 
 /**
+ * snd_soc_dapm_get_pin_pwr_status - get audio pin power status
+ * @codec: audio codec
+ * @pin: audio signal pin endpoint (or start point)
+ *
+ * Get audio pin status - connected or disconnected.
+ *
+ * Returns 1 for connected otherwise 0.
+ */
+int snd_soc_dapm_get_pin_pwr_status(struct snd_soc_dapm_context *dapm, const char *pin)
+{
+	// TODO -JCS ???????????????
+	struct snd_soc_dapm_widget *w = dapm_find_widget(dapm, pin, true);
+
+	return w->power;
+}
+EXPORT_SYMBOL_GPL(snd_soc_dapm_get_pin_pwr_status);
+
+/**
  * snd_soc_dapm_ignore_suspend - ignore suspend status for DAPM endpoint
  * @dapm: DAPM context
  * @pin: audio signal pin endpoint (or start point)

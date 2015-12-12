@@ -157,7 +157,7 @@ static struct mfd_cell wm8994_devs[] = {
  * and should be handled via the standard regulator API supply
  * management.
  */
-#ifndef CONFIG_MACH_TENDERLOIN
+
 static const char *wm1811_main_supplies[] = {
 	"DBVDD1",
 	"DBVDD2",
@@ -180,6 +180,14 @@ static const char *wm8994_main_supplies[] = {
 	"SPKVDD2",
 };
 
+#ifdef CONFIG_MACH_TENDERLOIN
+static const char *wm8958_main_supplies[] = {
+	"8058_s3",
+};
+static const int wm8958_main_supplies_v[] = {
+	1800000,
+};
+#else
 static const char *wm8958_main_supplies[] = {
 	"DBVDD1",
 	"DBVDD2",
@@ -423,7 +431,10 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 	if (pdata && pdata->wm8994_setup)
 		pdata->wm8994_setup();
 
-#ifndef CONFIG_MACH_TENDERLOIN
+#ifdef CONFIG_MACH_TENDERLOIN
+	wm8994->type = WM8958; // TODO - XXX - -JCS
+#endif
+
 	switch (wm8994->type) {
 	case WM1811:
 		wm8994->num_supplies = ARRAY_SIZE(wm1811_main_supplies);
@@ -457,14 +468,18 @@ static __devinit int wm8994_device_init(struct wm8994 *wm8994, int irq)
 			wm8994->supplies[i].supply = wm8994_main_supplies[i];
 		break;
 	case WM8958:
-		for (i = 0; i < ARRAY_SIZE(wm8958_main_supplies); i++)
+		for (i = 0; i < ARRAY_SIZE(wm8958_main_supplies); i++){
 			wm8994->supplies[i].supply = wm8958_main_supplies[i];
+			wm8994->supplies[i].min_uV = wm8958_main_supplies_v[i];
+			wm8994->supplies[i].max_uV = wm8958_main_supplies_v[i];
+		}
 		break;
 	default:
 		BUG();
 		goto err;
 	}
 
+#ifndef CONFIG_MACH_TENDERLOIN
 	ret = regulator_bulk_get(wm8994->dev, wm8994->num_supplies,
 				 wm8994->supplies);
 	if (ret != 0) {
@@ -690,11 +705,9 @@ static __devexit void wm8994_device_exit(struct wm8994 *wm8994)
 	if (pdata && pdata->wm8994_shutdown)
 		pdata->wm8994_shutdown();
 
-#ifndef CONFIG_MACH_TENDERLOIN
 	regulator_bulk_disable(wm8994->num_supplies,
 			       wm8994->supplies);
 	regulator_bulk_free(wm8994->num_supplies, wm8994->supplies);
-#endif
 }
 
 static const struct of_device_id wm8994_of_match[] = {

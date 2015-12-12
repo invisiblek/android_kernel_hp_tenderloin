@@ -527,7 +527,11 @@ struct adm_get_copp_handles_command {
 struct adm_routings_session {
 	u16 id;
 	u16 num_copps;
+#ifdef CONFIG_MACH_TENDERLOIN
+	u16 copp_id[ADM_MAX_COPPS];
+#else
 	u16 copp_id[ADM_MAX_COPPS+1]; /*Padding if numCopps is odd */
+#endif
 } __packed;
 
 struct adm_routings_command {

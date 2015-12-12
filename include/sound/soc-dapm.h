@@ -395,6 +395,8 @@ int snd_soc_dapm_disable_pin(struct snd_soc_dapm_context *dapm,
 int snd_soc_dapm_nc_pin(struct snd_soc_dapm_context *dapm, const char *pin);
 int snd_soc_dapm_get_pin_status(struct snd_soc_dapm_context *dapm,
 				const char *pin);
+int snd_soc_dapm_get_pin_pwr_status(struct snd_soc_dapm_context *dapm,
+				const char *pin);
 int snd_soc_dapm_sync(struct snd_soc_dapm_context *dapm);
 int snd_soc_dapm_force_enable_pin(struct snd_soc_dapm_context *dapm,
 				  const char *pin);
@@ -502,7 +504,7 @@ struct snd_soc_dapm_widget {
 	unsigned int off_val;			/* off state value */
 	unsigned char power:1;			/* block power status */
 	unsigned char invert:1;			/* invert the power bit */
-	unsigned char active:1;			/* active stream on DAC, ADC's */
+	unsigned char active;			/* active stream on DAC, ADC's */
 	unsigned char connected:1;		/* connected codec pin */
 	unsigned char new:1;			/* cnew complete */
 	unsigned char ext:1;			/* has external widgets */
