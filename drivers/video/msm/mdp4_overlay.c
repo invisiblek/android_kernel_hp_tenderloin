@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009-2013, The Linux Foundation. All rights reserved.
+ * Copyright (c) 2009-2016 The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -51,7 +51,7 @@
 struct mdp4_overlay_ctrl {
 	struct mdp4_overlay_pipe plist[OVERLAY_PIPE_MAX];
 	struct mdp4_overlay_pipe *stage[MDP4_MIXER_MAX][MDP4_MIXER_STAGE_MAX];
-	struct mdp4_overlay_pipe *baselayer[MDP4_MIXER_MAX];
+	struct mdp4_overlay_pipe baselayer[MDP4_MIXER_MAX];
 	struct blend_cfg blend[MDP4_MIXER_MAX][MDP4_MIXER_STAGE_MAX];
 	uint32 mixer_cfg[MDP4_MIXER_MAX];
 	uint32 flush[MDP4_MIXER_MAX];
@@ -2004,9 +2004,6 @@ void mdp4_overlay_borderfill_stage_up(struct mdp4_overlay_pipe *pipe)
 
 	mixer = pipe->mixer_num;
 
-	if (ctrl->baselayer[mixer])
-		return;
-
 	bspipe = ctrl->stage[mixer][MDP4_MIXER_STAGE_BASE];
 
         if (bspipe == NULL) {
@@ -2028,7 +2025,7 @@ void mdp4_overlay_borderfill_stage_up(struct mdp4_overlay_pipe *pipe)
         }
 
 	/* save original base layer */
-	ctrl->baselayer[mixer] = bspipe;
+	ctrl->baselayer[mixer] = *bspipe;
 
 	iom = pipe->iommu;
 	pipe->alpha = 0;	/* make sure bf pipe has alpha 0 */
@@ -2070,10 +2067,8 @@ void mdp4_overlay_borderfill_stage_up(struct mdp4_overlay_pipe *pipe)
 
 void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe)
 {
-	struct mdp4_overlay_pipe *bspipe;
-	int ptype, pnum, pndx, mixer;
-	int format, alpha_enable, alpha;
-	struct mdp4_iommu_pipe_info iom;
+	struct mdp4_overlay_pipe *bspipe, *bspipe_backup;
+	int mixer, i;
 
 	if (pipe->pipe_type != OVERLAY_TYPE_BF)
 		return;
@@ -2081,32 +2076,20 @@ void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe)
 	mixer = pipe->mixer_num;
 
 	/* retrieve original base layer */
-	bspipe = ctrl->baselayer[mixer];
-	if (bspipe == NULL) {
-		pr_err("%s: no base layer at mixer=%d\n",
-				__func__, mixer);
+	bspipe_backup = &(ctrl->baselayer[mixer]);
+	for (i = 0; i < OVERLAY_PIPE_MAX; i++) {
+		bspipe = &(ctrl->plist[i]);
+		if (bspipe->pipe_ndx == bspipe_backup->pipe_ndx)
+			break;
+	}
+	if (i == OVERLAY_PIPE_MAX) {
+		pr_err("%s,%d didn't find same ndx as base pipe, ndx=%d, "\
+			"num=%d\n", __func__, __LINE__, bspipe_backup->pipe_ndx,
+			bspipe_backup->pipe_num);
 		return;
 	}
-
-	iom = bspipe->iommu;
-	ptype = bspipe->pipe_type;
-	pnum = bspipe->pipe_num;
-	pndx = bspipe->pipe_ndx;
-	format = bspipe->src_format;
-	alpha_enable = bspipe->alpha_enable;
-	alpha = bspipe->alpha;
-	*bspipe = *pipe;	/* restore base layer configuration */
-	bspipe->pipe_type = ptype;
-	bspipe->pipe_num = pnum;
-	bspipe->pipe_ndx = pndx;
-	bspipe->src_format = format;
-	bspipe->alpha_enable = alpha_enable;
-	bspipe->alpha = alpha;
-	bspipe->iommu = iom;
-
-	bspipe->pipe_used++;	/* mark base layer pipe used */
-
-	ctrl->baselayer[mixer] = NULL;
+	/* Restore the base pipe configuration */
+	*bspipe = *bspipe_backup;
 
 	/* free borderfill pipe */
 	pipe->pipe_used = 0;
@@ -2128,6 +2111,7 @@ void mdp4_overlay_borderfill_stage_down(struct mdp4_overlay_pipe *pipe)
 	mdp4_overlay_pipe_free(pipe, 0);
 
 	/* stage up base layer */
+	mdp4_overlay_vsync_commit(bspipe);
 	mdp4_overlay_reg_flush(bspipe, 1);
 	/* restore original base layer */
 	mdp4_mixer_stage_up(bspipe, 1);
@@ -3859,8 +3843,9 @@ void mdp4_overlay_vsync_commit(struct mdp4_overlay_pipe *pipe)
 	else
 		mdp4_overlay_rgb_setup(pipe);	/* rgb pipe */
 
-	pr_debug("%s: pipe=%x ndx=%d num=%d used=%d\n", __func__,
-		(int) pipe, pipe->pipe_ndx, pipe->pipe_num, pipe->pipe_used);
+	pr_debug("%s: pipe=%x ndx=%d num=%d used=%d, offset=0x%08x, mixer=%d\n",
+		__func__, (int) pipe, pipe->pipe_ndx, pipe->pipe_num,
+		pipe->pipe_used, pipe->srcp0_addr, pipe->mixer_num);
 	mdp4_overlay_reg_flush(pipe, 1);
 	mdp4_mixer_stage_up(pipe, 0);
 }
