@@ -110,7 +110,6 @@
 #include <mach/restart.h>
 #include <mach/cable_detect.h>
 #include <mach/board-msm8660.h>
-#include <mach/iommu_domains.h>
 
 #ifdef CONFIG_MAX8903B_CHARGER
 #include <linux/max8903b_charger.h>
@@ -1457,30 +1456,27 @@ static void __init msm8x60_init_dsps(void)
 }
 #endif 
 
-#define MSM_PMEM_SF_SIZE 0x200000 /* 2 Mbytes */
-#define MSM_HDMI_PRIM_PMEM_SF_SIZE 0x4000000 /* 64 Mbytes */
+#define MSM_PMEM_KERNEL_EBI1_SIZE 0x600000
+#define MSM_PMEM_SF_SIZE	0x200000 /* 2 Mbytes */
+#define MSM_PMEM_ADSP_SIZE	0x600000 /* 6 Mbytes */
+#define MSM_PMEM_AUDIO_SIZE	0x28B000
 
-#define MSM_PMEM_KERNEL_EBI1_SIZE  0x600000
-#define MSM_PMEM_ADSP_SIZE         0x600000 /* 6 Mbytes */
-#define MSM_PMEM_AUDIO_SIZE        0x28B000
+#define MSM_SMI_BASE		0x38000000
+#define MSM_SMI_SIZE		0x4000000
 
-#define MSM_SMI_BASE          0x38000000
-#define MSM_SMI_SIZE          0x4000000
-
-#define KERNEL_SMI_BASE       (MSM_SMI_BASE)
+#define KERNEL_SMI_BASE		(MSM_SMI_BASE)
 #if defined(CONFIG_ION_MSM) && defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
-#define KERNEL_SMI_SIZE       0x000000
+#define KERNEL_SMI_SIZE		0x000000
 #else
-#define KERNEL_SMI_SIZE       0x600000
+#define KERNEL_SMI_SIZE		0x600000
 #endif
 
-#define USER_SMI_BASE         (KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
-#define USER_SMI_SIZE         (MSM_SMI_SIZE - KERNEL_SMI_SIZE)
-#define MSM_PMEM_SMIPOOL_SIZE USER_SMI_SIZE
+#define USER_SMI_BASE		(KERNEL_SMI_BASE + KERNEL_SMI_SIZE)
+#define USER_SMI_SIZE		(MSM_SMI_SIZE - KERNEL_SMI_SIZE)
+#define MSM_PMEM_SMIPOOL_SIZE	USER_SMI_SIZE
 
-#define MSM_ION_SF_SIZE		0x4000000 /* 64MB */
-#define MSM_ION_CAMERA_SIZE   0x4000000 /* 64MB */
-#define MSM_ION_QSECOM_SIZE	0x600000 /* (6MB) */
+#define MSM_ION_SF_SIZE		0x3700000 /* 55MB */
+#define MSM_ION_CAMERA_SIZE	0x1000000 /* 16MB */
 #define MSM_ION_AUDIO_SIZE	MSM_PMEM_AUDIO_SIZE
 
 #ifdef CONFIG_MSM_CP
@@ -1490,7 +1486,7 @@ static void __init msm8x60_init_dsps(void)
 #endif
 
 #define MSM_MM_FW_SIZE		(0x200000 - MSM_ION_HOLE_SIZE) /*(2MB-128KB)*/
-#define MSM_ION_MM_SIZE		0x6600000  /* (102MB) */
+#define MSM_ION_MM_SIZE		0x3D00000  /* (61MB) */
 #define MSM_ION_MFC_SIZE	SZ_8K
 
 #define MSM_MM_FW_BASE		MSM_SMI_BASE
@@ -1499,7 +1495,6 @@ static void __init msm8x60_init_dsps(void)
 #define MSM_ION_MFC_BASE	(MSM_ION_MM_BASE + MSM_ION_MM_SIZE)
 
 #ifdef CONFIG_MSM_CP
-
 #define SECURE_BASE  (MSM_ION_HOLE_BASE)
 #define SECURE_SIZE  (MSM_ION_MM_SIZE + MSM_ION_HOLE_SIZE)
 #else
@@ -1509,8 +1504,6 @@ static void __init msm8x60_init_dsps(void)
 
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 #define MSM_ION_HEAP_NUM	7
-#define MSM_HDMI_PRIM_ION_SF_SIZE MSM_HDMI_PRIM_PMEM_SF_SIZE
-static unsigned msm_ion_sf_size = MSM_ION_SF_SIZE;
 #else
 #define MSM_ION_HEAP_NUM	1
 #endif
@@ -2038,22 +2031,17 @@ static struct platform_device qseecom_device = {
 #ifdef CONFIG_MSM_MULTIMEDIA_USE_ION
 static struct ion_cp_heap_pdata cp_mm_ion_pdata = {
 	.permission_type = IPT_TYPE_MM_CARVEOUT,
-	.align = SZ_64K,
+	.align = PAGE_SIZE,
 	.request_region = request_smi_region,
 	.release_region = release_smi_region,
 	.setup_region = setup_smi_region,
 	.secure_base = SECURE_BASE,
 	.secure_size = SECURE_SIZE,
-	.iommu_map_all = 1,
-	.iommu_2x_map_domain = VIDEO_DOMAIN,
 };
 
 static struct ion_cp_heap_pdata cp_mfc_ion_pdata = {
 	.permission_type = IPT_TYPE_MFC_SHAREDMEM,
 	.align = PAGE_SIZE,
-	.request_region = request_smi_region,
-	.release_region = release_smi_region,
-	.setup_region = setup_smi_region,
 };
 
 static struct ion_co_heap_pdata mm_fw_co_ion_pdata = {
@@ -2249,7 +2237,6 @@ static struct platform_device *tenderloin_devices[] __initdata = {
 #ifdef CONFIG_MSM_RTB
 	&msm_rtb_device,
 #endif
-	&msm8660_iommu_domain_device,
 };
 
 static struct memtype_reserve msm8x60_reserve_table[] __initdata = {
@@ -2296,7 +2283,7 @@ static void reserve_ion_memory(void)
 		}
 	}
 
-	msm8x60_reserve_table[MEMTYPE_EBI1].size += msm_ion_sf_size;
+	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_SF_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_CAMERA_SIZE;
 	msm8x60_reserve_table[MEMTYPE_EBI1].size += MSM_ION_AUDIO_SIZE;
 #endif
@@ -2332,14 +2319,11 @@ static void __init reserve_pmem_memory(void)
 #endif
 }
 
-static void __init reserve_mdp_memory(void);
-
 static void __init msm8x60_calculate_reserve_sizes(void)
 {
 	size_pmem_devices();
 	reserve_pmem_memory();
 	reserve_ion_memory();
-	reserve_mdp_memory();
 }
 
 static int msm8x60_paddr_to_memtype(unsigned int paddr)
@@ -2356,8 +2340,6 @@ static struct reserve_info msm8x60_reserve_info __initdata = {
 	.calculate_reserve_sizes = msm8x60_calculate_reserve_sizes,
 	.paddr_to_memtype = msm8x60_paddr_to_memtype,
 };
-
-void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel);
 
 static void __init tenderloin_early_memory(void)
 {
@@ -3394,11 +3376,6 @@ static void __init tenderloin_map_io(void)
 		pr_err("socinfo_init() failed!\n");
 }
 
-static void __init reserve_mdp_memory(void)
-{
-  msm8x60_mdp_writeback(msm8x60_reserve_table);
-}
-
 void msm_fusion_setup_pinctrl(void)
 {
 	struct msm_xo_voter *a1;
@@ -3466,7 +3443,6 @@ void __init tenderloin_fixup_pins(void)
         tenderloin_a6_fixup_pins();
 }
 
-int lcdc_lg_panel_power(int on);
 static void __init tenderloin_init(void)
 {
 	uint32_t soc_platform_version;
@@ -3551,8 +3527,7 @@ static void __init tenderloin_init(void)
 
         tenderloin_init_fb();
 
-	lcdc_lg_panel_power(1);
-    tenderloin_gpio_mpp_init();
+	tenderloin_gpio_mpp_init();
         tenderloin_usb_init();
         platform_device_register(&tenderloin_8901_mpp_vreg);
 #ifdef CONFIG_MSM_DSPS

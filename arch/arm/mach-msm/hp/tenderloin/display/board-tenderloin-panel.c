@@ -24,45 +24,16 @@
 #include <mach/msm_memtypes.h>
 #include <linux/bootmem.h>
 #include <mach/msm_gpiomux.h>
-#ifdef CONFIG_FB_MSM_HDMI_MHL
-#include <video/msm_hdmi_modes.h>
-#endif
 
 #include "../devices.h"
 #include "../board-tenderloin.h"
 #include <mach/board-msm8660.h>
-#if defined (CONFIG_FB_MSM_MDP_ABL)
-#include <linux/fb.h>
-#endif
 
-#ifdef CONFIG_FB_MSM_TRIPLE_BUFFER
-#define MSM_FB_PRIM_BUF_SIZE (1024 * 768 * 4 * 3) /* 4 bpp x 3 pages */
-#else
-#define MSM_FB_PRIM_BUF_SIZE (1024 * 768 * 4 * 2) /* 4 bpp x 2 pages */
-#endif
-
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-#define MSM_FB_EXT_BUF_SIZE  (1920 * 1080 * 2 * 1) /* 2 bpp x 1 page */
-#elif defined(CONFIG_FB_MSM_TVOUT)
-#define MSM_FB_EXT_BUF_SIZE  (720 * 576 * 2 * 2) /* 2 bpp x 2 pages */
-#else
-#define MSM_FB_EXT_BUF_SIZE     0
-#endif
-
-#ifdef CONFIG_FB_MSM_OVERLAY0_WRITEBACK
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE roundup((1024 * 768 * 3 * 2), 4096)
-#else
-#define MSM_FB_OVERLAY0_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY0_WRITEBACK */
-
-#ifdef CONFIG_FB_MSM_OVERLAY1_WRITEBACK
-#define MSM_FB_OVERLAY1_WRITEBACK_SIZE roundup((1920 * 1088 * 3 * 2), 4096)
-#else
-#define MSM_FB_OVERLAY1_WRITEBACK_SIZE (0)
-#endif  /* CONFIG_FB_MSM_OVERLAY1_WRITEBACK */
+/* 4 bpp x 3 pages */
+#define MSM_FB_PRIM_BUF_SIZE (1024 * 768 * 4 * 3)
 
 /* Note: must be multiple of 4096 */
-#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE + MSM_FB_EXT_BUF_SIZE + MSM_FB_OVERLAY0_WRITEBACK_SIZE, 4096)
+#define MSM_FB_SIZE roundup(MSM_FB_PRIM_BUF_SIZE, 4096)
 
 /** allow the framebuffer's address to be passed from the bootloader on the command line */
 static unsigned long fb_phys = 0;
@@ -83,7 +54,9 @@ static struct resource msm_fb_resources[] = {
 	}
 };
 
-static struct msm_fb_platform_data msm_fb_pdata;
+static struct msm_fb_platform_data msm_fb_pdata = {
+	.prim_panel_name = "lcdc_tenderloin",
+};
 
 static struct platform_device msm_fb_device = {
 	.name              = "msm_fb",
@@ -99,14 +72,14 @@ void __init msm8x60_allocate_fb_region(void)
 	unsigned long size;
 
 	size = MSM_FB_SIZE;
+
 	if(fb_phys) {
 		addr = (void *)fb_phys;
 		msm_fb_resources[0].start = (unsigned long)addr;
 		msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
 		pr_info("passing from bootie %lu bytes at %lx physical for fb\n",
 			size, fb_phys);
-	}
-	else {
+	} else {
                 addr = alloc_bootmem_align(size, 0x1000);
 		msm_fb_resources[0].start = __pa(addr);
 		msm_fb_resources[0].end = msm_fb_resources[0].start + size - 1;
@@ -135,90 +108,6 @@ static struct msm_bus_vectors mdp_init_vectors[] = {
 	},
 };
 
-#ifdef CONFIG_FB_MSM_LCDC_DSUB
-static struct msm_bus_vectors mdp_sd_smi_vectors[] = {
-	/* Default case static display/UI/2d/3d if FB SMI */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 388800000,
-		.ib = 486000000,
-	},
-	/* Master and slaves can be from different fabrics */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = 0,
-	},
-};
-
-static struct msm_bus_vectors mdp_sd_ebi_vectors[] = {
-	/* Default case static display/UI/2d/3d if FB SMI */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 0,
-		.ib = 0,
-	},
-	/* Master and slaves can be from different fabrics */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 388800000,
-		.ib = 486000000 * 2,
-	},
-};
-static struct msm_bus_vectors mdp_vga_vectors[] = {
-	/* VGA and less video */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 458092800,
-		.ib = 572616000,
-	},
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 458092800,
-		.ib = 572616000 * 2,
-	},
-};
-static struct msm_bus_vectors mdp_720p_vectors[] = {
-	/* 720p and less video */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 471744000,
-		.ib = 589680000,
-	},
-	/* Master and slaves can be from different fabrics */
-       {
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-	       .ab = 471744000,
-	       .ib = 589680000 * 2,
-	},
-};
-
-static struct msm_bus_vectors mdp_1080p_vectors[] = {
-	/* 1080p and less video */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_SMI,
-		.ab = 575424000,
-		.ib = 719280000,
-	},
-	/* Master and slaves can be from different fabrics */
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 575424000,
-		.ib = 719280000 * 2,
-	},
-};
-
-#else
 static struct msm_bus_vectors mdp_sd_smi_vectors[] = {
 	/* Default case static display/UI/2d/3d if FB SMI */
 	{
@@ -302,7 +191,6 @@ static struct msm_bus_vectors mdp_1080p_vectors[] = {
 	},
 };
 
-#endif
 static struct msm_bus_paths mdp_bus_scale_usecases[] = {
 	{
 		ARRAY_SIZE(mdp_init_vectors),
@@ -335,11 +223,11 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 	.name = "mdp",
 };
 #endif
-#define MDP_VSYNC_GPIO			28
+
+#define MDP_VSYNC_GPIO	2
 
 static struct msm_panel_common_pdata mdp_pdata = {
-  //        .gpio = MDP_VSYNC_GPIO,
-        .gpio = 2,
+        .gpio = MDP_VSYNC_GPIO,
         .mdp_max_clk = 200000000,
 #ifdef CONFIG_MSM_BUS_SCALING
 	.mdp_bus_scale_table = &mdp_bus_scale_pdata,
@@ -353,19 +241,6 @@ static struct msm_panel_common_pdata mdp_pdata = {
 	.cont_splash_enabled = 0x01,
         .mdp_iommu_split_domain = 0,
 };
-
-void __init msm8x60_mdp_writeback(struct memtype_reserve* reserve_table)
-{
-	mdp_pdata.ov0_wb_size = MSM_FB_OVERLAY0_WRITEBACK_SIZE;
-	mdp_pdata.ov1_wb_size = MSM_FB_OVERLAY1_WRITEBACK_SIZE;
-#if defined(CONFIG_ANDROID_PMEM) && !defined(CONFIG_MSM_MULTIMEDIA_USE_ION)
-	reserve_table[mdp_pdata.mem_hid].size +=
-		mdp_pdata.ov0_wb_size;
-	reserve_table[mdp_pdata.mem_hid].size +=
-		mdp_pdata.ov1_wb_size;
-#endif
-}
-
 
 static int lcd_panel_gpios[] = {
 	0, /* lcdc_pclk */
@@ -396,7 +271,6 @@ static int lcd_panel_gpios[] = {
 	25, /* lcdc_blu2 */
 	26, /* lcdc_blu1 */
 	27, /* lcdc_blu0 */
-	//70, /* TOUCH reset */
 };
 
 static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
@@ -405,7 +279,6 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 	int i;
 
 	for (i = 0; i < cnt; i++) {
-		//printk(KERN_ERR "%s:pin(%d):%s\n", __func__, gpios[i], on?"on":"off");
 		if (on) {
 			ret = msm_gpiomux_get(gpios[i]);
 			if (unlikely(ret))
@@ -416,9 +289,11 @@ static int configure_gpiomux_gpios(int on, int gpios[], int cnt)
 				return ret;
 		}
 	}
+
 	if (ret)
 		for (; i >= 0; i--)
 			msm_gpiomux_put(gpios[i]);
+
 	return ret;
 }
 
@@ -435,133 +310,120 @@ static int lcdc_panel_power(int on)
 	static bool bPanelPowerOn = false;
         static struct regulator *votg_l10, *votg_vdd5v;
 	int rc = 0;
-        //	int flag_on = !!on;
-        //	static int lcdc_steadycfg = 0;
 
         printk(KERN_ERR "[DISP] %s: ++ %d\n", __func__, on);
 
-        if (!lcdc_power_on)
-          { // If panel is shut down (first init)
-            votg_l10 = regulator_get(NULL, "8058_l10");
-            if (IS_ERR_OR_NULL(votg_l10)) 
-              {
-                pr_err("[DISP] %s: unable to get 8058_l10\n", __func__);
-                return -ENODEV;
-              }
-            /* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-            if (board_type < TOPAZ_EVT1) 
-              {
-                /* VDD_BACKLIGHT_5.0V*/
-                votg_vdd5v = regulator_get(NULL, "vdd50_boost");
-                if (IS_ERR_OR_NULL(votg_vdd5v)) 
-                  {
-                    pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
-                    return -ENODEV;
-                  }
-              }              
-            /* VDD_LVDS_3.3V ENABLE*/
-            rc = regulator_set_voltage(votg_l10, 3050000, 3050000);
-            if(rc) 
-              {
-                pr_err("[DISP] %s: Unable to set regulator voltage:"
-                       " votg_l10\n", __func__);
-                return rc;
-              }
+	if (!lcdc_power_on) { // If panel is shut down (first init)
+		votg_l10 = regulator_get(NULL, "8058_l10");
+		if (IS_ERR_OR_NULL(votg_l10)) {
+			pr_err("[DISP] %s: unable to get 8058_l10\n", __func__);
+		return -ENODEV;
+		}
 
-            /* LVDS_SHDN_N*/
-            rc = gpio_request(GPIO_LVDS_SHDN_N,"LVDS_SHDN_N");
-            if (rc) 
-              {
-                pr_err("[DISP] %s: LVDS gpio %d request"
-                       "failed\n", __func__, GPIO_LVDS_SHDN_N);
-                return rc;
-              }
+		/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
+		if (board_type < TOPAZ_EVT1) {
+			/* VDD_BACKLIGHT_5.0V*/
+			votg_vdd5v = regulator_get(NULL, "vdd50_boost");
+			if (IS_ERR_OR_NULL(votg_vdd5v)) {
+				pr_err("[DISP] %s: unable to get 8901_l4\n", __func__);
+				return -ENODEV;
+			}
+		}
 
-            /* LCD_PWR_EN */
-            rc = gpio_request(GPIO_LCD_PWR_EN, "LCD_PWR_EN");
-            if (rc) 
-              {
-                pr_err("[DISP] %s: LCD Power gpio %d request"
-                       "failed\n", __func__, GPIO_LCD_PWR_EN);
-                gpio_free(GPIO_LVDS_SHDN_N);
-                return rc;
-              }
+		/* VDD_LVDS_3.3V ENABLE*/
+		rc = regulator_set_voltage(votg_l10, 3050000, 3050000);
+		if(rc) {
+			pr_err("[DISP] %s: Unable to set regulator voltage:"
+				" votg_l10\n", __func__);
+			return rc;
+		}
 
-            /* BACKLIGHT */
-            rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
-            if (rc) 
-              {
-                pr_err("[DISP] %s: BACKLIGHT gpio %d request"
-                       "failed\n", __func__, GPIO_BACKLIGHT_EN);
-                gpio_free(GPIO_LVDS_SHDN_N);
-                gpio_free(GPIO_LCD_PWR_EN);
-                return rc;
-              }
+		/* LVDS_SHDN_N*/
+		rc = gpio_request(GPIO_LVDS_SHDN_N,"LVDS_SHDN_N");
+		if (rc) {
+			pr_err("[DISP] %s: LVDS gpio %d request"
+				"failed\n", __func__, GPIO_LVDS_SHDN_N);
+			return rc;
+		}
 
-            tenderloin_lcdc_steadycfg();
-            lcdc_power_on = true;
-          }
+		/* LCD_PWR_EN */
+		rc = gpio_request(GPIO_LCD_PWR_EN, "LCD_PWR_EN");
+		if (rc) {
+			pr_err("[DISP] %s: LCD Power gpio %d request"
+				"failed\n", __func__, GPIO_LCD_PWR_EN);
+			gpio_free(GPIO_LVDS_SHDN_N);
+			return rc;
+		}
 
-        if (on) // if power on asked
-          {
-            if (bPanelPowerOn) return 0;
-            rc = regulator_enable(votg_l10);
-            if(rc) 
-              {
-                pr_err("[DISP] %s: Unable to enable the regulator: votg_l10\n", __func__);
-                return rc;
-              }
+		/* BACKLIGHT */
+		rc = gpio_request(GPIO_BACKLIGHT_EN, "BACKLIGHT_EN");
+		if (rc) {
+			pr_err("[DISP] %s: BACKLIGHT gpio %d request"
+				"failed\n", __func__, GPIO_BACKLIGHT_EN);
+			gpio_free(GPIO_LVDS_SHDN_N);
+			gpio_free(GPIO_LCD_PWR_EN);
+			return rc;
+		}
 
-            /* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-            if (board_type < TOPAZ_EVT1) 
-              {
-                /* VDD_BACKLIGHT_5.0V ENABLE*/
-                rc = regulator_enable(votg_vdd5v);
-                if(rc) 
-                  {
-                    pr_err("[DISP] %s: Unable to enable the regulator: votg_vdd5v\n", __func__);
-                    return rc;
-                  }
-              }
+		tenderloin_lcdc_steadycfg();
+		lcdc_power_on = true;
+	}
 
-            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 1);
-            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 1);
-            msleep(20);
-            gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
-            mdelay(20);
-            bPanelPowerOn = true;
-          }
-        else // if power off asked
-          {
-            if (!bPanelPowerOn) return 0;
-            rc = regulator_disable(votg_l10);
-            if (rc) 
-              {
-                pr_err("%s: Unable to disable votg_l10\n",__func__);
-                return rc;
-              }
+	if (on) {
+		if (bPanelPowerOn)
+			return 0;
+		rc = regulator_enable(votg_l10);
+		if(rc) {
+			pr_err("[DISP] %s: Unable to enable the regulator: votg_l10\n", __func__);
+			return rc;
+		}
+
+		/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
+		if (board_type < TOPAZ_EVT1) {
+			/* VDD_BACKLIGHT_5.0V ENABLE*/
+			rc = regulator_enable(votg_vdd5v);
+			if(rc) {
+				pr_err("[DISP] %s: Unable to enable the regulator: votg_vdd5v\n", __func__);
+				return rc;
+			}
+		}
+
+		gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 1);
+		gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 1);
+		msleep(20);
+		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 1);
+		mdelay(20);
+		bPanelPowerOn = true;
+	} else {
+		if (!bPanelPowerOn)
+			return 0;
+
+		rc = regulator_disable(votg_l10);
+		if (rc) {
+			pr_err("%s: Unable to disable votg_l10\n",__func__);
+			return rc;
+		}
             
-            /* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
-            if (board_type < TOPAZ_EVT1) 
-              {
-                rc = regulator_disable(votg_vdd5v);
-                if (rc) 
-                  {
-                    pr_err("%s: Unable to disable votg_vdd5v\n",__func__);
-                    return rc;
-                  }
-              }
+		/* Due to hardware change, it will not use GPIO102 as 5V boost Enable since EVT1*/
+		if (board_type < TOPAZ_EVT1) {
+			rc = regulator_disable(votg_vdd5v);
+			if (rc) {
+				pr_err("%s: Unable to disable votg_vdd5v\n",__func__);
+				return rc;
+			}
+		}
             
-            gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
-    		mdelay(5);
-            gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
-            gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 0);
-            msleep(20);
-            bPanelPowerOn = false;
-          }
+		gpio_set_value_cansleep(GPIO_BACKLIGHT_EN, 0);
+		mdelay(5);
+		gpio_set_value_cansleep(GPIO_LVDS_SHDN_N, 0);
+		gpio_set_value_cansleep(GPIO_LCD_PWR_EN, 0);
+		msleep(20);
+		bPanelPowerOn = false;
+	}
     	lcdc_gpio_request(on);
 	/* configure lcdc gpios */
         configure_gpiomux_gpios(on, lcd_panel_gpios, ARRAY_SIZE(lcd_panel_gpios));
+
         return 0;
 }
 
@@ -574,77 +436,11 @@ static struct platform_device lcdc_tenderloin_panel_device = {
 	.id = 0,
 };
 
-#ifdef CONFIG_MSM_BUS_SCALING
-static struct msm_bus_vectors dtv_bus_init_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 0,
-		.ib = 0,
-	},
-};
-static struct msm_bus_vectors dtv_bus_def_vectors[] = {
-	{
-		.src = MSM_BUS_MASTER_MDP_PORT0,
-		.dst = MSM_BUS_SLAVE_EBI_CH0,
-		.ab = 566092800 * 2,
-		.ib = 707616000 * 2,
-	},
-};
-static struct msm_bus_paths dtv_bus_scale_usecases[] = {
-	{
-		ARRAY_SIZE(dtv_bus_init_vectors),
-		dtv_bus_init_vectors,
-	},
-	{
-		ARRAY_SIZE(dtv_bus_def_vectors),
-		dtv_bus_def_vectors,
-	},
-};
-static struct msm_bus_scale_pdata dtv_bus_scale_pdata = {
-	dtv_bus_scale_usecases,
-	ARRAY_SIZE(dtv_bus_scale_usecases),
-	.name = "dtv",
-};
-#endif
-
-static struct lcdc_platform_data dtv_pdata = {
-#ifdef CONFIG_MSM_BUS_SCALING
-	.bus_scale_table = &dtv_bus_scale_pdata,
-#endif
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-//	.lcdc_power_save = hdmi_panel_power,
-#endif
-};
-
-void __init msm8x60_set_display_params(char *prim_panel, char *ext_panel)
-{
-	if (strnlen(prim_panel, PANEL_NAME_MAX_LEN)) {
-		strlcpy(msm_fb_pdata.prim_panel_name, prim_panel,
-			PANEL_NAME_MAX_LEN);
-		pr_debug("msm_fb_pdata.prim_panel_name %s\n",
-			msm_fb_pdata.prim_panel_name);
-	}
-
-	if (strnlen(ext_panel, PANEL_NAME_MAX_LEN)) {
-		strlcpy(msm_fb_pdata.ext_panel_name, ext_panel,
-			PANEL_NAME_MAX_LEN);
-		pr_debug("msm_fb_pdata.ext_panel_name %s\n",
-			msm_fb_pdata.ext_panel_name);
-	}
-}
-
 void __init tenderloin_init_fb(void)
 {
-	msm8x60_set_display_params("lcdc_tenderloin", "hdmi_msm");
 	platform_device_register(&msm_fb_device);
 	platform_device_register(&lcdc_tenderloin_panel_device);
 	msm_fb_register_device("mdp", &mdp_pdata);
 	msm_fb_register_device("lcdc", &lcdc_pdata);
-        //	msm_fb_register_device("mipi_dsi", 0);
-#ifdef CONFIG_FB_MSM_HDMI_MSM_PANEL
-        //	platform_device_register(&hdmi_msm_device);
-#endif
-        msm_fb_register_device("dtv", &dtv_pdata);
 }
 
