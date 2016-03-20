@@ -2661,4 +2661,7 @@ config HAS_MACH_MEMUTILS
 	help
 	Faster memcpy performance for Krait
 
+config STATE_NOTIFIER
+        bool "State Notifier"
+
 endif

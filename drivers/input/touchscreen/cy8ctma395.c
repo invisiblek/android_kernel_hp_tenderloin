@@ -8,6 +8,10 @@
 #include <linux/slab.h>
 #include <linux/module.h>
 
+#ifdef CONFIG_STATE_NOTIFIER
+#include <linux/state_notifier.h>
+#endif
+
 #define BLOCK_LEN			256
 #define ECC_LEN				32
 #define DEVICE_CONFIG_ECCEN		0x08
@@ -414,6 +418,10 @@ enable:
 	if (rev)
 		*rev = data[1];
 
+#ifdef CONFIG_STATE_NOTIFIER
+	state_resume();
+#endif
+
 	return (0);
 
 acquire_failed:
@@ -437,6 +445,9 @@ static void port_release(struct device *dev)
 	gpio_set_value(pdat->xres, 1);
 	(void)pdat->swdio_request(0);
 	(void)pdat->swdck_request(0);
+#ifdef CONFIG_STATE_NOTIFIER
+	state_suspend();
+#endif
 }
 
 static int poll_status_reg(struct device *dev, u8 expected, const char *step)
