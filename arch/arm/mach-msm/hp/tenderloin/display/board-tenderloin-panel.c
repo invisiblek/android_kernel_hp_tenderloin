@@ -224,7 +224,7 @@ static struct msm_bus_scale_pdata mdp_bus_scale_pdata = {
 };
 #endif
 
-#define MDP_VSYNC_GPIO	2
+#define MDP_VSYNC_GPIO	28
 
 static struct msm_panel_common_pdata mdp_pdata = {
         .gpio = MDP_VSYNC_GPIO,
