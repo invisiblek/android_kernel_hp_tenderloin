@@ -138,7 +138,6 @@ struct msm_hsusb_gadget_platform_data {
 
 	int self_powered;
 	int is_phy_status_timer_on;
-	bool prop_chg;
 };
 
 struct msm_otg_platform_data {
