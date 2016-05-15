@@ -1486,7 +1486,7 @@ static void __init msm8x60_init_dsps(void)
 #endif
 
 #define MSM_MM_FW_SIZE		(0x200000 - MSM_ION_HOLE_SIZE) /*(2MB-128KB)*/
-#define MSM_ION_MM_SIZE		0x6600000  /* (102MB) */
+#define MSM_ION_MM_SIZE		0x7800000  /* (120MB) */
 #define MSM_ION_MFC_SIZE	SZ_8K
 
 #define MSM_MM_FW_BASE		MSM_SMI_BASE
