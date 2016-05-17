@@ -1017,12 +1017,12 @@ static struct ion_client *ion_client_lookup(struct ion_device *dev,
 	struct rb_node *n = dev->clients.rb_node;
 	struct ion_client *client;
 
-	mutex_lock(&dev->lock);
+	mutex_lock(&dev->buffer_lock);
 	while (n) {
 		client = rb_entry(n, struct ion_client, node);
 		if (task == client->task) {
 			ion_client_get(client);
-			mutex_unlock(&dev->lock);
+			mutex_unlock(&dev->buffer_lock);
 			return client;
 		} else if (task < client->task) {
 			n = n->rb_left;
@@ -1030,7 +1030,7 @@ static struct ion_client *ion_client_lookup(struct ion_device *dev,
 			n = n->rb_right;
 		}
 	}
-	mutex_unlock(&dev->lock);
+	mutex_unlock(&dev->buffer_lock);
 	return NULL;
 }
 
