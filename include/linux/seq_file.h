@@ -150,6 +150,7 @@ static inline struct user_namespace *seq_user_ns(struct seq_file *seq)
 	extern struct user_namespace init_user_ns;
 	return &init_user_ns;
 #endif
+}
 
 /**
  * seq_show_options - display mount options with appropriate escapes.
