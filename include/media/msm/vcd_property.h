@@ -13,8 +13,6 @@
 #ifndef _VCD_DRIVER_PROPERTY_H_
 #define _VCD_DRIVER_PROPERTY_H_
 
-#include <linux/types.h>
-
 #define VCD_START_BASE       0x0
 #define VCD_I_LIVE           (VCD_START_BASE + 0x1)
 #define VCD_I_CODEC          (VCD_START_BASE + 0x2)
