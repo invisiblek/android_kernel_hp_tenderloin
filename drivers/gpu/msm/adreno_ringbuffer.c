@@ -1050,8 +1050,6 @@ adreno_ringbuffer_issueibcmds(struct kgsl_device_private *dev_priv,
 	} else
 		drawctxt->timestamp++;
 
-	flags &= KGSL_CMD_FLAGS_EOF;
-
 	ret = adreno_ringbuffer_addcmds(&adreno_dev->ringbuffer,
 					drawctxt,
 					(flags & KGSL_CMD_FLAGS_EOF),
