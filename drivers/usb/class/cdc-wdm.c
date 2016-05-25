@@ -11,6 +11,7 @@
  *
  * Many thanks to Carl Nordbeck
  */
+
 #include <linux/kernel.h>
 #include <linux/errno.h>
 #include <linux/slab.h>
@@ -59,15 +60,6 @@ static const struct usb_device_id wdm_ids[] = {
 		.bInterfaceSubClass = 1,
 		.bInterfaceProtocol = 9, /* NOTE: CDC ECM control interface! */
 	},
-	{
-		 /* Vodafone/Huawei K5005 (12d1:14c8) and similar modems */
-		.match_flags        = USB_DEVICE_ID_MATCH_VENDOR |
-				      USB_DEVICE_ID_MATCH_INT_INFO,
-		.idVendor           = HUAWEI_VENDOR_ID,
-		.bInterfaceClass    = USB_CLASS_VENDOR_SPEC,
-		.bInterfaceSubClass = 1,
-		.bInterfaceProtocol = 57, /* NOTE: CDC ECM control interface! */
-	},
 	{ }
 };
 
@@ -85,7 +77,6 @@ MODULE_DEVICE_TABLE (usb, wdm_ids);
 #define WDM_RESPONDING		7
 #define WDM_SUSPENDING		8
 #define WDM_RESETTING		9
-#define WDM_OVERFLOW		10
 
 #define WDM_MAX			16
 
@@ -139,14 +130,12 @@ static struct usb_driver wdm_driver;
 /* return intfdata if we own the interface, else look up intf in the list */
 static struct wdm_device *wdm_find_device(struct usb_interface *intf)
 {
-	struct wdm_device *desc;
+	struct wdm_device *desc = NULL;
 
 	spin_lock(&wdm_device_list_lock);
 	list_for_each_entry(desc, &wdm_device_list, device_list)
 		if (desc->intf == intf)
-			goto found;
-	desc = NULL;
-found:
+			break;
 	spin_unlock(&wdm_device_list_lock);
 
 	return desc;
@@ -154,14 +143,12 @@ found:
 
 static struct wdm_device *wdm_find_device_by_minor(int minor)
 {
-	struct wdm_device *desc;
+	struct wdm_device *desc = NULL;
 
 	spin_lock(&wdm_device_list_lock);
 	list_for_each_entry(desc, &wdm_device_list, device_list)
 		if (desc->intf->minor == minor)
-			goto found;
-	desc = NULL;
-found:
+			break;
 	spin_unlock(&wdm_device_list_lock);
 
 	return desc;
@@ -175,9 +162,8 @@ static void wdm_out_callback(struct urb *urb)
 	spin_lock(&desc->iuspin);
 	desc->werr = urb->status;
 	spin_unlock(&desc->iuspin);
-	kfree(desc->outbuf);
-	desc->outbuf = NULL;
 	clear_bit(WDM_IN_USE, &desc->flags);
+	kfree(desc->outbuf);
 	wake_up(&desc->wait);
 }
 
@@ -185,7 +171,6 @@ static void wdm_in_callback(struct urb *urb)
 {
 	struct wdm_device *desc = urb->context;
 	int status = urb->status;
-	int length = urb->actual_length;
 
 	spin_lock(&desc->iuspin);
 	clear_bit(WDM_RESPONDING, &desc->flags);
@@ -216,17 +201,9 @@ static void wdm_in_callback(struct urb *urb)
 	}
 
 	desc->rerr = status;
-	if (length + desc->length > desc->wMaxCommand) {
-		/* The buffer would overflow */
-		set_bit(WDM_OVERFLOW, &desc->flags);
-	} else {
-		/* we may already be in overflow */
-		if (!test_bit(WDM_OVERFLOW, &desc->flags)) {
-			memmove(desc->ubuf + desc->length, desc->inbuf, length);
-			desc->length += length;
-			desc->reslength = length;
-		}
-	}
+	desc->reslength = urb->actual_length;
+	memmove(desc->ubuf + desc->length, desc->inbuf, desc->reslength);
+	desc->length += desc->reslength;
 skip_error:
 	wake_up(&desc->wait);
 
@@ -237,7 +214,6 @@ skip_error:
 static void wdm_int_callback(struct urb *urb)
 {
 	int rv = 0;
-	int responding;
 	int status = urb->status;
 	struct wdm_device *desc;
 	struct usb_cdc_notification *dr;
@@ -293,8 +269,8 @@ static void wdm_int_callback(struct urb *urb)
 
 	spin_lock(&desc->iuspin);
 	clear_bit(WDM_READ, &desc->flags);
-	responding = test_and_set_bit(WDM_RESPONDING, &desc->flags);
-	if (!responding && !test_bit(WDM_DISCONNECTING, &desc->flags)
+	set_bit(WDM_RESPONDING, &desc->flags);
+	if (!test_bit(WDM_DISCONNECTING, &desc->flags)
 		&& !test_bit(WDM_SUSPENDING, &desc->flags)) {
 		rv = usb_submit_urb(desc->response, GFP_ATOMIC);
 		dev_dbg(&desc->intf->dev, "%s: usb_submit_urb %d",
@@ -339,6 +315,9 @@ static void free_urbs(struct wdm_device *desc)
 
 static void cleanup(struct wdm_device *desc)
 {
+	spin_lock(&wdm_device_list_lock);
+	list_del(&desc->device_list);
+	spin_unlock(&wdm_device_list_lock);
 	kfree(desc->sbuf);
 	kfree(desc->inbuf);
 	kfree(desc->orq);
@@ -366,7 +345,7 @@ static ssize_t wdm_write
 	if (we < 0)
 		return -EIO;
 
-	buf = kmalloc(count, GFP_KERNEL);
+	desc->outbuf = buf = kmalloc(count, GFP_KERNEL);
 	if (!buf) {
 		rv = -ENOMEM;
 		goto outnl;
@@ -434,12 +413,10 @@ static ssize_t wdm_write
 	req->wIndex = desc->inum; /* already converted */
 	req->wLength = cpu_to_le16(count);
 	set_bit(WDM_IN_USE, &desc->flags);
-	desc->outbuf = buf;
 
 	rv = usb_submit_urb(desc->command, GFP_KERNEL);
 	if (rv < 0) {
 		kfree(buf);
-		desc->outbuf = NULL;
 		clear_bit(WDM_IN_USE, &desc->flags);
 		dev_err(&desc->intf->dev, "Tx URB error: %d\n", rv);
 	} else {
@@ -472,11 +449,6 @@ static ssize_t wdm_read
 retry:
 		if (test_bit(WDM_DISCONNECTING, &desc->flags)) {
 			rv = -ENODEV;
-			goto err;
-		}
-		if (test_bit(WDM_OVERFLOW, &desc->flags)) {
-			clear_bit(WDM_OVERFLOW, &desc->flags);
-			rv = -ENOBUFS;
 			goto err;
 		}
 		i++;
@@ -522,10 +494,7 @@ retry:
 			spin_unlock_irq(&desc->iuspin);
 			goto retry;
 		}
-
 		if (!desc->reslength) { /* zero length read */
-			dev_dbg(&desc->intf->dev, "%s: zero length - clearing WDM_READ\n", __func__);
-			clear_bit(WDM_READ, &desc->flags);
 			spin_unlock_irq(&desc->iuspin);
 			goto retry;
 		}
@@ -565,13 +534,11 @@ static int wdm_flush(struct file *file, fl_owner_t id)
 	struct wdm_device *desc = file->private_data;
 
 	wait_event(desc->wait, !test_bit(WDM_IN_USE, &desc->flags));
-
-	/* cannot dereference desc->intf if WDM_DISCONNECTING */
-	if (desc->werr < 0 && !test_bit(WDM_DISCONNECTING, &desc->flags))
+	if (desc->werr < 0)
 		dev_err(&desc->intf->dev, "Error in flush path: %d\n",
 			desc->werr);
 
-	return usb_translate_errors(desc->werr);
+	return desc->werr;
 }
 
 static unsigned int wdm_poll(struct file *file, struct poll_table_struct *wait)
@@ -581,12 +548,11 @@ static unsigned int wdm_poll(struct file *file, struct poll_table_struct *wait)
 	unsigned int mask = 0;
 
 	spin_lock_irqsave(&desc->iuspin, flags);
-#ifdef CONFIG_MACH_TENDERLOIN
 	/* MBM, fixes Select() */
 	poll_wait(file, &desc->wait, wait);
-#endif
+
 	if (test_bit(WDM_DISCONNECTING, &desc->flags)) {
-		mask = POLLHUP | POLLERR;
+		mask = POLLERR;
 		spin_unlock_irqrestore(&desc->iuspin, flags);
 		goto desc_out;
 	}
@@ -596,10 +562,8 @@ static unsigned int wdm_poll(struct file *file, struct poll_table_struct *wait)
 		mask |= POLLERR;
 	if (!test_bit(WDM_IN_USE, &desc->flags))
 		mask |= POLLOUT | POLLWRNORM;
+
 	spin_unlock_irqrestore(&desc->iuspin, flags);
-#ifndef CONFIG_MACH_TENDERLOIN
-	poll_wait(file, &desc->wait, wait);
-#endif
 
 desc_out:
 	return mask;
@@ -663,15 +627,10 @@ static int wdm_release(struct inode *inode, struct file *file)
 	mutex_unlock(&desc->wlock);
 
 	if (!desc->count) {
-		if (!test_bit(WDM_DISCONNECTING, &desc->flags)) {
-			dev_dbg(&desc->intf->dev, "wdm_release: cleanup");
-			kill_urbs(desc);
+		dev_dbg(&desc->intf->dev, "wdm_release: cleanup");
+		kill_urbs(desc);
+		if (!test_bit(WDM_DISCONNECTING, &desc->flags))
 			desc->manage_power(desc->intf, 0);
-		} else {
-			/* must avoid dev_printk here as desc->intf is invalid */
-			pr_debug(KBUILD_MODNAME " %s: device gone - cleaning up\n", __func__);
-			cleanup(desc);
-		}
 	}
 	mutex_unlock(&wdm_mutex);
 	return 0;
@@ -699,20 +658,16 @@ static void wdm_rxwork(struct work_struct *work)
 {
 	struct wdm_device *desc = container_of(work, struct wdm_device, rxwork);
 	unsigned long flags;
-	int rv = 0;
-	int responding;
+	int rv;
 
 	spin_lock_irqsave(&desc->iuspin, flags);
 	if (test_bit(WDM_DISCONNECTING, &desc->flags)) {
 		spin_unlock_irqrestore(&desc->iuspin, flags);
 	} else {
-		responding = test_and_set_bit(WDM_RESPONDING, &desc->flags);
 		spin_unlock_irqrestore(&desc->iuspin, flags);
-		if (!responding)
-			rv = usb_submit_urb(desc->response, GFP_KERNEL);
+		rv = usb_submit_urb(desc->response, GFP_KERNEL);
 		if (rv < 0 && rv != -EPERM) {
 			spin_lock_irqsave(&desc->iuspin, flags);
-			clear_bit(WDM_RESPONDING, &desc->flags);
 			if (!test_bit(WDM_DISCONNECTING, &desc->flags))
 				schedule_work(&desc->rxwork);
 			spin_unlock_irqrestore(&desc->iuspin, flags);
@@ -745,11 +700,9 @@ static int wdm_create(struct usb_interface *intf, struct usb_endpoint_descriptor
 	rv = -EINVAL;
 	if (!usb_endpoint_is_int_in(ep))
 		goto err;
-#ifndef CONFIG_MACH_TENDERLOIN
-	desc->wMaxPacketSize = usb_endpoint_maxp(ep);
-#else
-    desc->wMaxPacketSize = le16_to_cpu(ep->wMaxPacketSize);
-#endif
+
+	desc->wMaxPacketSize = le16_to_cpu(ep->wMaxPacketSize);
+
 	desc->orq = kmalloc(sizeof(struct usb_ctrlrequest), GFP_KERNEL);
 	if (!desc->orq)
 		goto err;
@@ -824,9 +777,6 @@ static int wdm_create(struct usb_interface *intf, struct usb_endpoint_descriptor
 out:
 	return rv;
 err:
-	spin_lock(&wdm_device_list_lock);
-	list_del(&desc->device_list);
-	spin_unlock(&wdm_device_list_lock);
 	cleanup(desc);
 	return rv;
 }
@@ -835,11 +785,13 @@ static int wdm_manage_power(struct usb_interface *intf, int on)
 {
 	/* need autopm_get/put here to ensure the usbcore sees the new value */
 	int rv = usb_autopm_get_interface(intf);
+	if (rv < 0)
+		goto err;
 
 	intf->needs_remote_wakeup = on;
-	if (!rv)
-		usb_autopm_put_interface(intf);
-	return 0;
+	usb_autopm_put_interface(intf);
+err:
+	return rv;
 }
 
 static int wdm_probe(struct usb_interface *intf, const struct usb_device_id *id)
@@ -950,12 +902,6 @@ static void wdm_disconnect(struct usb_interface *intf)
 	cancel_work_sync(&desc->rxwork);
 	mutex_unlock(&desc->wlock);
 	mutex_unlock(&desc->rlock);
-
-	/* the desc->intf pointer used as list key is now invalid */
-	spin_lock(&wdm_device_list_lock);
-	list_del(&desc->device_list);
-	spin_unlock(&wdm_device_list_lock);
-
 	if (!desc->count)
 		cleanup(desc);
 	mutex_unlock(&wdm_mutex);
@@ -1055,9 +1001,6 @@ static int wdm_post_reset(struct usb_interface *intf)
 	struct wdm_device *desc = wdm_find_device(intf);
 	int rv;
 
-#ifndef CONFIG_MACH_TENDERLOIN
-	clear_bit(WDM_OVERFLOW, &desc->flags);
-#endif
 	clear_bit(WDM_RESETTING, &desc->flags);
 	rv = recover_from_urb_loss(desc);
 	mutex_unlock(&desc->wlock);
@@ -1080,7 +1023,24 @@ static struct usb_driver wdm_driver = {
 	.supports_autosuspend = 1,
 };
 
-module_usb_driver(wdm_driver);
+/* --- low level module stuff --- */
+
+static int __init wdm_init(void)
+{
+	int rv;
+
+	rv = usb_register(&wdm_driver);
+
+	return rv;
+}
+
+static void __exit wdm_exit(void)
+{
+	usb_deregister(&wdm_driver);
+}
+
+module_init(wdm_init);
+module_exit(wdm_exit);
 
 MODULE_AUTHOR(DRIVER_AUTHOR);
 MODULE_DESCRIPTION(DRIVER_DESC);
