@@ -1230,7 +1230,8 @@ static int __perf_remove_from_context(void *info)
 }
 
 #ifdef CONFIG_SMP
-static void perf_retry_remove(struct perf_event *event)
+static void perf_retry_remove(struct perf_event *event,
+			      struct remove_event *rep)
 {
 	int up_ret;
 	/*
@@ -1241,13 +1242,14 @@ static void perf_retry_remove(struct perf_event *event)
 	if (!up_ret)
 		/* Try the remove call once again. */
 		cpu_function_call(event->cpu, __perf_remove_from_context,
-				  event);
+				  rep);
 	else
 		pr_err("Failed to bring up CPU: %d, ret: %d\n",
 		       event->cpu, up_ret);
 }
 #else
-static void perf_retry_remove(struct perf_event *event)
+static void perf_retry_remove(struct perf_event *event,
+			      struct remove_event *rep)
 {
 }
 #endif
@@ -1287,7 +1289,7 @@ static void __ref perf_remove_from_context(struct perf_event *event, bool detach
 		ret = cpu_function_call(event->cpu, __perf_remove_from_context,
 					&re);
 		if (ret == -ENXIO)
-			perf_retry_remove(event);
+			perf_retry_remove(event, &re);
 		return;
 	}
 
