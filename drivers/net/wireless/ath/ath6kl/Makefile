@@ -41,3 +41,4 @@ ath6kl-$(CONFIG_ATH6KL_TRACING) += trace.o
 
 # for tracing framework to find trace.h
 CFLAGS_trace.o := -I$(src)
+CFLAGS_init.o := -Wno-maybe-uninitialized
