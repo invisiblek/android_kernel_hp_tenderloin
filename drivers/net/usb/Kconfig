@@ -471,7 +471,6 @@ config USB_SIERRA_NET
 config USB_GOBI3K_NET
 	tristate "USB-to-WWAN Driver for Gobi3K modems"
 	depends on USB_USBNET
-	default m
 	help
 	  Choose this option if you have a Sierra Wireless USB-to-WWAN device with Gobi support.
 	  To compile this driver as a module, choose M here: the
