@@ -19,12 +19,73 @@
 extern u32 vidc_msg_pmem;
 extern u32 vidc_msg_timing;
 
+extern u32 vidc_debug_level;
+extern u32 vidc_debug_out;
+
 enum timing_data {
 	DEC_OP_TIME,
 	DEC_IP_TIME,
 	ENC_OP_TIME,
 	MAX_TIME_DATA
 };
+
+#define DBG_PMEM(x...) \
+do { \
+	if (vidc_msg_pmem) \
+		printk(KERN_DEBUG x); \
+} while (0)
+
+/* Enable dynamic debug logging method */
+enum vidc_msg_level {
+	PRIO_FATAL = 0x1,
+	PRIO_ERROR = PRIO_FATAL,
+	PRIO_HIGH = 0x2,
+	PRIO_MED = 0x4,
+	PRIO_LOW = 0x8
+};
+
+enum vidc_msg_out {
+	VIDC_OUT_PRINTK = 1,
+	VIDC_OUT_FTRACE
+};
+
+#define debug_msg_printk(__msg...) \
+do { \
+	if (vidc_debug_out == VIDC_OUT_PRINTK) \
+		printk(KERN_INFO __msg); \
+	else if (vidc_debug_out == VIDC_OUT_FTRACE) \
+		trace_printk(KERN_DEBUG __msg); \
+} while (0)
+
+#define DDL_MSG_LOW(x...) \
+do { \
+	if (vidc_debug_level & PRIO_LOW) \
+		debug_msg_printk(x); \
+} while (0)
+
+#define DDL_MSG_MED(x...) \
+do { \
+	if (vidc_debug_level & PRIO_MED) \
+		debug_msg_printk(x); \
+} while (0)
+
+#define DDL_MSG_HIGH(x...) \
+do { \
+	if (vidc_debug_level & PRIO_HIGH) \
+		debug_msg_printk(x); \
+} while (0)
+
+#define DDL_MSG_ERROR(x...) \
+do { \
+	if (vidc_debug_level & PRIO_ERROR) \
+		debug_msg_printk("\n <ERROR>: " x); \
+} while (0)
+
+#define DDL_MSG_FATAL(x...) \
+do { \
+	if (vidc_debug_level & PRIO_FATAL) \
+		debug_msg_printk("\n <FATAL>: " x); \
+} while (0)
 
 #define DDL_INLINE
 
@@ -33,12 +94,6 @@ enum timing_data {
 
 #define DDL_MALLOC(x)  kmalloc(x, GFP_KERNEL)
 #define DDL_FREE(x)   { if ((x)) kfree((x)); (x) = NULL; }
-
-#define DBG_PMEM(x...) \
-do { \
-	if (vidc_msg_pmem) \
-		printk(KERN_DEBUG x); \
-} while (0)
 
 void ddl_set_core_start_time(const char *func_name, u32 index);
 
