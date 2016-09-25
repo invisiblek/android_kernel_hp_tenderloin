@@ -336,7 +336,7 @@ int mipi_dsi_clk_div_config(uint8 bpp, uint8 lanes,
 int mipi_dsi_clk_init(struct platform_device *pdev);
 void mipi_dsi_clk_deinit(struct device *dev);
 
-#ifdef CONFIG_FB_MSM_MIPI_DSI
+#if defined(CONFIG_FB_MSM_MIPI_DSI) || defined(CONFIG_ARCH_MSM8X60)
 void mipi_dsi_clk_enable(void);
 void mipi_dsi_clk_disable(void);
 void mipi_dsi_unprepare_clocks(void);
