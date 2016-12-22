@@ -1130,6 +1130,7 @@ done_put:
 		in_dev_put(in_dev);
 }
 
+#ifdef XT_SOCKET_HAVE_IPV6
 static void iface_stat_create_ipv6(struct net_device *net_dev,
 				   struct inet6_ifaddr *ifa)
 {
@@ -1186,6 +1187,7 @@ done_unlock_put:
 done_put:
 	in_dev_put(in_dev);
 }
+#endif
 
 static struct sock_tag *get_sock_stat_nl(const struct sock *sk)
 {
@@ -1208,14 +1210,20 @@ static struct sock_tag *get_sock_stat(const struct sock *sk)
 static int ipx_proto(const struct sk_buff *skb,
 		     struct xt_action_param *par)
 {
-	int thoff, tproto;
+
+#ifdef XT_SOCKET_HAVE_IPV6
+	int thoff;
+#endif
+	int tproto = 0;
 
 	switch (par->family) {
 	case NFPROTO_IPV6:
+#ifdef XT_SOCKET_HAVE_IPV6
 		tproto = ipv6_find_hdr(skb, &thoff, -1, NULL);
 		if (tproto < 0)
 			MT_DEBUG("%s(): transport header not found in ipv6"
 				 " skb=%p\n", __func__, skb);
+#endif
 		break;
 	case NFPROTO_IPV4:
 		tproto = ip_hdr(skb)->protocol;
@@ -1518,6 +1526,7 @@ static int iface_netdev_event_handler(struct notifier_block *nb,
 	return NOTIFY_DONE;
 }
 
+#ifdef XT_SOCKET_HAVE_IPV6
 static int iface_inet6addr_event_handler(struct notifier_block *nb,
 					 unsigned long event, void *ptr)
 {
@@ -1548,6 +1557,7 @@ static int iface_inet6addr_event_handler(struct notifier_block *nb,
 	}
 	return NOTIFY_DONE;
 }
+#endif
 
 static int iface_inetaddr_event_handler(struct notifier_block *nb,
 					unsigned long event, void *ptr)
@@ -1588,9 +1598,11 @@ static struct notifier_block iface_inetaddr_notifier_blk = {
 	.notifier_call = iface_inetaddr_event_handler,
 };
 
+#ifdef XT_SOCKET_HAVE_IPV6
 static struct notifier_block iface_inet6addr_notifier_blk = {
 	.notifier_call = iface_inet6addr_event_handler,
 };
+#endif
 
 static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
 {
@@ -1641,16 +1653,20 @@ static int __init iface_stat_init(struct proc_dir_entry *parent_procdir)
 		goto err_unreg_nd;
 	}
 
+#ifdef XT_SOCKET_HAVE_IPV6
 	err = register_inet6addr_notifier(&iface_inet6addr_notifier_blk);
 	if (err) {
 		pr_err("qtaguid: iface_stat: init "
 		       "failed to register ipv6 dev event handler\n");
 		goto err_unreg_ip4_addr;
 	}
+#endif
 	return 0;
 
+#ifdef XT_SOCKET_HAVE_IPV6
 err_unreg_ip4_addr:
 	unregister_inetaddr_notifier(&iface_inetaddr_notifier_blk);
+#endif
 err_unreg_nd:
 	unregister_netdevice_notifier(&iface_netdev_notifier_blk);
 err_zap_all_stats_entries:
@@ -1681,7 +1697,9 @@ static struct sock *qtaguid_find_sk(const struct sk_buff *skb,
 
 	switch (par->family) {
 	case NFPROTO_IPV6:
+#ifdef XT_SOCKET_HAVE_IPV6
 		sk = xt_socket_get6_sk(skb, par);
+#endif
 		break;
 	case NFPROTO_IPV4:
 		sk = xt_socket_get4_sk(skb, par);

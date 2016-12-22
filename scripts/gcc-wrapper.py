@@ -71,6 +71,8 @@ allowed_warnings = set([
    "f_qdss.c:740",
    "mipi_novatek.c:569",
    "swab.h:34",
+   "xt_qtaguid.c:1463",
+   "sock.h:279",
  ])
 
 # Capture the name of the object file, can find it.
