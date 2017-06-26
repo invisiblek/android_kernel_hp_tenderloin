@@ -1,4 +1,4 @@
-/* Copyright (c) 2012, The Linux Foundation. All rights reserved.
+/* Copyright (c) 2012, 2016, The Linux Foundation. All rights reserved.
  *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License version 2 and
@@ -20,6 +20,7 @@ struct kgsl_sync_timeline {
 	struct sync_timeline timeline;
 	unsigned int last_timestamp;
 	struct kgsl_device *device;
+	spinlock_t lock;
 	u32 context_id;
 };
 

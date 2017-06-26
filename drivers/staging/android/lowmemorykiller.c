@@ -411,6 +411,20 @@ static void __exit lowmem_exit(void)
 	unregister_shrinker(&lowmem_shrinker);
 }
 
+#ifdef CONFIG_ADAPTIVE_KSM
+int get_minfree_high_value(void)
+{
+	int array_size = ARRAY_SIZE(lowmem_adj);
+	if (lowmem_adj_size < array_size)
+		array_size = lowmem_adj_size;
+	if (lowmem_minfree_size < array_size)
+		array_size = lowmem_minfree_size;
+
+	return lowmem_minfree[array_size-1];
+}
+EXPORT_SYMBOL(get_minfree_high_value);
+#endif
+
 #ifdef CONFIG_ANDROID_LOW_MEMORY_KILLER_AUTODETECT_OOM_ADJ_VALUES
 static int lowmem_oom_adj_to_oom_score_adj(int oom_adj)
 {
