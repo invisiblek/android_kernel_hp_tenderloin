@@ -372,8 +372,8 @@ void __init tenderloin_pm8901_vreg_mpp_init(void)
 /* RPM early regulator constraints */
 static struct rpm_regulator_init_data rpm_regulator_early_init_data[] __devinitdata = {
 	/*	 ID       a_on pd ss min_uV   max_uV   init_ip    freq */
-	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1350000, SMPS_HMIN, 1p60),
-	RPM_SMPS(PM8058_S1, 0, 1, 1,  500000, 1350000, SMPS_HMIN, 1p60),
+	RPM_SMPS(PM8058_S0, 0, 1, 1,  500000, 1600000, SMPS_HMIN, 1p60),
+	RPM_SMPS(PM8058_S1, 0, 1, 1,  500000, 1600000, SMPS_HMIN, 1p60),
 };
 
 /* RPM regulator constraints */

@@ -420,8 +420,8 @@ static struct regulator_init_data saw_s0_init_data = {
 			.name = "8901_s0",
 			.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 					  REGULATOR_CHANGE_STATUS,
-			.min_uV = 800000,
-			.max_uV = 1325000,
+			.min_uV = 700000,
+			.max_uV = 1600000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S0,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S0),
@@ -432,8 +432,8 @@ static struct regulator_init_data saw_s1_init_data = {
 			.name = "8901_s1",
 			.valid_ops_mask	= REGULATOR_CHANGE_VOLTAGE |
 					  REGULATOR_CHANGE_STATUS,
-			.min_uV = 800000,
-			.max_uV = 1325000,
+			.min_uV = 700000,
+			.max_uV = 1600000,
 		},
 		.consumer_supplies = vreg_consumers_8901_S1,
 		.num_consumer_supplies = ARRAY_SIZE(vreg_consumers_8901_S1),
