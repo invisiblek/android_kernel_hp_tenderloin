@@ -67,9 +67,15 @@ static struct file_operations nduid_proc_ops = {
 	.release = seq_release,
 };
 
-static int __init nduid_setup(char *str)
+int nduid_id_setup(char *str)
 {
 	strncpy(nduid, str, sizeof(nduid));
+	return 0;
+}
+
+static int __init nduid_setup(char *str)
+{
+	nduid_id_setup(str);
 	return 0;
 }
 __setup("nduid=", nduid_setup);

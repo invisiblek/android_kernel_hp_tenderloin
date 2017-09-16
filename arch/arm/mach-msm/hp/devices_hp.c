@@ -25,3 +25,16 @@ int board_mfg_mode(void)
 	return mfg_mode;
 }
 
+/*
+ * This is a hack to allow nduid to pass
+ * as the serial number in Android.
+ */
+extern int nduid_id_setup(char *str);
+
+static int __init board_serialno_setup(char *str)
+{
+	nduid_id_setup(str);
+	return 0;
+}
+__setup("androidboot.serialno=", board_serialno_setup);
+

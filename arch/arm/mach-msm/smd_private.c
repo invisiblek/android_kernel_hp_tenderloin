@@ -237,6 +237,10 @@ unsigned get_head_word_access(volatile void *half_channel)
 
 int is_word_access_ch(unsigned ch_type)
 {
+#ifdef CONFIG_MSM_SDIO_SMEM
+	if (ch_type == SMD_APPS_MODEM)
+		return 1;
+#endif
 	if (ch_type == SMD_APPS_RPM || ch_type == SMD_MODEM_RPM ||
 		ch_type == SMD_QDSP_RPM || ch_type == SMD_WCNSS_RPM)
 		return 1;

@@ -96,14 +96,14 @@ static struct msm_sdcc_pad_pull_cfg sdc4_pad_on_pull_cfg[] = {
 };
 
 static struct msm_sdcc_pad_drv_cfg sdc4_pad_off_drv_cfg[] = {
-	{TLMM_HDRV_SDC4_CLK, GPIO_CFG_2MA},
-	{TLMM_HDRV_SDC4_CMD, GPIO_CFG_2MA},
-	{TLMM_HDRV_SDC4_DATA, GPIO_CFG_2MA}
+	{TLMM_HDRV_SDC4_CLK, GPIO_CFG_8MA},
+	{TLMM_HDRV_SDC4_CMD, GPIO_CFG_8MA},
+	{TLMM_HDRV_SDC4_DATA, GPIO_CFG_8MA}
 };
 
 static struct msm_sdcc_pad_pull_cfg sdc4_pad_off_pull_cfg[] = {
-	{TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_DOWN},
-	{TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_DOWN}
+	{TLMM_PULL_SDC4_CMD, GPIO_CFG_PULL_UP},
+	{TLMM_PULL_SDC4_DATA, GPIO_CFG_PULL_UP}
 };
 #endif
 
@@ -511,10 +511,6 @@ setup_vreg:
 #define MSM_MPM_PIN_SDC4_DAT1	23
 
 #ifdef CONFIG_MMC_MSM_SDC1_SUPPORT
-static unsigned int sdc1_sup_clk_rates[] = {
-	400000, 24000000, 48000000, 96000000
-};
-
 static struct mmc_platform_data msm8x60_sdc1_data = {
 	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
         .translate_vdd  = msm_sdcc_setup_power,
@@ -523,31 +519,34 @@ static struct mmc_platform_data msm8x60_sdc1_data = {
 #else
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
 #endif
-	.sup_clk_table	= sdc1_sup_clk_rates,
-	.sup_clk_cnt	= ARRAY_SIZE(sdc1_sup_clk_rates),
-	.nonremovable	= 1,
+	.msmsdcc_fmin	= 400000,
+	.msmsdcc_fmid	= 24000000,
+	.msmsdcc_fmax	= 48000000,
+	.nonremovable	= 0,
+        //        .hc_erase_group_def =1,
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+        //        .bkops_support = 1,
 };
 #endif
 
 #ifdef CONFIG_MMC_MSM_SDC4_SUPPORT
-static unsigned int sdc4_sup_clk_rates[] = {
-	400000, 24000000, 48000000
-};
-
 void tenderloin_remove_wifi(int id, struct mmc_host *mmc);
 void tenderloin_probe_wifi(int id, struct mmc_host *mmc);
 
 static struct mmc_platform_data msm8x60_sdc4_data = {
-        .ocr_mask	= MMC_VDD_28_29,
+	.ocr_mask       = MMC_VDD_27_28 | MMC_VDD_28_29,
 	.translate_vdd  = msm_sdcc_setup_power,
 	.mmc_bus_width  = MMC_CAP_4_BIT_DATA,
-	.sup_clk_table	= sdc4_sup_clk_rates,
-	.sup_clk_cnt	= ARRAY_SIZE(sdc4_sup_clk_rates),
+	.msmsdcc_fmin	= 400000,
+	.msmsdcc_fmid	= 24000000,
+	.msmsdcc_fmax	= 48000000,
 	.board_probe	= tenderloin_probe_wifi,
 	.board_remove	= tenderloin_remove_wifi,
-	.nonremovable	= 1,
+	//.nonremovable	= 1,
+	.mpm_sdiowakeup_int = MSM_MPM_PIN_SDC4_DAT1,
 	.msm_bus_voting_data = &sps_to_ddr_bus_voting_data,
+	//	.cfg_mpm_sdiowakeup = msm_sdcc_cfg_mpm_sdiowakeup,
+	//	.dummy52_required = 1,
 };
 #endif
 
